@@ -12,22 +12,27 @@ const DURUMLAR = [
 ]
 
 export default function Gorevler() {
-  const { aktifSantiye } = useSite()
+  const { aktifSantiye, santiyeler } = useSite()
   const { profile } = useAuth()
   const [gorevler, setGorevler] = useState([])
-  const [filtre, setFiltre] = useState('hepsi')
+  const [filtreDurum, setFiltreDurum] = useState('hepsi')
+  const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [yeniBaslik, setYeniBaslik] = useState('')
+  const [yeniSantiyeId, setYeniSantiyeId] = useState('')
   const [dinliyor, setDinliyor] = useState(false)
 
   useEffect(() => {
-    if (aktifSantiye) gorevleriYukle()
+    if (aktifSantiye) setYeniSantiyeId(aktifSantiye.id)
   }, [aktifSantiye])
+
+  useEffect(() => {
+    gorevleriYukle()
+  }, [])
 
   const gorevleriYukle = async () => {
     const { data } = await supabase
       .from('gorevler')
-      .select('*, gorev_etiketleri(*)')
-      .eq('santiye_id', aktifSantiye.id)
+      .select('*, gorev_etiketleri(*), santiyeler(ad)')
       .order('created_at', { ascending: false })
     setGorevler(data || [])
   }
@@ -35,7 +40,7 @@ export default function Gorevler() {
   const gorevEkle = async () => {
     if (!yeniBaslik.trim()) return
     await supabase.from('gorevler').insert({
-      santiye_id: aktifSantiye.id,
+      santiye_id: yeniSantiyeId,
       baslik: yeniBaslik,
       olusturan: profile?.id,
     })
@@ -68,20 +73,35 @@ export default function Gorevler() {
     tanima.start()
   }
 
-  const gorunenler = filtre === 'hepsi' ? gorevler : gorevler.filter((g) => g.durum === filtre)
+  const santiyeyeGoreFiltreli = filtreSantiye === 'hepsi'
+    ? gorevler
+    : gorevler.filter((g) => g.santiye_id === filtreSantiye)
+
+  const gorunenler = filtreDurum === 'hepsi'
+    ? santiyeyeGoreFiltreli
+    : santiyeyeGoreFiltreli.filter((g) => g.durum === filtreDurum)
 
   if (!aktifSantiye) return <p className="bos-mesaj">Şantiye yükleniyor...</p>
 
   return (
     <div className="sayfa">
-      <h2>Görevler · {aktifSantiye.ad}</h2>
+      <h2>Görevler</h2>
+
+      <div className="filtre-satiri">
+        <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
+        {santiyeler.map((s) => (
+          <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>
+            {s.ad}
+          </button>
+        ))}
+      </div>
 
       <div className="filtre-satiri">
         {DURUMLAR.map((d) => (
           <button
             key={d.deger}
-            className={`filtre-chip ${filtre === d.deger ? 'secili' : ''}`}
-            onClick={() => setFiltre(d.deger)}
+            className={`filtre-chip ${filtreDurum === d.deger ? 'secili' : ''}`}
+            onClick={() => setFiltreDurum(d.deger)}
           >
             {d.etiket}
           </button>
@@ -95,13 +115,12 @@ export default function Gorevler() {
               <span className="kart-baslik">{g.baslik}</span>
               <button className="sil-buton" onClick={() => gorevSil(g.id)} aria-label="Görevi sil">🗑</button>
             </div>
-            {g.gorev_etiketleri?.length > 0 && (
-              <div className="etiket-satiri">
-                {g.gorev_etiketleri.map((e) => (
-                  <span key={e.id} className="etiket">{e.deger}</span>
-                ))}
-              </div>
-            )}
+            <div className="etiket-satiri">
+              <span className="etiket etiket-vurgu">{g.santiyeler?.ad || 'Şantiye'}</span>
+              {g.gorev_etiketleri?.map((e) => (
+                <span key={e.id} className="etiket">{e.deger}</span>
+              ))}
+            </div>
             <select value={g.durum} onChange={(ev) => durumGuncelle(g.id, ev.target.value)} className="durum-secici">
               {DURUMLAR.filter((d) => d.deger !== 'hepsi').map((d) => (
                 <option key={d.deger} value={d.deger}>{d.etiket}</option>
@@ -113,6 +132,9 @@ export default function Gorevler() {
       </div>
 
       <div className="ekleme-cubugu">
+        <select value={yeniSantiyeId} onChange={(e) => setYeniSantiyeId(e.target.value)} className="ekleme-santiye-secici">
+          {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+        </select>
         <input
           type="text"
           placeholder="Görev ekle..."
