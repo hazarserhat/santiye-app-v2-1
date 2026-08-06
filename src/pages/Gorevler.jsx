@@ -48,6 +48,12 @@ export default function Gorevler() {
     gorevleriYukle()
   }
 
+  const gorevSil = async (id) => {
+    if (!window.confirm('Bu görevi silmek istediğinize emin misiniz?')) return
+    await supabase.from('gorevler').delete().eq('id', id)
+    gorevleriYukle()
+  }
+
   const sesleYaz = () => {
     const Tanima = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!Tanima) {
@@ -87,6 +93,7 @@ export default function Gorevler() {
           <div key={g.id} className="kart">
             <div className="kart-ust">
               <span className="kart-baslik">{g.baslik}</span>
+              <button className="sil-buton" onClick={() => gorevSil(g.id)} aria-label="Görevi sil">🗑</button>
             </div>
             {g.gorev_etiketleri?.length > 0 && (
               <div className="etiket-satiri">

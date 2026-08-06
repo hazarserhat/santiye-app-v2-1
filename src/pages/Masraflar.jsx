@@ -13,7 +13,7 @@ const ODEME_YONTEMLERI = [
 const bugun = () => new Date().toISOString().slice(0, 10)
 
 export default function Masraflar() {
-  const { aktifSantiye } = useSite()
+  const { aktifSantiye, santiyeler } = useSite()
   const { profile } = useAuth()
   const [masraflar, setMasraflar] = useState([])
   const [kategoriler, setKategoriler] = useState([])
@@ -27,6 +27,11 @@ export default function Masraflar() {
   const [harcamaTarihi, setHarcamaTarihi] = useState(bugun())
   const [fotograf, setFotograf] = useState(null)
   const [dinliyor, setDinliyor] = useState(false)
+  const [secilenSantiyeId, setSecilenSantiyeId] = useState('')
+
+  useEffect(() => {
+    if (aktifSantiye) setSecilenSantiyeId(aktifSantiye.id)
+  }, [aktifSantiye])
 
   useEffect(() => {
     supabase.from('masraf_kategorileri').select('*').order('ad').then(({ data }) => {
@@ -43,7 +48,7 @@ export default function Masraflar() {
     const { data } = await supabase
       .from('masraflar')
       .select('*, masraf_kategorileri(ad)')
-      .eq('santiye_id', aktifSantiye.id)
+      .or(`santiye_id.eq.${aktifSantiye.id},santiye_id.is.null`)
       .order('harcama_tarihi', { ascending: false })
     setMasraflar(data || [])
   }
@@ -69,7 +74,7 @@ export default function Masraflar() {
     }
 
     await supabase.from('masraflar').insert({
-      santiye_id: aktifSantiye.id,
+      santiye_id: secilenSantiyeId === 'genel' ? null : secilenSantiyeId,
       kategori_id: kategoriId,
       baslik,
       tutar: Number(tutar),
@@ -83,6 +88,7 @@ export default function Masraflar() {
     setTutar('')
     setFotograf(null)
     setHarcamaTarihi(bugun())
+    setSecilenSantiyeId(aktifSantiye.id)
     setYukleniyor(false)
     masraflariYukle()
   }
@@ -135,6 +141,9 @@ export default function Masraflar() {
               <span className="kart-tutar">{Number(m.tutar).toLocaleString('tr-TR')} ₺</span>
             </div>
             <div className="etiket-satiri">
+              <span className="etiket etiket-vurgu">
+                {m.santiye_id ? (santiyeler.find((s) => s.id === m.santiye_id)?.ad || 'Şantiye') : 'Genel Gider'}
+              </span>
               <span className="etiket">{m.masraf_kategorileri?.ad}</span>
               <span className="etiket">{ODEME_YONTEMLERI.find((o) => o.deger === m.odeme_yontemi)?.etiket}</span>
               {m.fotograf_url && <a className="etiket" href={m.fotograf_url} target="_blank" rel="noreferrer">Fotoğraf</a>}
@@ -149,6 +158,10 @@ export default function Masraflar() {
       </div>
 
       <div className="ekleme-kutusu">
+        <select value={secilenSantiyeId} onChange={(e) => setSecilenSantiyeId(e.target.value)} className="santiye-secici-form">
+          {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+          <option value="genel">Genel Gider (şantiyeye bağlı değil)</option>
+        </select>
         <input type="text" placeholder="Masraf başlığı..." value={baslik} onChange={(e) => setBaslik(e.target.value)} />
         <div className="ekleme-satiri-2">
           <input type="number" placeholder="Tutar (₺)" value={tutar} onChange={(e) => setTutar(e.target.value)} />
