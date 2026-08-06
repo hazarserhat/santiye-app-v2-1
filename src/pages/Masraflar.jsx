@@ -3,13 +3,6 @@ import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 
-const ODEME_YONTEMLERI = [
-  { deger: 'sirket_karti', etiket: 'Şirket kartı' },
-  { deger: 'kisisel_kart', etiket: 'Kişisel kart' },
-  { deger: 'nakit', etiket: 'Nakit' },
-  { deger: 'diger', etiket: 'Diğer' },
-]
-
 const bugun = () => new Date().toISOString().slice(0, 10)
 
 export default function Masraflar() {
@@ -17,13 +10,14 @@ export default function Masraflar() {
   const { profile } = useAuth()
   const [masraflar, setMasraflar] = useState([])
   const [kategoriler, setKategoriler] = useState([])
+  const [odemeYontemleri, setOdemeYontemleri] = useState([])
   const [filtreKategori, setFiltreKategori] = useState('hepsi')
   const [yukleniyor, setYukleniyor] = useState(false)
 
   const [baslik, setBaslik] = useState('')
   const [tutar, setTutar] = useState('')
   const [kategoriId, setKategoriId] = useState('')
-  const [odemeYontemi, setOdemeYontemi] = useState('sirket_karti')
+  const [odemeYontemiId, setOdemeYontemiId] = useState('')
   const [harcamaTarihi, setHarcamaTarihi] = useState(bugun())
   const [fotograf, setFotograf] = useState(null)
   const [dinliyor, setDinliyor] = useState(false)
@@ -38,6 +32,10 @@ export default function Masraflar() {
       setKategoriler(data || [])
       if (data?.length) setKategoriId(data[0].id)
     })
+    supabase.from('odeme_yontemleri').select('*').order('ad').then(({ data }) => {
+      setOdemeYontemleri(data || [])
+      if (data?.length) setOdemeYontemiId(data[0].id)
+    })
   }, [])
 
   useEffect(() => {
@@ -47,7 +45,7 @@ export default function Masraflar() {
   const masraflariYukle = async () => {
     const { data } = await supabase
       .from('masraflar')
-      .select('*, masraf_kategorileri(ad)')
+      .select('*, masraf_kategorileri(ad), odeme_yontemleri(ad)')
       .or(`santiye_id.eq.${aktifSantiye.id},santiye_id.is.null`)
       .order('harcama_tarihi', { ascending: false })
     setMasraflar(data || [])
@@ -55,7 +53,7 @@ export default function Masraflar() {
 
   const buAy = masraflar.filter((m) => m.harcama_tarihi.slice(0, 7) === bugun().slice(0, 7))
   const buAyToplam = buAy.reduce((t, m) => t + Number(m.tutar), 0)
-  const nakitToplam = buAy.filter((m) => m.odeme_yontemi === 'nakit').reduce((t, m) => t + Number(m.tutar), 0)
+  const nakitToplam = buAy.filter((m) => m.odeme_yontemleri?.ad?.includes('KASA')).reduce((t, m) => t + Number(m.tutar), 0)
 
   const gorunenler = filtreKategori === 'hepsi' ? masraflar : masraflar.filter((m) => m.kategori_id === filtreKategori)
 
@@ -78,7 +76,7 @@ export default function Masraflar() {
       kategori_id: kategoriId,
       baslik,
       tutar: Number(tutar),
-      odeme_yontemi: odemeYontemi,
+      odeme_yontemi_id: odemeYontemiId,
       harcama_tarihi: harcamaTarihi,
       fotograf_url: fotografUrl,
       ekleyen: profile?.id,
@@ -145,7 +143,7 @@ export default function Masraflar() {
                 {m.santiye_id ? (santiyeler.find((s) => s.id === m.santiye_id)?.ad || 'Şantiye') : 'Genel Gider'}
               </span>
               <span className="etiket">{m.masraf_kategorileri?.ad}</span>
-              <span className="etiket">{ODEME_YONTEMLERI.find((o) => o.deger === m.odeme_yontemi)?.etiket}</span>
+              <span className="etiket">{m.odeme_yontemleri?.ad}</span>
               {m.fotograf_url && <a className="etiket" href={m.fotograf_url} target="_blank" rel="noreferrer">Fotoğraf</a>}
             </div>
             <div className="kart-alt-tarih">
@@ -171,8 +169,8 @@ export default function Masraflar() {
         </div>
         <div className="ekleme-satiri-2">
           <input type="date" value={harcamaTarihi} onChange={(e) => setHarcamaTarihi(e.target.value)} />
-          <select value={odemeYontemi} onChange={(e) => setOdemeYontemi(e.target.value)}>
-            {ODEME_YONTEMLERI.map((o) => <option key={o.deger} value={o.deger}>{o.etiket}</option>)}
+          <select value={odemeYontemiId} onChange={(e) => setOdemeYontemiId(e.target.value)}>
+            {odemeYontemleri.map((o) => <option key={o.id} value={o.id}>{o.ad}</option>)}
           </select>
         </div>
         <div className="ekleme-satiri-2">
