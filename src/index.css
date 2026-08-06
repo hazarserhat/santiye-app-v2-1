@@ -134,3 +134,34 @@ input, select, button { font-family: inherit; max-width: 100%; }
 /* Masraf: şantiye/genel gider rozeti ve form seçici */
 .etiket-vurgu { background: #E1F5EE !important; color: #085041 !important; font-weight: 500; }
 .santiye-secici-form { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #D3D1C7; font-size: 13px; font-weight: 500; }
+
+/* Cari Kartlar modülü */
+.geri-buton { background: none; border: none; color: #0F6E56; font-size: 13px; cursor: pointer; padding: 0; margin-bottom: 14px; }
+
+.taseron-baslik-satiri { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.avatar-daire { width: 40px; height: 40px; border-radius: 50%; background: #E1F5EE; color: #085041; display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 13px; flex-shrink: 0; }
+.taseron-ad { font-size: 14px; font-weight: 500; margin: 0; }
+.taseron-firma { font-size: 12px; color: #5F5E5A; margin: 2px 0 0; }
+.taseron-satir { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+
+.bilgi-kutusu { background: white; border: 1px solid #D3D1C7; border-radius: 12px; padding: 12px; margin-bottom: 16px; }
+.bilgi-satiri { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 13px; }
+.bilgi-satiri span:first-child { color: #5F5E5A; flex-shrink: 0; }
+.bilgi-satiri span:last-child { text-align: right; }
+
+.alt-baslik { font-size: 13px; font-weight: 500; margin: 0 0 8px; }
+.not-icerik { font-size: 13px; color: #2C2C2A; margin: 0; }
+.not-alt { font-size: 11px; color: #888780; display: block; margin-top: 6px; }
+
+.kilit-kutusu { background: white; border: 1px solid #D3D1C7; border-radius: 12px; padding: 20px; text-align: center; color: #5F5E5A; font-size: 13px; }
+.kilit-ikon { font-size: 20px; display: block; margin-bottom: 6px; }
+
+.durum-rozet { font-size: 11px; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+.rozet-sari { background: #FCEFD1; color: #8A5A00; }
+.rozet-yesil { background: #DCF3E7; color: #0B6B41; }
+
+.hakedis-hesap { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; margin-top: 8px; font-size: 12px; }
+.hakedis-hesap span:nth-child(odd) { color: #5F5E5A; }
+.hakedis-hesap span:nth-child(even) { text-align: right; }
+.hakedis-net-etiket { font-weight: 500; color: #2C2C2A !important; }
+.hakedis-net-tutar { font-weight: 500; text-align: right; }

@@ -6,6 +6,7 @@ import AltMenu from './components/AltMenu'
 import Login from './pages/Login'
 import Gorevler from './pages/Gorevler'
 import Masraflar from './pages/Masraflar'
+import CariKartlar from './pages/CariKartlar'
 import YapimAsamasinda from './pages/YapimAsamasinda'
 
 function IcerikAlani() {
@@ -27,7 +28,7 @@ function IcerikAlani() {
             <Route path="/" element={<Navigate to="/gorevler" replace />} />
             <Route path="/gorevler" element={<Gorevler />} />
             <Route path="/masraflar" element={<Masraflar />} />
-            <Route path="/cari-kartlar" element={<YapimAsamasinda baslik="Cari Kartlar" />} />
+            <Route path="/cari-kartlar" element={<CariKartlar />} />
             <Route path="/puantaj" element={<YapimAsamasinda baslik="Puantaj" />} />
             <Route path="/gunluk-rapor" element={<YapimAsamasinda baslik="Günlük Rapor" />} />
             <Route path="/animsaticilar" element={<YapimAsamasinda baslik="Anımsatıcı / Uyarı" />} />
