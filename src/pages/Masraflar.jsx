@@ -12,6 +12,7 @@ export default function Masraflar() {
   const [kategoriler, setKategoriler] = useState([])
   const [odemeYontemleri, setOdemeYontemleri] = useState([])
   const [filtreKategori, setFiltreKategori] = useState('hepsi')
+  const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [yukleniyor, setYukleniyor] = useState(false)
 
   const [baslik, setBaslik] = useState('')
@@ -39,23 +40,30 @@ export default function Masraflar() {
   }, [])
 
   useEffect(() => {
-    if (aktifSantiye) masraflariYukle()
-  }, [aktifSantiye])
+    masraflariYukle()
+  }, [])
 
   const masraflariYukle = async () => {
     const { data } = await supabase
       .from('masraflar')
       .select('*, masraf_kategorileri(ad), odeme_yontemleri(ad)')
-      .or(`santiye_id.eq.${aktifSantiye.id},santiye_id.is.null`)
       .order('harcama_tarihi', { ascending: false })
     setMasraflar(data || [])
   }
 
-  const buAy = masraflar.filter((m) => m.harcama_tarihi.slice(0, 7) === bugun().slice(0, 7))
+  const santiyeyeGoreFiltreli = filtreSantiye === 'hepsi'
+    ? masraflar
+    : filtreSantiye === 'genel'
+      ? masraflar.filter((m) => !m.santiye_id)
+      : masraflar.filter((m) => m.santiye_id === filtreSantiye)
+
+  const gorunenler = filtreKategori === 'hepsi'
+    ? santiyeyeGoreFiltreli
+    : santiyeyeGoreFiltreli.filter((m) => m.kategori_id === filtreKategori)
+
+  const buAy = gorunenler.filter((m) => m.harcama_tarihi.slice(0, 7) === bugun().slice(0, 7))
   const buAyToplam = buAy.reduce((t, m) => t + Number(m.tutar), 0)
   const nakitToplam = buAy.filter((m) => m.odeme_yontemleri?.ad?.includes('KASA')).reduce((t, m) => t + Number(m.tutar), 0)
-
-  const gorunenler = filtreKategori === 'hepsi' ? masraflar : masraflar.filter((m) => m.kategori_id === filtreKategori)
 
   const masrafEkle = async () => {
     if (!baslik.trim() || !tutar) return
@@ -91,6 +99,12 @@ export default function Masraflar() {
     masraflariYukle()
   }
 
+  const masrafSil = async (id) => {
+    if (!window.confirm('Bu masrafı silmek istediğinize emin misiniz?')) return
+    await supabase.from('masraflar').delete().eq('id', id)
+    masraflariYukle()
+  }
+
   const sesleYaz = () => {
     const Tanima = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!Tanima) {
@@ -109,7 +123,7 @@ export default function Masraflar() {
 
   return (
     <div className="sayfa">
-      <h2>Masraf / irsaliye · {aktifSantiye.ad}</h2>
+      <h2>Masraf / irsaliye</h2>
 
       <div className="ozet-satiri">
         <div className="ozet-kart">
@@ -123,7 +137,17 @@ export default function Masraflar() {
       </div>
 
       <div className="filtre-satiri">
-        <button className={`filtre-chip ${filtreKategori === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreKategori('hepsi')}>Tümü</button>
+        <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
+        {santiyeler.map((s) => (
+          <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>
+            {s.ad}
+          </button>
+        ))}
+        <button className={`filtre-chip ${filtreSantiye === 'genel' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('genel')}>Genel Gider</button>
+      </div>
+
+      <div className="filtre-satiri">
+        <button className={`filtre-chip ${filtreKategori === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreKategori('hepsi')}>Tüm kategoriler</button>
         {kategoriler.map((k) => (
           <button key={k.id} className={`filtre-chip ${filtreKategori === k.id ? 'secili' : ''}`} onClick={() => setFiltreKategori(k.id)}>
             {k.ad}
@@ -136,7 +160,10 @@ export default function Masraflar() {
           <div key={m.id} className="kart">
             <div className="kart-ust">
               <span className="kart-baslik">{m.baslik}</span>
-              <span className="kart-tutar">{Number(m.tutar).toLocaleString('tr-TR')} ₺</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span className="kart-tutar">{Number(m.tutar).toLocaleString('tr-TR')} ₺</span>
+                <button className="sil-buton" onClick={() => masrafSil(m.id)} aria-label="Masrafı sil">🗑</button>
+              </div>
             </div>
             <div className="etiket-satiri">
               <span className="etiket etiket-vurgu">
