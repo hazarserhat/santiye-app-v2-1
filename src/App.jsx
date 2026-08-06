@@ -1,0 +1,51 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import { SiteProvider } from './context/SiteContext'
+import SiteSwitcher from './components/SiteSwitcher'
+import AltMenu from './components/AltMenu'
+import Login from './pages/Login'
+import Gorevler from './pages/Gorevler'
+import YapimAsamasinda from './pages/YapimAsamasinda'
+
+function IcerikAlani() {
+  const { session, yukleniyor, cikisYap } = useAuth()
+
+  if (yukleniyor) return <p className="bos-mesaj">Yükleniyor...</p>
+  if (!session) return <Login />
+
+  return (
+    <SiteProvider>
+      <div className="uygulama-govde">
+        <header className="ust-bar">
+          <SiteSwitcher />
+          <button className="cikis-buton" onClick={cikisYap}>Çıkış</button>
+        </header>
+
+        <main className="icerik">
+          <Routes>
+            <Route path="/" element={<Navigate to="/gorevler" replace />} />
+            <Route path="/gorevler" element={<Gorevler />} />
+            <Route path="/masraflar" element={<YapimAsamasinda baslik="Masraf / İrsaliye" />} />
+            <Route path="/cari-kartlar" element={<YapimAsamasinda baslik="Cari Kartlar" />} />
+            <Route path="/puantaj" element={<YapimAsamasinda baslik="Puantaj" />} />
+            <Route path="/gunluk-rapor" element={<YapimAsamasinda baslik="Günlük Rapor" />} />
+            <Route path="/animsaticilar" element={<YapimAsamasinda baslik="Anımsatıcı / Uyarı" />} />
+            <Route path="/notlarim" element={<YapimAsamasinda baslik="Notlarım" />} />
+          </Routes>
+        </main>
+
+        <AltMenu />
+      </div>
+    </SiteProvider>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <IcerikAlani />
+      </AuthProvider>
+    </BrowserRouter>
+  )
+}
