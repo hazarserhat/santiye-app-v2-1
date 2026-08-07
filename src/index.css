@@ -204,3 +204,7 @@ input, select, button { font-family: inherit; max-width: 100%; }
 .taseron-sifat { color: #5F5E5A; font-weight: 400; font-size: 12px; }
 .chevron-buyuk { font-size: 20px; color: #C7C5BA; flex-shrink: 0; }
 .etiket-sil-x { background: none; border: none; color: inherit; font-size: 13px; cursor: pointer; padding: 0; line-height: 1; }
+
+/* Üst bar: kullanıcı adı */
+.ust-bar-sol { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+.kullanici-adi { font-size: 11px; color: #888780; font-weight: 500; }
