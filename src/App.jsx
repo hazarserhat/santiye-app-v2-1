@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { SiteProvider } from './context/SiteContext'
 import SiteSwitcher from './components/SiteSwitcher'
@@ -10,8 +10,12 @@ import CariKartlar from './pages/CariKartlar'
 import Puantaj from './pages/Puantaj'
 import YapimAsamasinda from './pages/YapimAsamasinda'
 
+const SANTIYE_SECICI_GIZLI_SAYFALAR = ['/gorevler', '/masraflar', '/cari-kartlar']
+
 function IcerikAlani() {
   const { session, yukleniyor, cikisYap } = useAuth()
+  const konum = useLocation()
+  const seciciGizli = SANTIYE_SECICI_GIZLI_SAYFALAR.includes(konum.pathname)
 
   if (yukleniyor) return <p className="bos-mesaj">Yükleniyor...</p>
   if (!session) return <Login />
@@ -20,7 +24,7 @@ function IcerikAlani() {
     <SiteProvider>
       <div className="uygulama-govde">
         <header className="ust-bar">
-          <SiteSwitcher />
+          {seciciGizli ? <span /> : <SiteSwitcher />}
           <button className="cikis-buton" onClick={cikisYap}>Çıkış</button>
         </header>
 

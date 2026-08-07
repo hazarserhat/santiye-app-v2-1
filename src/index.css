@@ -190,3 +190,17 @@ input, select, button { font-family: inherit; max-width: 100%; }
 .takvim-gun-toplam { font-size: 11px; color: #5F5E5A; }
 .takvim-gun.bugun { background: #E1F5EE; border-color: #0F6E56; }
 .takvim-gun.bugun .takvim-gun-no { color: #085041; font-weight: 500; }
+
+/* Görevler: alt görev, öncelik, düzenleme */
+.gorev-alt-bilgi { font-size: 11px; color: #888780; margin-top: 8px; }
+.alt-gorev-ekle-buton { background: none; border: none; color: #0F6E56; font-size: 12px; cursor: pointer; padding: 6px 0 0; }
+.daha-fazla-buton { background: none; border: none; color: #5F5E5A; font-size: 12px; cursor: pointer; padding: 4px 0 10px; }
+.oncelik-secici-satiri { display: flex; gap: 10px; padding: 6px 2px; }
+.oncelik-nokta { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; padding: 0; cursor: pointer; }
+.oncelik-nokta.secili { border-color: #2C2C2A; }
+.kisi-etiket-secici { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* Cari Kartlar: sıfat, chevron, şantiye ilişkisi silme */
+.taseron-sifat { color: #5F5E5A; font-weight: 400; font-size: 12px; }
+.chevron-buyuk { font-size: 20px; color: #C7C5BA; flex-shrink: 0; }
+.etiket-sil-x { background: none; border: none; color: inherit; font-size: 13px; cursor: pointer; padding: 0; line-height: 1; }

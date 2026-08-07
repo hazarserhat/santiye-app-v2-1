@@ -8,11 +8,14 @@ const bugun = () => new Date().toISOString().slice(0, 10)
 export default function Masraflar() {
   const { aktifSantiye, santiyeler } = useSite()
   const { profile } = useAuth()
+  const yonetici = profile?.rol === 'yonetici'
   const [masraflar, setMasraflar] = useState([])
+  const [kullanicilar, setKullanicilar] = useState([])
   const [kategoriler, setKategoriler] = useState([])
   const [odemeYontemleri, setOdemeYontemleri] = useState([])
   const [filtreKategori, setFiltreKategori] = useState('hepsi')
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
+  const [filtreKullanici, setFiltreKullanici] = useState('hepsi')
   const [yukleniyor, setYukleniyor] = useState(false)
 
   const [baslik, setBaslik] = useState('')
@@ -37,6 +40,7 @@ export default function Masraflar() {
       setOdemeYontemleri(data || [])
       if (data?.length) setOdemeYontemiId(data[0].id)
     })
+    supabase.from('profiles').select('*').order('ad_soyad').then(({ data }) => setKullanicilar(data || []))
   }, [])
 
   useEffect(() => {
@@ -46,16 +50,20 @@ export default function Masraflar() {
   const masraflariYukle = async () => {
     const { data } = await supabase
       .from('masraflar')
-      .select('*, masraf_kategorileri(ad), odeme_yontemleri(ad)')
+      .select('*, masraf_kategorileri(ad), odeme_yontemleri(ad), profiles(ad_soyad)')
       .order('harcama_tarihi', { ascending: false })
     setMasraflar(data || [])
   }
 
-  const santiyeyeGoreFiltreli = filtreSantiye === 'hepsi'
+  const kullaniciyaGoreFiltreli = filtreKullanici === 'hepsi'
     ? masraflar
+    : masraflar.filter((m) => m.ekleyen === filtreKullanici)
+
+  const santiyeyeGoreFiltreli = filtreSantiye === 'hepsi'
+    ? kullaniciyaGoreFiltreli
     : filtreSantiye === 'genel'
-      ? masraflar.filter((m) => !m.santiye_id)
-      : masraflar.filter((m) => m.santiye_id === filtreSantiye)
+      ? kullaniciyaGoreFiltreli.filter((m) => !m.santiye_id)
+      : kullaniciyaGoreFiltreli.filter((m) => m.santiye_id === filtreSantiye)
 
   const gorunenler = filtreKategori === 'hepsi'
     ? santiyeyeGoreFiltreli
@@ -146,6 +154,17 @@ export default function Masraflar() {
         <button className={`filtre-chip ${filtreSantiye === 'genel' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('genel')}>Genel Gider</button>
       </div>
 
+      {yonetici && (
+        <div className="filtre-satiri">
+          <button className={`filtre-chip ${filtreKullanici === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreKullanici('hepsi')}>Tüm kullanıcılar</button>
+          {kullanicilar.map((k) => (
+            <button key={k.id} className={`filtre-chip ${filtreKullanici === k.id ? 'secili' : ''}`} onClick={() => setFiltreKullanici(k.id)}>
+              {k.ad_soyad}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="filtre-satiri">
         <button className={`filtre-chip ${filtreKategori === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreKategori('hepsi')}>Tüm kategoriler</button>
         {kategoriler.map((k) => (
@@ -176,6 +195,9 @@ export default function Masraflar() {
             <div className="kart-alt-tarih">
               <span>Harcama: {new Date(m.harcama_tarihi).toLocaleDateString('tr-TR')}</span>
               <span>Kayıt: {new Date(m.kayit_tarihi).toLocaleDateString('tr-TR')}</span>
+            </div>
+            <div className="kart-alt-tarih" style={{ marginTop: 2 }}>
+              <span>Ekleyen: {m.profiles?.ad_soyad || 'Bilinmiyor'}</span>
             </div>
           </div>
         ))}

@@ -11,15 +11,37 @@ const DURUMLAR = [
   { deger: 'gecikti', etiket: 'Geciken' },
 ]
 
+const ONCELIKLER = [
+  { deger: 'kirmizi', etiket: 'Kritik', renk: '#D64545' },
+  { deger: 'turuncu', etiket: 'Yüksek', renk: '#E08A2E' },
+  { deger: 'sari', etiket: 'Orta', renk: '#D9B429' },
+  { deger: 'yesil', etiket: 'Düşük', renk: '#3F9E5C' },
+]
+
+function oncelikBul(deger) {
+  return ONCELIKLER.find((o) => o.deger === deger)
+}
+
 export default function Gorevler() {
   const { aktifSantiye, santiyeler } = useSite()
   const { profile } = useAuth()
   const [gorevler, setGorevler] = useState([])
+  const [kullanicilar, setKullanicilar] = useState([])
   const [filtreDurum, setFiltreDurum] = useState('hepsi')
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
+
   const [yeniBaslik, setYeniBaslik] = useState('')
   const [yeniSantiyeId, setYeniSantiyeId] = useState('')
+  const [yeniOncelik, setYeniOncelik] = useState('sari')
+  const [yeniEtiketliler, setYeniEtiketliler] = useState([])
   const [dinliyor, setDinliyor] = useState(false)
+
+  const [duzenlenenId, setDuzenlenenId] = useState(null)
+  const [duzenlenenBaslik, setDuzenlenenBaslik] = useState('')
+
+  const [genisletilmis, setGenisletilmis] = useState({}) // { [gorevId]: true }
+  const [altGorevAcikId, setAltGorevAcikId] = useState(null)
+  const [altGorevMetni, setAltGorevMetni] = useState('')
 
   useEffect(() => {
     if (aktifSantiye) setYeniSantiyeId(aktifSantiye.id)
@@ -27,24 +49,57 @@ export default function Gorevler() {
 
   useEffect(() => {
     gorevleriYukle()
+    supabase.from('profiles').select('*').order('ad_soyad').then(({ data }) => setKullanicilar(data || []))
   }, [])
 
   const gorevleriYukle = async () => {
     const { data } = await supabase
       .from('gorevler')
-      .select('*, gorev_etiketleri(*), santiyeler(ad)')
+      .select('*, gorev_etiketleri(*), santiyeler(ad), profiles(ad_soyad)')
       .order('created_at', { ascending: false })
     setGorevler(data || [])
   }
 
   const gorevEkle = async () => {
     if (!yeniBaslik.trim()) return
-    await supabase.from('gorevler').insert({
+    const { data, error } = await supabase.from('gorevler').insert({
       santiye_id: yeniSantiyeId,
       baslik: yeniBaslik,
       olusturan: profile?.id,
-    })
+    }).select().single()
+
+    if (!error && data) {
+      await supabase.from('gorev_etiketleri').insert({ gorev_id: data.id, etiket_turu: 'oncelik', deger: yeniOncelik })
+
+      for (const kullaniciId of yeniEtiketliler) {
+        await supabase.from('gorev_etiketleri').insert({ gorev_id: data.id, etiket_turu: 'kisi', deger: kullaniciId })
+        if (kullaniciId !== profile?.id) {
+          await supabase.from('bildirimler').insert({
+            kullanici_id: kullaniciId,
+            mesaj: `${profile?.ad_soyad || 'Bir kullanıcı'} sizi bir görevde etiketledi: "${yeniBaslik}"`,
+            gorev_id: data.id,
+            olusturan: profile?.id,
+          })
+        }
+      }
+    }
+
     setYeniBaslik('')
+    setYeniOncelik('sari')
+    setYeniEtiketliler([])
+    gorevleriYukle()
+  }
+
+  const altGorevEkle = async (ustId, santiyeId) => {
+    if (!altGorevMetni.trim()) return
+    await supabase.from('gorevler').insert({
+      santiye_id: santiyeId,
+      baslik: altGorevMetni,
+      olusturan: profile?.id,
+      ust_gorev_id: ustId,
+    })
+    setAltGorevMetni('')
+    setAltGorevAcikId(null)
     gorevleriYukle()
   }
 
@@ -53,18 +108,22 @@ export default function Gorevler() {
     gorevleriYukle()
   }
 
+  const basligiKaydet = async (id) => {
+    if (!duzenlenenBaslik.trim()) return
+    await supabase.from('gorevler').update({ baslik: duzenlenenBaslik }).eq('id', id)
+    setDuzenlenenId(null)
+    gorevleriYukle()
+  }
+
   const gorevSil = async (id) => {
-    if (!window.confirm('Bu görevi silmek istediğinize emin misiniz?')) return
+    if (!window.confirm('Bu görevi (ve varsa alt görevlerini) silmek istediğinize emin misiniz?')) return
     await supabase.from('gorevler').delete().eq('id', id)
     gorevleriYukle()
   }
 
   const sesleYaz = () => {
     const Tanima = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!Tanima) {
-      alert('Tarayıcınız sesli girişi desteklemiyor.')
-      return
-    }
+    if (!Tanima) { alert('Tarayıcınız sesli girişi desteklemiyor.'); return }
     const tanima = new Tanima()
     tanima.lang = 'tr-TR'
     tanima.onresult = (e) => setYeniBaslik((onceki) => onceki + e.results[0][0].transcript)
@@ -73,15 +132,105 @@ export default function Gorevler() {
     tanima.start()
   }
 
-  const santiyeyeGoreFiltreli = filtreSantiye === 'hepsi'
-    ? gorevler
-    : gorevler.filter((g) => g.santiye_id === filtreSantiye)
-
-  const gorunenler = filtreDurum === 'hepsi'
-    ? santiyeyeGoreFiltreli
-    : santiyeyeGoreFiltreli.filter((g) => g.durum === filtreDurum)
+  const etiketliKisiToggle = (id) => {
+    setYeniEtiketliler((onceki) => onceki.includes(id) ? onceki.filter((x) => x !== id) : [...onceki, id])
+  }
 
   if (!aktifSantiye) return <p className="bos-mesaj">Şantiye yükleniyor...</p>
+
+  const santiyeyeGoreFiltreli = filtreSantiye === 'hepsi' ? gorevler : gorevler.filter((g) => g.santiye_id === filtreSantiye)
+  const durumaGoreFiltreli = filtreDurum === 'hepsi' ? santiyeyeGoreFiltreli : santiyeyeGoreFiltreli.filter((g) => g.durum === filtreDurum)
+  const kokGorevler = durumaGoreFiltreli.filter((g) => !g.ust_gorev_id)
+
+  const altGorevleriBul = (ustId) => durumaGoreFiltreli.filter((g) => g.ust_gorev_id === ustId)
+
+  const GorevKarti = ({ gorev, seviye }) => {
+    const oncelikEtiketi = gorev.gorev_etiketleri?.find((e) => e.etiket_turu === 'oncelik')
+    const oncelik = oncelikEtiketi ? oncelikBul(oncelikEtiketi.deger) : null
+    const kisiEtiketleri = gorev.gorev_etiketleri?.filter((e) => e.etiket_turu === 'kisi') || []
+    const altlar = altGorevleriBul(gorev.id)
+    const genisletildi = genisletilmis[gorev.id]
+    const gosterilecekAltlar = genisletildi ? altlar : altlar.slice(0, 2)
+
+    return (
+      <div style={{ marginLeft: seviye * 16 }}>
+        <div className="kart" style={{ borderLeft: oncelik ? `4px solid ${oncelik.renk}` : undefined }}>
+          <div className="kart-ust">
+            {duzenlenenId === gorev.id ? (
+              <input
+                type="text"
+                value={duzenlenenBaslik}
+                onChange={(e) => setDuzenlenenBaslik(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && basligiKaydet(gorev.id)}
+                autoFocus
+                style={{ flex: 1, marginRight: 8 }}
+              />
+            ) : (
+              <span className="kart-baslik">{gorev.baslik}</span>
+            )}
+            <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+              {duzenlenenId === gorev.id ? (
+                <button className="sil-buton" onClick={() => basligiKaydet(gorev.id)} aria-label="Kaydet">✓</button>
+              ) : (
+                <button className="sil-buton" onClick={() => { setDuzenlenenId(gorev.id); setDuzenlenenBaslik(gorev.baslik) }} aria-label="Düzenle">✎</button>
+              )}
+              <button className="sil-buton" onClick={() => gorevSil(gorev.id)} aria-label="Görevi sil">🗑</button>
+            </div>
+          </div>
+
+          <div className="etiket-satiri">
+            {seviye === 0 && filtreSantiye === 'hepsi' && <span className="etiket etiket-vurgu">{gorev.santiyeler?.ad}</span>}
+            {oncelik && <span className="etiket" style={{ background: oncelik.renk, color: 'white' }}>{oncelik.etiket}</span>}
+            {kisiEtiketleri.map((e) => {
+              const kisi = kullanicilar.find((k) => k.id === e.deger)
+              return <span key={e.id} className="etiket">@{kisi?.ad_soyad || '—'}</span>
+            })}
+          </div>
+
+          <select value={gorev.durum} onChange={(ev) => durumGuncelle(gorev.id, ev.target.value)} className="durum-secici">
+            {DURUMLAR.filter((d) => d.deger !== 'hepsi').map((d) => (
+              <option key={d.deger} value={d.deger}>{d.etiket}</option>
+            ))}
+          </select>
+
+          <div className="gorev-alt-bilgi">
+            {gorev.profiles?.ad_soyad || 'Bilinmiyor'} · {new Date(gorev.created_at).toLocaleDateString('tr-TR')}
+          </div>
+
+          {seviye < 2 && (
+            <button className="alt-gorev-ekle-buton" onClick={() => { setAltGorevAcikId(altGorevAcikId === gorev.id ? null : gorev.id); setAltGorevMetni('') }}>
+              + Alt görev ekle
+            </button>
+          )}
+
+          {altGorevAcikId === gorev.id && (
+            <div className="ekleme-satiri-2" style={{ marginTop: 8 }}>
+              <input
+                type="text"
+                placeholder="Alt görev yaz..."
+                value={altGorevMetni}
+                onChange={(e) => setAltGorevMetni(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && altGorevEkle(gorev.id, gorev.santiye_id)}
+              />
+              <button onClick={() => altGorevEkle(gorev.id, gorev.santiye_id)}>Ekle</button>
+            </div>
+          )}
+        </div>
+
+        {gosterilecekAltlar.map((alt) => <GorevKarti key={alt.id} gorev={alt} seviye={seviye + 1} />)}
+
+        {altlar.length > 2 && (
+          <button
+            className="daha-fazla-buton"
+            style={{ marginLeft: (seviye + 1) * 16 }}
+            onClick={() => setGenisletilmis((onceki) => ({ ...onceki, [gorev.id]: !onceki[gorev.id] }))}
+          >
+            {genisletildi ? '▲ Daralt' : `▼ ${altlar.length - 2} tane daha göster`}
+          </button>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="sayfa">
@@ -90,62 +239,65 @@ export default function Gorevler() {
       <div className="filtre-satiri">
         <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
         {santiyeler.map((s) => (
-          <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>
-            {s.ad}
-          </button>
+          <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
         ))}
       </div>
 
       <div className="filtre-satiri">
         {DURUMLAR.map((d) => (
-          <button
-            key={d.deger}
-            className={`filtre-chip ${filtreDurum === d.deger ? 'secili' : ''}`}
-            onClick={() => setFiltreDurum(d.deger)}
-          >
-            {d.etiket}
-          </button>
+          <button key={d.deger} className={`filtre-chip ${filtreDurum === d.deger ? 'secili' : ''}`} onClick={() => setFiltreDurum(d.deger)}>{d.etiket}</button>
         ))}
       </div>
 
       <div className="liste">
-        {gorunenler.map((g) => (
-          <div key={g.id} className="kart">
-            <div className="kart-ust">
-              <span className="kart-baslik">{g.baslik}</span>
-              <button className="sil-buton" onClick={() => gorevSil(g.id)} aria-label="Görevi sil">🗑</button>
-            </div>
-            <div className="etiket-satiri">
-              <span className="etiket etiket-vurgu">{g.santiyeler?.ad || 'Şantiye'}</span>
-              {g.gorev_etiketleri?.map((e) => (
-                <span key={e.id} className="etiket">{e.deger}</span>
-              ))}
-            </div>
-            <select value={g.durum} onChange={(ev) => durumGuncelle(g.id, ev.target.value)} className="durum-secici">
-              {DURUMLAR.filter((d) => d.deger !== 'hepsi').map((d) => (
-                <option key={d.deger} value={d.deger}>{d.etiket}</option>
-              ))}
-            </select>
-          </div>
-        ))}
-        {gorunenler.length === 0 && <p className="bos-mesaj">Bu filtrede görev yok.</p>}
+        {kokGorevler.map((g) => <GorevKarti key={g.id} gorev={g} seviye={0} />)}
+        {kokGorevler.length === 0 && <p className="bos-mesaj">Bu filtrede görev yok.</p>}
       </div>
 
-      <div className="ekleme-cubugu">
-        <select value={yeniSantiyeId} onChange={(e) => setYeniSantiyeId(e.target.value)} className="ekleme-santiye-secici">
+      <div className="ekleme-kutusu">
+        <select value={yeniSantiyeId} onChange={(e) => setYeniSantiyeId(e.target.value)}>
           {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
         </select>
-        <input
-          type="text"
-          placeholder="Görev ekle..."
-          value={yeniBaslik}
-          onChange={(e) => setYeniBaslik(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && gorevEkle()}
-        />
-        <button className="mikrofon-buton" onClick={sesleYaz} aria-label="Sesle yaz">
-          {dinliyor ? '●' : '🎤'}
-        </button>
-        <button onClick={gorevEkle}>Ekle</button>
+
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="Görev ekle..."
+            value={yeniBaslik}
+            onChange={(e) => setYeniBaslik(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && gorevEkle()}
+            style={{ flex: 1 }}
+          />
+          <button className="mikrofon-buton" onClick={sesleYaz} aria-label="Sesle yaz">{dinliyor ? '●' : '🎤'}</button>
+        </div>
+
+        <div className="oncelik-secici-satiri">
+          {ONCELIKLER.map((o) => (
+            <button
+              key={o.deger}
+              className={`oncelik-nokta ${yeniOncelik === o.deger ? 'secili' : ''}`}
+              style={{ background: o.renk }}
+              onClick={() => setYeniOncelik(o.deger)}
+              aria-label={o.etiket}
+              title={o.etiket}
+            />
+          ))}
+        </div>
+
+        <p style={{ fontSize: 12, color: '#5F5E5A', margin: '4px 0 2px' }}>Etiketlenecek kişiler:</p>
+        <div className="kisi-etiket-secici">
+          {kullanicilar.map((k) => (
+            <button
+              key={k.id}
+              className={`filtre-chip ${yeniEtiketliler.includes(k.id) ? 'secili' : ''}`}
+              onClick={() => etiketliKisiToggle(k.id)}
+            >
+              {k.ad_soyad}
+            </button>
+          ))}
+        </div>
+
+        <button className="ekle-buton-genis" onClick={gorevEkle}>Görevi kaydet</button>
       </div>
     </div>
   )
