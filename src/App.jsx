@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import Gorevler from './pages/Gorevler'
 import Masraflar from './pages/Masraflar'
 import CariKartlar from './pages/CariKartlar'
+import Puantaj from './pages/Puantaj'
 import YapimAsamasinda from './pages/YapimAsamasinda'
 
 function IcerikAlani() {
@@ -29,7 +30,7 @@ function IcerikAlani() {
             <Route path="/gorevler" element={<Gorevler />} />
             <Route path="/masraflar" element={<Masraflar />} />
             <Route path="/cari-kartlar" element={<CariKartlar />} />
-            <Route path="/puantaj" element={<YapimAsamasinda baslik="Puantaj" />} />
+            <Route path="/puantaj" element={<Puantaj />} />
             <Route path="/gunluk-rapor" element={<YapimAsamasinda baslik="Günlük Rapor" />} />
             <Route path="/animsaticilar" element={<YapimAsamasinda baslik="Anımsatıcı / Uyarı" />} />
             <Route path="/notlarim" element={<YapimAsamasinda baslik="Notlarım" />} />

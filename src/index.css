@@ -168,3 +168,25 @@ input, select, button { font-family: inherit; max-width: 100%; }
 
 /* Görevler: ekleme çubuğundaki şantiye seçici (küçük ve sabit genişlikte) */
 .ekleme-santiye-secici { flex-shrink: 0; max-width: 92px; padding: 8px 4px; border-radius: 8px; border: 1px solid #D3D1C7; font-size: 11px; }
+
+/* Puantaj modülü */
+.gorunum-secici { display: flex; gap: 6px; margin-bottom: 14px; }
+.gorunum-secici button { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #D3D1C7; background: white; font-size: 13px; }
+.gorunum-secici button.secili-tab { background: #0F6E56; color: white; border-color: #0F6E56; font-weight: 500; }
+
+.tarih-gezici { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.tarih-gezici button { background: white; border: 1px solid #D3D1C7; border-radius: 8px; width: 36px; height: 36px; font-size: 16px; }
+.tarih-gezici span { font-size: 14px; font-weight: 500; text-align: center; flex: 1; }
+
+.stepper-satiri { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.stepper-buton { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #D3D1C7; background: white; font-size: 16px; padding: 0; }
+.stepper-sayi { font-size: 16px; font-weight: 500; min-width: 24px; text-align: center; }
+
+.takvim-baslik-satiri { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 6px; }
+.takvim-baslik-satiri span { font-size: 11px; color: #888780; text-align: center; }
+.takvim-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 130px; }
+.takvim-gun { height: 48px; background: white; border: 1px solid #D3D1C7; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+.takvim-gun-no { font-size: 12px; color: #2C2C2A; }
+.takvim-gun-toplam { font-size: 11px; color: #5F5E5A; }
+.takvim-gun.bugun { background: #E1F5EE; border-color: #0F6E56; }
+.takvim-gun.bugun .takvim-gun-no { color: #085041; font-weight: 500; }
