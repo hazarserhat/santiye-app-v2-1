@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
+import HizliSantiyeEkle from '../components/HizliSantiyeEkle'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -37,11 +38,13 @@ export default function Masraflar() {
       if (data?.length) setKategoriId(data[0].id)
     })
     supabase.from('odeme_yontemleri').select('*').order('ad').then(({ data }) => {
-      setOdemeYontemleri(data || [])
-      if (data?.length) setOdemeYontemiId(data[0].id)
+      const tumu = data || []
+      const filtreli = profile?.rol === 'santiye_sefi' ? tumu.filter((o) => o.sef_gorebilir) : tumu
+      setOdemeYontemleri(filtreli)
+      if (filtreli.length) setOdemeYontemiId(filtreli[0].id)
     })
     supabase.from('profiles').select('*').order('ad_soyad').then(({ data }) => setKullanicilar(data || []))
-  }, [])
+  }, [profile])
 
   useEffect(() => {
     masraflariYukle()
@@ -87,7 +90,7 @@ export default function Masraflar() {
       }
     }
 
-    await supabase.from('masraflar').insert({
+    const { error } = await supabase.from('masraflar').insert({
       santiye_id: secilenSantiyeId === 'genel' ? null : secilenSantiyeId,
       kategori_id: kategoriId,
       baslik,
@@ -97,6 +100,12 @@ export default function Masraflar() {
       fotograf_url: fotografUrl,
       ekleyen: profile?.id,
     })
+
+    if (error) {
+      alert('Masraf eklenemedi: ' + error.message)
+      setYukleniyor(false)
+      return
+    }
 
     setBaslik('')
     setTutar('')
@@ -152,6 +161,7 @@ export default function Masraflar() {
           </button>
         ))}
         <button className={`filtre-chip ${filtreSantiye === 'genel' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('genel')}>Genel Gider</button>
+        <HizliSantiyeEkle />
       </div>
 
       {yonetici && (

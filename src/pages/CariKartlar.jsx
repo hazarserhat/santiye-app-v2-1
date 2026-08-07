@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
+import HizliSantiyeEkle from '../components/HizliSantiyeEkle'
 
 export default function CariKartlar() {
   const { santiyeler } = useSite()
@@ -74,7 +75,11 @@ export default function CariKartlar() {
       .from('taseronlar')
       .insert({ ad: yeniAd, sifat: yeniSifat, firma: yeniFirma, telefon: yeniTelefon, adres: yeniAdres })
       .select().single()
-    if (!error && data) {
+    if (error) {
+      alert('Taşeron eklenemedi: ' + error.message)
+      return
+    }
+    if (data) {
       setYeniAd(''); setYeniSifat(''); setYeniFirma(''); setYeniTelefon(''); setYeniAdres('')
       setYeniTaseronAcik(false)
       taseronlariYukle()
@@ -83,7 +88,11 @@ export default function CariKartlar() {
 
   const santiyeIliskisiEkle = async () => {
     if (!eklenecekSantiyeId) return
-    await supabase.from('taseron_santiyeler').insert({ taseron_id: seciliId, santiye_id: eklenecekSantiyeId })
+    const { error } = await supabase.from('taseron_santiyeler').insert({ taseron_id: seciliId, santiye_id: eklenecekSantiyeId })
+    if (error) {
+      alert('Şantiye eklenemedi: ' + error.message)
+      return
+    }
     setEklenecekSantiyeId('')
     detayYukle(seciliId)
     taseronlariYukle()
@@ -230,7 +239,10 @@ export default function CariKartlar() {
     <div className="sayfa">
       <h2>Cari kartlar</h2>
 
-      <input type="text" placeholder="Taşeron ara..." value={arama} onChange={(e) => setArama(e.target.value)} style={{ marginBottom: 12 }} />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
+        <input type="text" placeholder="Taşeron ara..." value={arama} onChange={(e) => setArama(e.target.value)} style={{ flex: 1, margin: 0 }} />
+        <HizliSantiyeEkle />
+      </div>
 
       <div className="gorunum-secici" style={{ marginBottom: 12 }}>
         <button className={siralama === 'alfabetik' ? 'secili-tab' : ''} onClick={() => setSiralama('alfabetik')}>Alfabetik</button>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
+import HizliSantiyeEkle from '../components/HizliSantiyeEkle'
 
 const DURUMLAR = [
   { deger: 'hepsi', etiket: 'Tümü' },
@@ -62,14 +63,22 @@ export default function Gorevler() {
 
   const gorevEkle = async () => {
     if (!yeniBaslik.trim()) return
+    if (!yeniSantiyeId) { alert('Lütfen önce bir şantiye seçin.'); return }
+
     const { data, error } = await supabase.from('gorevler').insert({
       santiye_id: yeniSantiyeId,
       baslik: yeniBaslik,
       olusturan: profile?.id,
     }).select().single()
 
-    if (!error && data) {
-      await supabase.from('gorev_etiketleri').insert({ gorev_id: data.id, etiket_turu: 'oncelik', deger: yeniOncelik })
+    if (error) {
+      alert('Görev eklenemedi: ' + error.message)
+      return
+    }
+
+    if (data) {
+      const { error: etiketHatasi } = await supabase.from('gorev_etiketleri').insert({ gorev_id: data.id, etiket_turu: 'oncelik', deger: yeniOncelik })
+      if (etiketHatasi) console.error('Öncelik etiketi eklenemedi:', etiketHatasi.message)
 
       for (const kullaniciId of yeniEtiketliler) {
         await supabase.from('gorev_etiketleri').insert({ gorev_id: data.id, etiket_turu: 'kisi', deger: kullaniciId })
@@ -241,6 +250,7 @@ export default function Gorevler() {
         {santiyeler.map((s) => (
           <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
         ))}
+        <HizliSantiyeEkle />
       </div>
 
       <div className="filtre-satiri">
