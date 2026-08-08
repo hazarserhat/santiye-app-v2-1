@@ -153,6 +153,57 @@ export default function Gorevler() {
 
   if (!aktifSantiye) return <p className="bos-mesaj">Şantiye yükleniyor...</p>
 
+  // ---- Kademeli numaralandırma (1, 1.1, 1.2, 2, 2.1...) ----
+  const numaraHaritasi = {}
+  const kokTumTarihSirali = gorevler.filter((g) => !g.ust_gorev_id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  const numarala = (gorev, prefix) => {
+    numaraHaritasi[gorev.id] = prefix
+    const altlar = gorevler.filter((g) => g.ust_gorev_id === gorev.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    altlar.forEach((alt, i) => numarala(alt, `${prefix}.${i + 1}`))
+  }
+  kokTumTarihSirali.forEach((kok, i) => numarala(kok, String(i + 1)))
+
+  const kisiListesiMetni = (gorev) => {
+    const kisiler = (gorev.gorev_etiketleri || [])
+      .filter((e) => e.etiket_turu === 'kisi')
+      .map((e) => kullanicilar.find((k) => k.id === e.deger)?.ad_soyad)
+      .filter(Boolean)
+    return kisiler.length ? kisiler.join(', ') : 'Atanmamış'
+  }
+
+  const paylasMetniOlustur = () => {
+    const bolumler = [
+      { durum: 'bekliyor', baslik: '🟡 BEKLEYEN GÖREVLER' },
+      { durum: 'devam_ediyor', baslik: '🔵 DEVAM EDEN GÖREVLER' },
+      { durum: 'gecikti', baslik: '🔴 GECİKEN GÖREVLER' },
+      { durum: 'tamamlandi', baslik: '🟢 TAMAMLANAN GÖREVLER' },
+    ]
+    let metin = `📋 GÖREV RAPORU — ${new Date().toLocaleDateString('tr-TR')}\n\n`
+    bolumler.forEach((b) => {
+      const liste = gorevler
+        .filter((g) => g.durum === b.durum)
+        .sort((a, c) => (numaraHaritasi[a.id] || '').localeCompare(numaraHaritasi[c.id] || '', undefined, { numeric: true }))
+      if (liste.length === 0) return
+      metin += `${b.baslik}\n`
+      liste.forEach((g) => {
+        metin += `${numaraHaritasi[g.id] || '?'}. ${g.baslik}\n`
+        metin += `   Şantiye: ${g.santiyeler?.ad || '—'}\n`
+        metin += `   Kişi: ${kisiListesiMetni(g)}\n`
+        metin += `   Ekleyen: ${g.profiles?.ad_soyad || 'Bilinmiyor'}, ${new Date(g.created_at).toLocaleDateString('tr-TR')}\n\n`
+      })
+    })
+    return metin
+  }
+
+  const paylas = async () => {
+    const metin = paylasMetniOlustur()
+    if (navigator.share) {
+      try { await navigator.share({ text: metin, title: 'Görev Raporu' }) } catch { /* kullanıcı iptal etti */ }
+    } else {
+      window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
+    }
+  }
+
   const santiyeyeGoreFiltreli = filtreSantiye === 'hepsi' ? gorevler : gorevler.filter((g) => g.santiye_id === filtreSantiye)
   const kisiyeGoreFiltreli = filtreKisi === 'hepsi'
     ? santiyeyeGoreFiltreli
@@ -184,7 +235,7 @@ export default function Gorevler() {
                 style={{ flex: 1, marginRight: 8 }}
               />
             ) : (
-              <span className="kart-baslik">{gorev.baslik}</span>
+              <span className="kart-baslik"><span className="gorev-numara">{numaraHaritasi[gorev.id]}</span> {gorev.baslik}</span>
             )}
             <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
               {duzenlenenId === gorev.id ? (
@@ -252,7 +303,10 @@ export default function Gorevler() {
 
   return (
     <div className="sayfa">
-      <h2>Görevler</h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <h2 style={{ margin: 0 }}>Görevler</h2>
+        <button onClick={paylas} style={{ fontSize: 12, padding: '6px 10px' }}>📤 Paylaş</button>
+      </div>
 
       <div className="filtre-satiri">
         <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>

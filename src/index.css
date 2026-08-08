@@ -208,3 +208,6 @@ input, select, button { font-family: inherit; max-width: 100%; }
 /* Üst bar: kullanıcı adı */
 .ust-bar-sol { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
 .kullanici-adi { font-size: 11px; color: #888780; font-weight: 500; }
+
+/* Görev numaralandırma (1, 1.1, 1.2...) */
+.gorev-numara { color: #888780; font-weight: 400; font-size: 12px; }
