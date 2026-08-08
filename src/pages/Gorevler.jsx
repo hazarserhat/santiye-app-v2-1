@@ -56,10 +56,14 @@ export default function Gorevler() {
   }, [])
 
   const gorevleriYukle = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('gorevler')
-      .select('*, gorev_etiketleri(*), santiyeler(ad), profiles(ad_soyad)')
+      .select('*, gorev_etiketleri(*), santiyeler(ad), profiles!olusturan(ad_soyad)')
       .order('created_at', { ascending: false })
+    if (error) {
+      alert('Görevler yüklenemedi: ' + error.message)
+      return
+    }
     setGorevler(data || [])
   }
 
