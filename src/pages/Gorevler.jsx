@@ -45,6 +45,7 @@ export default function Gorevler() {
   const [genisletilmis, setGenisletilmis] = useState({}) // { [gorevId]: true }
   const [altGorevAcikId, setAltGorevAcikId] = useState(null)
   const [altGorevMetni, setAltGorevMetni] = useState('')
+  const [seciliGorevler, setSeciliGorevler] = useState([])
 
   useEffect(() => {
     if (aktifSantiye) setYeniSantiyeId(aktifSantiye.id)
@@ -179,8 +180,9 @@ export default function Gorevler() {
       { durum: 'tamamlandi', baslik: '🟢 TAMAMLANAN GÖREVLER' },
     ]
     let metin = `📋 GÖREV RAPORU — ${new Date().toLocaleDateString('tr-TR')}\n\n`
+    const kaynakListe = seciliGorevler.length > 0 ? gorevler.filter((g) => seciliGorevler.includes(g.id)) : gorevler
     bolumler.forEach((b) => {
-      const liste = gorevler
+      const liste = kaynakListe
         .filter((g) => g.durum === b.durum)
         .sort((a, c) => (numaraHaritasi[a.id] || '').localeCompare(numaraHaritasi[c.id] || '', undefined, { numeric: true }))
       if (liste.length === 0) return
@@ -225,6 +227,14 @@ export default function Gorevler() {
       <div style={{ marginLeft: seviye * 16 }}>
         <div className="kart" style={{ borderLeft: oncelik ? `4px solid ${oncelik.renk}` : undefined }}>
           <div className="kart-ust">
+            <input
+              type="checkbox"
+              checked={seciliGorevler.includes(gorev.id)}
+              onChange={() => setSeciliGorevler((onceki) =>
+                onceki.includes(gorev.id) ? onceki.filter((x) => x !== gorev.id) : [...onceki, gorev.id]
+              )}
+              style={{ marginRight: 8, flexShrink: 0, width: 16, height: 16 }}
+            />
             {duzenlenenId === gorev.id ? (
               <input
                 type="text"
@@ -303,10 +313,20 @@ export default function Gorevler() {
 
   return (
     <div className="sayfa">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
         <h2 style={{ margin: 0 }}>Görevler</h2>
-        <button onClick={paylas} style={{ fontSize: 12, padding: '6px 10px' }}>📤 Paylaş</button>
+        <button onClick={paylas} style={{ fontSize: 12, padding: '6px 10px' }}>
+          📤 Paylaş{seciliGorevler.length > 0 ? ` (${seciliGorevler.length})` : ''}
+        </button>
       </div>
+      {seciliGorevler.length > 0 && (
+        <button
+          onClick={() => setSeciliGorevler([])}
+          style={{ fontSize: 11, padding: '4px 8px', marginBottom: 12, background: 'none', border: 'none', color: '#0F6E56' }}
+        >
+          Seçimi temizle ({seciliGorevler.length} görev seçili)
+        </button>
+      )}
 
       <div className="filtre-satiri">
         <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
