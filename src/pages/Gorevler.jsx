@@ -30,6 +30,8 @@ export default function Gorevler() {
   const [kullanicilar, setKullanicilar] = useState([])
   const [filtreDurum, setFiltreDurum] = useState('hepsi')
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
+  const [filtreKisi, setFiltreKisi] = useState('hepsi')
+  const yonetici = profile?.rol === 'yonetici'
 
   const [yeniBaslik, setYeniBaslik] = useState('')
   const [yeniSantiyeId, setYeniSantiyeId] = useState('')
@@ -148,7 +150,10 @@ export default function Gorevler() {
   if (!aktifSantiye) return <p className="bos-mesaj">Şantiye yükleniyor...</p>
 
   const santiyeyeGoreFiltreli = filtreSantiye === 'hepsi' ? gorevler : gorevler.filter((g) => g.santiye_id === filtreSantiye)
-  const durumaGoreFiltreli = filtreDurum === 'hepsi' ? santiyeyeGoreFiltreli : santiyeyeGoreFiltreli.filter((g) => g.durum === filtreDurum)
+  const kisiyeGoreFiltreli = filtreKisi === 'hepsi'
+    ? santiyeyeGoreFiltreli
+    : santiyeyeGoreFiltreli.filter((g) => g.gorev_etiketleri?.some((e) => e.etiket_turu === 'kisi' && e.deger === filtreKisi))
+  const durumaGoreFiltreli = filtreDurum === 'hepsi' ? kisiyeGoreFiltreli : kisiyeGoreFiltreli.filter((g) => g.durum === filtreDurum)
   const kokGorevler = durumaGoreFiltreli.filter((g) => !g.ust_gorev_id)
 
   const altGorevleriBul = (ustId) => durumaGoreFiltreli.filter((g) => g.ust_gorev_id === ustId)
@@ -258,6 +263,15 @@ export default function Gorevler() {
           <button key={d.deger} className={`filtre-chip ${filtreDurum === d.deger ? 'secili' : ''}`} onClick={() => setFiltreDurum(d.deger)}>{d.etiket}</button>
         ))}
       </div>
+
+      {yonetici && (
+        <div className="filtre-satiri">
+          <button className={`filtre-chip ${filtreKisi === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreKisi('hepsi')}>Tüm kişiler</button>
+          {kullanicilar.map((k) => (
+            <button key={k.id} className={`filtre-chip ${filtreKisi === k.id ? 'secili' : ''}`} onClick={() => setFiltreKisi(k.id)}>{k.ad_soyad}</button>
+          ))}
+        </div>
+      )}
 
       <div className="liste">
         {kokGorevler.map((g) => <GorevKarti key={g.id} gorev={g} seviye={0} />)}
