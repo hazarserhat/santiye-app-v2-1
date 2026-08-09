@@ -211,3 +211,8 @@ input, select, button { font-family: inherit; max-width: 100%; }
 
 /* Görev numaralandırma (1, 1.1, 1.2...) */
 .gorev-numara { color: #888780; font-weight: 400; font-size: 12px; }
+
+/* Öncelik renk anlamları tablosu */
+.renk-anlam-tablosu { display: flex; flex-direction: column; gap: 4px; padding: 6px 2px 2px; }
+.renk-anlam-satiri { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #5F5E5A; }
+.renk-anlam-nokta { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }

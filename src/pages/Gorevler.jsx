@@ -388,6 +388,14 @@ export default function Gorevler() {
             />
           ))}
         </div>
+        <div className="renk-anlam-tablosu">
+          {ONCELIKLER.map((o) => (
+            <div key={o.deger} className="renk-anlam-satiri">
+              <span className="renk-anlam-nokta" style={{ background: o.renk }} />
+              <span>{o.etiket}</span>
+            </div>
+          ))}
+        </div>
 
         <p style={{ fontSize: 12, color: '#5F5E5A', margin: '4px 0 2px' }}>Etiketlenecek kişiler:</p>
         <div className="kisi-etiket-secici">

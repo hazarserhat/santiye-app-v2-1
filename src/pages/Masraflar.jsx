@@ -37,9 +37,9 @@ export default function Masraflar() {
       setKategoriler(data || [])
       if (data?.length) setKategoriId(data[0].id)
     })
-    supabase.from('odeme_yontemleri').select('*').order('ad').then(({ data }) => {
+    supabase.from('odeme_yontemleri').select('*').order('sira').then(({ data }) => {
       const tumu = data || []
-      const filtreli = profile?.rol === 'santiye_sefi' ? tumu.filter((o) => o.sef_gorebilir) : tumu
+      const filtreli = profile?.rol === 'santiye_sefi' ? tumu.filter((o) => o.sef_gorebilir) : tumu.filter((o) => o.yonetici_gorebilir)
       setOdemeYontemleri(filtreli)
       if (filtreli.length) setOdemeYontemiId(filtreli[0].id)
     })
@@ -74,7 +74,7 @@ export default function Masraflar() {
 
   const buAy = gorunenler.filter((m) => m.harcama_tarihi.slice(0, 7) === bugun().slice(0, 7))
   const buAyToplam = buAy.reduce((t, m) => t + Number(m.tutar), 0)
-  const nakitToplam = buAy.filter((m) => m.odeme_yontemleri?.ad?.includes('KASA')).reduce((t, m) => t + Number(m.tutar), 0)
+  const nakitToplam = buAy.filter((m) => m.odeme_yontemleri?.ad?.toUpperCase().includes('KASA')).reduce((t, m) => t + Number(m.tutar), 0)
 
   const masrafEkle = async () => {
     if (!baslik.trim() || !tutar) return
