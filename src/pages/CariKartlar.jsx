@@ -54,12 +54,12 @@ export default function CariKartlar() {
     if (taseronHata) { alert('Taşeronlar yüklenemedi: ' + taseronHata.message); return }
     setTaseronlar(data || [])
 
-    const { data: iliskiler, error: iliskiHata } = await supabase.from('taseron_santiyeler').select('taseron_id, santiye_id, santiyeler(ad)')
+    const { data: iliskiler, error: iliskiHata } = await supabase.from('taseron_santiyeler').select('taseron_id, santiye_id')
     if (iliskiHata) { alert('Şantiye ilişkileri yüklenemedi: ' + iliskiHata.message); return }
     const harita = {}
-    (iliskiler || []).forEach((r) => {
+    ;(iliskiler || []).forEach((r) => {
       if (!harita[r.taseron_id]) harita[r.taseron_id] = []
-      if (r.santiyeler?.ad) harita[r.taseron_id].push({ id: r.santiye_id, ad: r.santiyeler.ad })
+      harita[r.taseron_id].push(r.santiye_id)
     })
     setTaseronSantiyeHaritasi(harita)
   }
@@ -80,7 +80,7 @@ export default function CariKartlar() {
     if (notHata) console.error('Notlar yüklenemedi:', notHata.message)
     setNotlar(notData || [])
 
-    const { data: santiyeData, error: santiyeHata } = await supabase.from('taseron_santiyeler').select('id, santiye_id, santiyeler(ad)').eq('taseron_id', id)
+    const { data: santiyeData, error: santiyeHata } = await supabase.from('taseron_santiyeler').select('id, santiye_id').eq('taseron_id', id)
     if (santiyeHata) { alert('Şantiye ilişkileri yüklenemedi: ' + santiyeHata.message); return }
     setIliskiliSantiyeler(santiyeData || [])
 
@@ -173,7 +173,7 @@ export default function CariKartlar() {
     .filter((t) => {
       const aramaMetni = arama.toLowerCase()
       const eslesiyorMu = t.ad.toLowerCase().includes(aramaMetni) || (t.sifat || '').toLowerCase().includes(aramaMetni)
-      const santiyeyeUyuyorMu = filtreSantiye === 'hepsi' || (taseronSantiyeHaritasi[t.id] || []).some((s) => s.id === filtreSantiye)
+      const santiyeyeUyuyorMu = filtreSantiye === 'hepsi' || (taseronSantiyeHaritasi[t.id] || []).includes(filtreSantiye)
       return eslesiyorMu && santiyeyeUyuyorMu
     })
     .sort((a, b) => siralama === 'alfabetik' ? a.ad.localeCompare(b.ad) : new Date(b.created_at) - new Date(a.created_at))
@@ -232,7 +232,7 @@ export default function CariKartlar() {
         <div className="etiket-satiri" style={{ marginBottom: 10 }}>
           {iliskiliSantiyeler.map((r) => (
             <span key={r.id} className="etiket etiket-vurgu" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              {r.santiyeler?.ad}
+              {santiyeler.find((s) => s.id === r.santiye_id)?.ad || '—'}
               <button className="etiket-sil-x" onClick={() => santiyeIliskisiSil(r.id)} aria-label="Şantiye ilişkisini kaldır">×</button>
             </span>
           ))}
@@ -369,7 +369,9 @@ export default function CariKartlar() {
             <div className="avatar-daire">{t.ad.slice(0, 2).toUpperCase()}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p className="taseron-ad">{t.ad}{t.sifat ? <span className="taseron-sifat"> · {t.sifat}</span> : ''}</p>
-              <p className="taseron-firma">{(taseronSantiyeHaritasi[t.id] || []).map((s) => s.ad).join(', ') || 'Şantiye ataması yok'}</p>
+              <p className="taseron-firma">
+                {(taseronSantiyeHaritasi[t.id] || []).map((sid) => santiyeler.find((s) => s.id === sid)?.ad).filter(Boolean).join(', ') || 'Şantiye ataması yok'}
+              </p>
             </div>
             <span className="chevron-buyuk">›</span>
           </div>
