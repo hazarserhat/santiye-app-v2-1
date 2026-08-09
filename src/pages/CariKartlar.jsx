@@ -50,10 +50,12 @@ export default function CariKartlar() {
   }, [])
 
   const taseronlariYukle = async () => {
-    const { data } = await supabase.from('taseronlar').select('*')
+    const { data, error: taseronHata } = await supabase.from('taseronlar').select('*')
+    if (taseronHata) { alert('Taşeronlar yüklenemedi: ' + taseronHata.message); return }
     setTaseronlar(data || [])
 
-    const { data: iliskiler } = await supabase.from('taseron_santiyeler').select('taseron_id, santiye_id, santiyeler(ad)')
+    const { data: iliskiler, error: iliskiHata } = await supabase.from('taseron_santiyeler').select('taseron_id, santiye_id, santiyeler(ad)')
+    if (iliskiHata) { alert('Şantiye ilişkileri yüklenemedi: ' + iliskiHata.message); return }
     const harita = {}
     (iliskiler || []).forEach((r) => {
       if (!harita[r.taseron_id]) harita[r.taseron_id] = []
@@ -73,11 +75,13 @@ export default function CariKartlar() {
       setDuzTelefon(taseron.telefon || ''); setDuzAdres(taseron.adres || '')
     }
 
-    const { data: notData } = await supabase
+    const { data: notData, error: notHata } = await supabase
       .from('taseron_notlari').select('*, profiles(ad_soyad)').eq('taseron_id', id).order('created_at', { ascending: false })
+    if (notHata) console.error('Notlar yüklenemedi:', notHata.message)
     setNotlar(notData || [])
 
-    const { data: santiyeData } = await supabase.from('taseron_santiyeler').select('id, santiye_id, santiyeler(ad)').eq('taseron_id', id)
+    const { data: santiyeData, error: santiyeHata } = await supabase.from('taseron_santiyeler').select('id, santiye_id, santiyeler(ad)').eq('taseron_id', id)
+    if (santiyeHata) { alert('Şantiye ilişkileri yüklenemedi: ' + santiyeHata.message); return }
     setIliskiliSantiyeler(santiyeData || [])
 
     if (yonetici) {
