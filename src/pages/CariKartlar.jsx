@@ -10,14 +10,22 @@ export default function CariKartlar() {
   const yonetici = profile?.rol === 'yonetici'
 
   const [taseronlar, setTaseronlar] = useState([])
-  const [taseronSantiyeHaritasi, setTaseronSantiyeHaritasi] = useState({}) // { taseronId: [santiyeAdi, ...] }
+  const [taseronSantiyeHaritasi, setTaseronSantiyeHaritasi] = useState({}) // { taseronId: [{id, ad}, ...] }
   const [siralama, setSiralama] = useState('alfabetik') // 'alfabetik' | 'tarih'
+  const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [seciliId, setSeciliId] = useState(null)
   const [arama, setArama] = useState('')
 
   const [notlar, setNotlar] = useState([])
   const [iliskiliSantiyeler, setIliskiliSantiyeler] = useState([])
   const [hakedisler, setHakedisler] = useState([])
+
+  const [duzenleModu, setDuzenleModu] = useState(false)
+  const [duzAd, setDuzAd] = useState('')
+  const [duzSifat, setDuzSifat] = useState('')
+  const [duzFirma, setDuzFirma] = useState('')
+  const [duzTelefon, setDuzTelefon] = useState('')
+  const [duzAdres, setDuzAdres] = useState('')
 
   const [yeniNot, setYeniNot] = useState('')
   const [yeniTaseronAcik, setYeniTaseronAcik] = useState(false)
@@ -43,11 +51,11 @@ export default function CariKartlar() {
     const { data } = await supabase.from('taseronlar').select('*')
     setTaseronlar(data || [])
 
-    const { data: iliskiler } = await supabase.from('taseron_santiyeler').select('taseron_id, santiyeler(ad)')
+    const { data: iliskiler } = await supabase.from('taseron_santiyeler').select('taseron_id, santiye_id, santiyeler(ad)')
     const harita = {}
     (iliskiler || []).forEach((r) => {
       if (!harita[r.taseron_id]) harita[r.taseron_id] = []
-      if (r.santiyeler?.ad) harita[r.taseron_id].push(r.santiyeler.ad)
+      if (r.santiyeler?.ad) harita[r.taseron_id].push({ id: r.santiye_id, ad: r.santiyeler.ad })
     })
     setTaseronSantiyeHaritasi(harita)
   }
@@ -55,6 +63,13 @@ export default function CariKartlar() {
   const detayYukle = async (id) => {
     setSeciliId(id)
     setEklenecekSantiyeId('')
+    setDuzenleModu(false)
+
+    const taseron = taseronlar.find((t) => t.id === id)
+    if (taseron) {
+      setDuzAd(taseron.ad); setDuzSifat(taseron.sifat || ''); setDuzFirma(taseron.firma || '')
+      setDuzTelefon(taseron.telefon || ''); setDuzAdres(taseron.adres || '')
+    }
 
     const { data: notData } = await supabase
       .from('taseron_notlari').select('*, profiles(ad_soyad)').eq('taseron_id', id).order('created_at', { ascending: false })
@@ -84,6 +99,16 @@ export default function CariKartlar() {
       setYeniTaseronAcik(false)
       taseronlariYukle()
     }
+  }
+
+  const taseronGuncelle = async () => {
+    if (!duzAd.trim()) return
+    const { error } = await supabase.from('taseronlar').update({
+      ad: duzAd, sifat: duzSifat, firma: duzFirma, telefon: duzTelefon, adres: duzAdres,
+    }).eq('id', seciliId)
+    if (error) { alert('Güncellenemedi: ' + error.message); return }
+    setDuzenleModu(false)
+    taseronlariYukle()
   }
 
   const santiyeIliskisiEkle = async () => {
@@ -124,7 +149,12 @@ export default function CariKartlar() {
   const seciliTaseron = taseronlar.find((t) => t.id === seciliId)
 
   const filtreliListe = taseronlar
-    .filter((t) => t.ad.toLowerCase().includes(arama.toLowerCase()))
+    .filter((t) => {
+      const aramaMetni = arama.toLowerCase()
+      const eslesiyorMu = t.ad.toLowerCase().includes(aramaMetni) || (t.sifat || '').toLowerCase().includes(aramaMetni)
+      const santiyeyeUyuyorMu = filtreSantiye === 'hepsi' || (taseronSantiyeHaritasi[t.id] || []).some((s) => s.id === filtreSantiye)
+      return eslesiyorMu && santiyeyeUyuyorMu
+    })
     .sort((a, b) => siralama === 'alfabetik' ? a.ad.localeCompare(b.ad) : new Date(b.created_at) - new Date(a.created_at))
 
   const eklenebilirSantiyeler = santiyeler.filter((s) => !iliskiliSantiyeler.find((r) => r.santiye_id === s.id))
@@ -137,16 +167,33 @@ export default function CariKartlar() {
 
         <div className="taseron-baslik-satiri">
           <div className="avatar-daire">{seciliTaseron.ad.slice(0, 2).toUpperCase()}</div>
-          <div>
+          <div style={{ flex: 1 }}>
             <p className="taseron-ad">{seciliTaseron.ad}</p>
             <p className="taseron-firma">{seciliTaseron.sifat}{seciliTaseron.sifat && seciliTaseron.firma ? ' · ' : ''}{seciliTaseron.firma}</p>
           </div>
+          {yonetici && !duzenleModu && (
+            <button className="sil-buton" onClick={() => setDuzenleModu(true)} aria-label="Düzenle">✎</button>
+          )}
         </div>
 
-        <div className="bilgi-kutusu">
-          <div className="bilgi-satiri"><span>Telefon</span><span>{seciliTaseron.telefon || '—'}</span></div>
-          <div className="bilgi-satiri"><span>Adres</span><span>{seciliTaseron.adres || '—'}</span></div>
-        </div>
+        {duzenleModu ? (
+          <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
+            <input type="text" placeholder="Ad soyad" value={duzAd} onChange={(e) => setDuzAd(e.target.value)} />
+            <input type="text" placeholder="Sıfat / unvan" value={duzSifat} onChange={(e) => setDuzSifat(e.target.value)} />
+            <input type="text" placeholder="Firma" value={duzFirma} onChange={(e) => setDuzFirma(e.target.value)} />
+            <input type="text" placeholder="Telefon" value={duzTelefon} onChange={(e) => setDuzTelefon(e.target.value)} />
+            <input type="text" placeholder="Adres" value={duzAdres} onChange={(e) => setDuzAdres(e.target.value)} />
+            <div className="ekleme-satiri-2">
+              <button onClick={() => setDuzenleModu(false)}>Vazgeç</button>
+              <button className="ekle-buton-genis" onClick={taseronGuncelle}>Kaydet</button>
+            </div>
+          </div>
+        ) : (
+          <div className="bilgi-kutusu">
+            <div className="bilgi-satiri"><span>Telefon</span><span>{seciliTaseron.telefon || '—'}</span></div>
+            <div className="bilgi-satiri"><span>Adres</span><span>{seciliTaseron.adres || '—'}</span></div>
+          </div>
+        )}
 
         <p className="alt-baslik">Çalıştığı şantiyeler</p>
         <div className="etiket-satiri" style={{ marginBottom: 10 }}>
@@ -249,13 +296,20 @@ export default function CariKartlar() {
         <button className={siralama === 'tarih' ? 'secili-tab' : ''} onClick={() => setSiralama('tarih')}>Eklenme tarihi</button>
       </div>
 
+      <div className="filtre-satiri">
+        <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
+        {santiyeler.map((s) => (
+          <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
+        ))}
+      </div>
+
       <div className="liste">
         {filtreliListe.map((t) => (
           <div key={t.id} className="kart taseron-satir" onClick={() => detayYukle(t.id)}>
             <div className="avatar-daire">{t.ad.slice(0, 2).toUpperCase()}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p className="taseron-ad">{t.ad}{t.sifat ? <span className="taseron-sifat"> · {t.sifat}</span> : ''}</p>
-              <p className="taseron-firma">{(taseronSantiyeHaritasi[t.id] || []).join(', ') || 'Şantiye ataması yok'}</p>
+              <p className="taseron-firma">{(taseronSantiyeHaritasi[t.id] || []).map((s) => s.ad).join(', ') || 'Şantiye ataması yok'}</p>
             </div>
             <span className="chevron-buyuk">›</span>
           </div>
