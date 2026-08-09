@@ -20,6 +20,8 @@ export default function Masraflar() {
   const [yukleniyor, setYukleniyor] = useState(false)
 
   const [baslik, setBaslik] = useState('')
+  const [odenenKisi, setOdenenKisi] = useState('')
+  const [aciklama, setAciklama] = useState('')
   const [tutar, setTutar] = useState('')
   const [kategoriId, setKategoriId] = useState('')
   const [odemeYontemiId, setOdemeYontemiId] = useState('')
@@ -94,6 +96,8 @@ export default function Masraflar() {
       santiye_id: secilenSantiyeId === 'genel' ? null : secilenSantiyeId,
       kategori_id: kategoriId,
       baslik,
+      odenen_kisi: odenenKisi,
+      aciklama,
       tutar: Number(tutar),
       odeme_yontemi_id: odemeYontemiId,
       harcama_tarihi: harcamaTarihi,
@@ -108,6 +112,8 @@ export default function Masraflar() {
     }
 
     setBaslik('')
+    setOdenenKisi('')
+    setAciklama('')
     setTutar('')
     setFotograf(null)
     setHarcamaTarihi(bugun())
@@ -120,6 +126,24 @@ export default function Masraflar() {
     if (!window.confirm('Bu masrafı silmek istediğinize emin misiniz?')) return
     await supabase.from('masraflar').delete().eq('id', id)
     masraflariYukle()
+  }
+
+  const masrafPaylas = async (m) => {
+    const santiyeAdi = m.santiye_id ? (santiyeler.find((s) => s.id === m.santiye_id)?.ad || '—') : 'Genel Gider'
+    const metin =
+      `*${m.baslik}*\n` +
+      `*Tarih* : ${new Date(m.harcama_tarihi).toLocaleDateString('tr-TR')}\n` +
+      `*Tutar* : ${Number(m.tutar).toLocaleString('tr-TR')}₺\n` +
+      `*Ödeyen* : ${m.odeme_yontemleri?.ad || '—'}\n` +
+      `*Ödenen* : ${m.odenen_kisi || '—'}\n` +
+      `*Şantiye* : ${santiyeAdi}\n` +
+      `*Açıklama* : ${m.aciklama || '—'}`
+
+    if (navigator.share) {
+      try { await navigator.share({ text: metin }) } catch { /* kullanıcı iptal etti */ }
+    } else {
+      window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
+    }
   }
 
   const sesleYaz = () => {
@@ -191,6 +215,7 @@ export default function Masraflar() {
               <span className="kart-baslik">{m.baslik}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span className="kart-tutar">{Number(m.tutar).toLocaleString('tr-TR')} ₺</span>
+                <button className="sil-buton" onClick={() => masrafPaylas(m)} aria-label="Paylaş">📤</button>
                 <button className="sil-buton" onClick={() => masrafSil(m.id)} aria-label="Masrafı sil">🗑</button>
               </div>
             </div>
@@ -208,7 +233,9 @@ export default function Masraflar() {
             </div>
             <div className="kart-alt-tarih" style={{ marginTop: 2 }}>
               <span>Ekleyen: {m.profiles?.ad_soyad || 'Bilinmiyor'}</span>
+              {m.odenen_kisi && <span>Ödenen: {m.odenen_kisi}</span>}
             </div>
+            {m.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{m.aciklama}</p>}
           </div>
         ))}
         {gorunenler.length === 0 && <p className="bos-mesaj">Kayıt yok.</p>}
@@ -220,6 +247,14 @@ export default function Masraflar() {
           <option value="genel">Genel Gider (şantiyeye bağlı değil)</option>
         </select>
         <input type="text" placeholder="Masraf başlığı..." value={baslik} onChange={(e) => setBaslik(e.target.value)} />
+        <input type="text" placeholder="Ödenen kişi/firma (opsiyonel)..." value={odenenKisi} onChange={(e) => setOdenenKisi(e.target.value)} />
+        <textarea
+          placeholder="Açıklama / not (opsiyonel)..."
+          value={aciklama}
+          onChange={(e) => setAciklama(e.target.value)}
+          rows={2}
+          style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical' }}
+        />
         <div className="ekleme-satiri-2">
           <input type="number" placeholder="Tutar (₺)" value={tutar} onChange={(e) => setTutar(e.target.value)} />
           <select value={kategoriId} onChange={(e) => setKategoriId(e.target.value)}>
