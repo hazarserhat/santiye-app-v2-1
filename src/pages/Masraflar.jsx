@@ -140,7 +140,7 @@ export default function Masraflar() {
 
   return (
     <div className="sayfa">
-      <h2>Masraf / irsaliye</h2>
+      <h2>Muhasebe</h2>
 
       <div className="ozet-satiri">
         <div className="ozet-kart">

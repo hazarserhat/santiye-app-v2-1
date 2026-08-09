@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 
 const OGELER = [
   { yol: '/gorevler', etiket: 'Görevler', simge: '✓' },
-  { yol: '/masraflar', etiket: 'Masraf', simge: '₺' },
+  { yol: '/masraflar', etiket: 'Muhasebe', simge: '₺' },
   { yol: '/cari-kartlar', etiket: 'Cariler', simge: '👤' },
   { yol: '/puantaj', etiket: 'Puantaj', simge: '📅' },
   { yol: '/gunluk-rapor', etiket: 'Rapor', simge: '📝' },

@@ -154,6 +154,8 @@ export default function Gorevler() {
   const [altGorevAcikId, setAltGorevAcikId] = useState(null)
   const [altGorevMetni, setAltGorevMetni] = useState('')
   const [seciliGorevler, setSeciliGorevler] = useState([])
+  const [siralamaYonu, setSiralamaYonu] = useState('yeni') // 'yeni' | 'eski'
+  const [gosterilenSayisi, setGosterilenSayisi] = useState(10)
 
   useEffect(() => {
     if (aktifSantiye) setYeniSantiyeId(aktifSantiye.id)
@@ -319,7 +321,10 @@ export default function Gorevler() {
     ? santiyeyeGoreFiltreli
     : santiyeyeGoreFiltreli.filter((g) => g.gorev_etiketleri?.some((e) => e.etiket_turu === 'kisi' && e.deger === filtreKisi))
   const durumaGoreFiltreli = filtreDurum === 'hepsi' ? kisiyeGoreFiltreli : kisiyeGoreFiltreli.filter((g) => g.durum === filtreDurum)
-  const kokGorevler = durumaGoreFiltreli.filter((g) => !g.ust_gorev_id)
+  const kokGorevler = durumaGoreFiltreli
+    .filter((g) => !g.ust_gorev_id)
+    .sort((a, b) => siralamaYonu === 'yeni' ? new Date(b.created_at) - new Date(a.created_at) : new Date(a.created_at) - new Date(b.created_at))
+  const gosterilenKokGorevler = kokGorevler.slice(0, gosterilenSayisi)
 
   const altGorevleriBul = (ustId) => durumaGoreFiltreli.filter((g) => g.ust_gorev_id === ustId)
 
@@ -354,35 +359,7 @@ export default function Gorevler() {
         </button>
       )}
 
-      <div className="filtre-satiri">
-        <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
-        {santiyeler.map((s) => (
-          <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
-        ))}
-        <HizliSantiyeEkle />
-      </div>
-
-      <div className="filtre-satiri">
-        {DURUMLAR.map((d) => (
-          <button key={d.deger} className={`filtre-chip ${filtreDurum === d.deger ? 'secili' : ''}`} onClick={() => setFiltreDurum(d.deger)}>{d.etiket}</button>
-        ))}
-      </div>
-
-      {yonetici && (
-        <div className="filtre-satiri">
-          <button className={`filtre-chip ${filtreKisi === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreKisi('hepsi')}>Tüm kişiler</button>
-          {kullanicilar.map((k) => (
-            <button key={k.id} className={`filtre-chip ${filtreKisi === k.id ? 'secili' : ''}`} onClick={() => setFiltreKisi(k.id)}>{k.ad_soyad}</button>
-          ))}
-        </div>
-      )}
-
-      <div className="liste">
-        {kokGorevler.map((g) => <GorevKarti key={g.id} gorev={g} seviye={0} ctx={ctx} />)}
-        {kokGorevler.length === 0 && <p className="bos-mesaj">Bu filtrede görev yok.</p>}
-      </div>
-
-      <div className="ekleme-kutusu">
+      <div className="ekleme-kutusu" style={{ marginTop: 0, marginBottom: 16 }}>
         <select value={yeniSantiyeId} onChange={(e) => setYeniSantiyeId(e.target.value)}>
           {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
         </select>
@@ -427,6 +404,45 @@ export default function Gorevler() {
 
         <button className="ekle-buton-genis" onClick={gorevEkle}>Görevi kaydet</button>
       </div>
+
+      <div className="filtre-satiri">
+        <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
+        {santiyeler.map((s) => (
+          <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
+        ))}
+        <HizliSantiyeEkle />
+      </div>
+
+      <div className="filtre-satiri">
+        {DURUMLAR.map((d) => (
+          <button key={d.deger} className={`filtre-chip ${filtreDurum === d.deger ? 'secili' : ''}`} onClick={() => setFiltreDurum(d.deger)}>{d.etiket}</button>
+        ))}
+      </div>
+
+      {yonetici && (
+        <div className="filtre-satiri">
+          <button className={`filtre-chip ${filtreKisi === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreKisi('hepsi')}>Tüm kişiler</button>
+          {kullanicilar.map((k) => (
+            <button key={k.id} className={`filtre-chip ${filtreKisi === k.id ? 'secili' : ''}`} onClick={() => setFiltreKisi(k.id)}>{k.ad_soyad}</button>
+          ))}
+        </div>
+      )}
+
+      <div className="gorunum-secici" style={{ marginBottom: 12 }}>
+        <button className={siralamaYonu === 'yeni' ? 'secili-tab' : ''} onClick={() => setSiralamaYonu('yeni')}>Yeniden eskiye</button>
+        <button className={siralamaYonu === 'eski' ? 'secili-tab' : ''} onClick={() => setSiralamaYonu('eski')}>Eskiden yeniye</button>
+      </div>
+
+      <div className="liste">
+        {gosterilenKokGorevler.map((g) => <GorevKarti key={g.id} gorev={g} seviye={0} ctx={ctx} />)}
+        {kokGorevler.length === 0 && <p className="bos-mesaj">Bu filtrede görev yok.</p>}
+      </div>
+
+      {kokGorevler.length > gosterilenSayisi && (
+        <button className="daha-fazla-buton" style={{ marginTop: 8 }} onClick={() => setGosterilenSayisi((n) => n + 10)}>
+          ▼ Daha fazla göster ({kokGorevler.length - gosterilenSayisi} tane daha)
+        </button>
+      )}
     </div>
   )
 }

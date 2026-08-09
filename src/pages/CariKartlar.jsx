@@ -28,6 +28,8 @@ export default function CariKartlar() {
   const [duzAdres, setDuzAdres] = useState('')
 
   const [yeniNot, setYeniNot] = useState('')
+  const [duzenlenenNotId, setDuzenlenenNotId] = useState(null)
+  const [duzenlenenNotMetni, setDuzenlenenNotMetni] = useState('')
   const [yeniTaseronAcik, setYeniTaseronAcik] = useState(false)
   const [yeniAd, setYeniAd] = useState('')
   const [yeniSifat, setYeniSifat] = useState('')
@@ -136,6 +138,21 @@ export default function CariKartlar() {
     detayYukle(seciliId)
   }
 
+  const notGuncelle = async (notId) => {
+    if (!duzenlenenNotMetni.trim()) return
+    const { error } = await supabase.from('taseron_notlari').update({ icerik: duzenlenenNotMetni }).eq('id', notId)
+    if (error) { alert('Not güncellenemedi: ' + error.message); return }
+    setDuzenlenenNotId(null)
+    detayYukle(seciliId)
+  }
+
+  const notSil = async (notId) => {
+    if (!window.confirm('Bu notu silmek istediğinize emin misiniz?')) return
+    const { error } = await supabase.from('taseron_notlari').delete().eq('id', notId)
+    if (error) { alert('Not silinemedi: ' + error.message); return }
+    detayYukle(seciliId)
+  }
+
   const hakedisEkle = async () => {
     if (!hkDonem.trim() || !hkTutar) return
     await supabase.from('hakedisler').insert({
@@ -190,7 +207,19 @@ export default function CariKartlar() {
           </div>
         ) : (
           <div className="bilgi-kutusu">
-            <div className="bilgi-satiri"><span>Telefon</span><span>{seciliTaseron.telefon || '—'}</span></div>
+            <div className="bilgi-satiri">
+              <span>Telefon</span>
+              {seciliTaseron.telefon ? (
+                <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <a href={`tel:${seciliTaseron.telefon}`} style={{ color: '#0F6E56', fontWeight: 500 }}>{seciliTaseron.telefon}</a>
+                  <button
+                    className="sil-buton"
+                    onClick={() => { navigator.clipboard.writeText(seciliTaseron.telefon); alert('Telefon numarası kopyalandı.') }}
+                    aria-label="Telefonu kopyala"
+                  >📋</button>
+                </span>
+              ) : <span>—</span>}
+            </div>
             <div className="bilgi-satiri"><span>Adres</span><span>{seciliTaseron.adres || '—'}</span></div>
           </div>
         )}
@@ -219,8 +248,35 @@ export default function CariKartlar() {
         <div className="liste">
           {notlar.map((n) => (
             <div key={n.id} className="kart">
-              <p className="not-icerik">{n.icerik}</p>
-              <span className="not-alt">{n.profiles?.ad_soyad || 'Bilinmiyor'} · {new Date(n.created_at).toLocaleDateString('tr-TR')} {new Date(n.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+              {duzenlenenNotId === n.id ? (
+                <>
+                  <input
+                    type="text"
+                    value={duzenlenenNotMetni}
+                    onChange={(e) => setDuzenlenenNotMetni(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && notGuncelle(n.id)}
+                    autoFocus
+                    style={{ width: '100%', marginBottom: 6 }}
+                  />
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => setDuzenlenenNotId(null)} style={{ fontSize: 12 }}>Vazgeç</button>
+                    <button onClick={() => notGuncelle(n.id)} style={{ fontSize: 12 }}>Kaydet</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 8 }}>
+                    <p className="not-icerik" style={{ flex: 1 }}>{n.icerik}</p>
+                    {yonetici && (
+                      <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                        <button className="sil-buton" onClick={() => { setDuzenlenenNotId(n.id); setDuzenlenenNotMetni(n.icerik) }} aria-label="Notu düzenle">✎</button>
+                        <button className="sil-buton" onClick={() => notSil(n.id)} aria-label="Notu sil">🗑</button>
+                      </div>
+                    )}
+                  </div>
+                  <span className="not-alt">{n.profiles?.ad_soyad || 'Bilinmiyor'} · {new Date(n.created_at).toLocaleDateString('tr-TR')} {new Date(n.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+                </>
+              )}
             </div>
           ))}
           {notlar.length === 0 && <p className="bos-mesaj">Henüz not yok.</p>}
