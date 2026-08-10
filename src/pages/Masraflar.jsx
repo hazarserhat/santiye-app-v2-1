@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 import HizliSantiyeEkle from '../components/HizliSantiyeEkle'
+import Cekler from './Cekler'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -10,6 +11,7 @@ export default function Masraflar() {
   const { aktifSantiye, santiyeler } = useSite()
   const { profile } = useAuth()
   const yonetici = profile?.rol === 'yonetici'
+  const [sekme, setSekme] = useState('masraf') // 'masraf' | 'cek'
   const [masraflar, setMasraflar] = useState([])
   const [kullanicilar, setKullanicilar] = useState([])
   const [kategoriler, setKategoriler] = useState([])
@@ -166,6 +168,16 @@ export default function Masraflar() {
     <div className="sayfa">
       <h2>Muhasebe</h2>
 
+      {yonetici && (
+        <div className="gorunum-secici" style={{ marginBottom: 14 }}>
+          <button className={sekme === 'masraf' ? 'secili-tab' : ''} onClick={() => setSekme('masraf')}>Ödeme Girdileri</button>
+          <button className={sekme === 'cek' ? 'secili-tab' : ''} onClick={() => setSekme('cek')}>Çek Girdileri</button>
+        </div>
+      )}
+
+      {sekme === 'cek' && yonetici ? <Cekler /> : (
+      <>
+
       <div className="ozet-satiri">
         <div className="ozet-kart">
           <p className="ozet-etiket">Bu ay toplam</p>
@@ -278,6 +290,8 @@ export default function Masraflar() {
           {yukleniyor ? 'Ekleniyor...' : 'Masrafı kaydet'}
         </button>
       </div>
+      </>
+      )}
     </div>
   )
 }
