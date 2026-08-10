@@ -4,6 +4,7 @@ import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 import HizliSantiyeEkle from '../components/HizliSantiyeEkle'
 import Cekler from './Cekler'
+import { paraFormatla } from '../lib/format'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -135,7 +136,7 @@ export default function Masraflar() {
     const metin =
       `*${m.baslik}*\n` +
       `*Tarih* : ${new Date(m.harcama_tarihi).toLocaleDateString('tr-TR')}\n` +
-      `*Tutar* : ${Number(m.tutar).toLocaleString('tr-TR')}₺\n` +
+      `*Tutar* : ${paraFormatla(m.tutar)}₺\n` +
       `*Ödeyen* : ${m.odeme_yontemleri?.ad || '—'}\n` +
       `*Ödenen* : ${m.odenen_kisi || '—'}\n` +
       `*Şantiye* : ${santiyeAdi}\n` +
@@ -181,11 +182,11 @@ export default function Masraflar() {
       <div className="ozet-satiri">
         <div className="ozet-kart">
           <p className="ozet-etiket">Bu ay toplam</p>
-          <p className="ozet-tutar">{buAyToplam.toLocaleString('tr-TR')} ₺</p>
+          <p className="ozet-tutar">{paraFormatla(buAyToplam)} ₺</p>
         </div>
         <div className="ozet-kart">
           <p className="ozet-etiket">Nakit çıkışı</p>
-          <p className="ozet-tutar">{nakitToplam.toLocaleString('tr-TR')} ₺</p>
+          <p className="ozet-tutar">{paraFormatla(nakitToplam)} ₺</p>
         </div>
       </div>
 
@@ -226,7 +227,7 @@ export default function Masraflar() {
             <div className="kart-ust">
               <span className="kart-baslik">{m.baslik}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span className="kart-tutar">{Number(m.tutar).toLocaleString('tr-TR')} ₺</span>
+                <span className="kart-tutar">{paraFormatla(m.tutar)} ₺</span>
                 <button className="sil-buton" onClick={() => masrafPaylas(m)} aria-label="Paylaş">📤</button>
                 <button className="sil-buton" onClick={() => masrafSil(m.id)} aria-label="Masrafı sil">🗑</button>
               </div>

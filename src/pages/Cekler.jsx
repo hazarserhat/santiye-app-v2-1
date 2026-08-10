@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
+import { paraFormatla } from '../lib/format'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -106,7 +107,7 @@ export default function Cekler() {
       `*Banka* : ${c.banka || '—'}\n` +
       `*Veriliş Tarihi* : ${new Date(c.verilis_tarihi).toLocaleDateString('tr-TR')}\n` +
       `*Çek Vadesi* : ${c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : '—'}\n` +
-      `*Tutar* : ${Number(c.tutar).toLocaleString('tr-TR')}₺\n` +
+      `*Tutar* : ${paraFormatla(c.tutar)}₺\n` +
       `*Açıklama / Not* : ${c.aciklama || '—'}`
 
     if (navigator.share) {
@@ -124,7 +125,7 @@ export default function Cekler() {
             <div className="kart-ust">
               <span className="kart-baslik">{c.odeme_konusu}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span className="kart-tutar">{Number(c.tutar).toLocaleString('tr-TR')} ₺</span>
+                <span className="kart-tutar">{paraFormatla(c.tutar)} ₺</span>
                 <button className="sil-buton" onClick={() => cekPaylas(c)} aria-label="Paylaş">📤</button>
                 <button className="sil-buton" onClick={() => cekSil(c.id)} aria-label="Sil">🗑</button>
               </div>

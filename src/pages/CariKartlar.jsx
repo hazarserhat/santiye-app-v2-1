@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 import HizliSantiyeEkle from '../components/HizliSantiyeEkle'
+import { paraFormatla } from '../lib/format'
 
 export default function CariKartlar() {
   const { santiyeler } = useSite()
@@ -311,10 +312,10 @@ export default function CariKartlar() {
                     </span>
                   </div>
                   <div className="hakedis-hesap">
-                    <span>Tutar</span><span>{Number(h.tutar).toLocaleString('tr-TR')} ₺</span>
-                    <span>Kesinti/Avans</span><span>-{Number(h.kesinti_avans).toLocaleString('tr-TR')} ₺</span>
+                    <span>Tutar</span><span>{paraFormatla(h.tutar)} ₺</span>
+                    <span>Kesinti/Avans</span><span>-{paraFormatla(h.kesinti_avans)} ₺</span>
                     <span className="hakedis-net-etiket">Net</span>
-                    <span className="hakedis-net-tutar">{(Number(h.tutar) - Number(h.kesinti_avans)).toLocaleString('tr-TR')} ₺</span>
+                    <span className="hakedis-net-tutar">{paraFormatla(Number(h.tutar) - Number(h.kesinti_avans))} ₺</span>
                   </div>
                   {h.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{h.aciklama}</p>}
                 </div>
