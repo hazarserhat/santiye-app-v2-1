@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 import HizliSantiyeEkle from '../components/HizliSantiyeEkle'
-import { paraFormatla } from '../lib/format'
+import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
 
 export default function CariKartlar() {
   const { santiyeler } = useSite()
@@ -326,8 +326,8 @@ export default function CariKartlar() {
             <div className="ekleme-kutusu">
               <input type="text" placeholder="Dönem (örn. Temmuz 2026)" value={hkDonem} onChange={(e) => setHkDonem(e.target.value)} />
               <div className="ekleme-satiri-2">
-                <input type="number" placeholder="Tutar (₺)" value={hkTutar} onChange={(e) => setHkTutar(e.target.value)} />
-                <input type="number" placeholder="Kesinti/Avans (₺)" value={hkKesinti} onChange={(e) => setHkKesinti(e.target.value)} />
+                <input type="number" placeholder="Tutar (₺)" value={hkTutar} onChange={(e) => setHkTutar(e.target.value)} onKeyDown={sadeceSayiTuslari} />
+                <input type="number" placeholder="Kesinti/Avans (₺)" value={hkKesinti} onChange={(e) => setHkKesinti(e.target.value)} onKeyDown={sadeceSayiTuslari} />
               </div>
               <select value={hkDurum} onChange={(e) => setHkDurum(e.target.value)}>
                 <option value="bekliyor">Ödeme bekliyor</option>
@@ -345,7 +345,7 @@ export default function CariKartlar() {
   // ---- LİSTE GÖRÜNÜMÜ ----
   return (
     <div className="sayfa">
-      <h2>Cari kartlar</h2>
+      <h2>Şantiye Rehberi</h2>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
         <input type="text" placeholder="Taşeron ara..." value={arama} onChange={(e) => setArama(e.target.value)} style={{ flex: 1, margin: 0 }} />

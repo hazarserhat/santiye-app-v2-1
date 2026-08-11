@@ -4,7 +4,7 @@ import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 import HizliSantiyeEkle from '../components/HizliSantiyeEkle'
 import Cekler from './Cekler'
-import { paraFormatla } from '../lib/format'
+import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -269,7 +269,7 @@ export default function Masraflar() {
           style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical' }}
         />
         <div className="ekleme-satiri-2">
-          <input type="number" placeholder="Tutar (₺)" value={tutar} onChange={(e) => setTutar(e.target.value)} />
+          <input type="number" placeholder="Tutar (₺)" value={tutar} onChange={(e) => setTutar(e.target.value)} onKeyDown={sadeceSayiTuslari} />
           <select value={kategoriId} onChange={(e) => setKategoriId(e.target.value)}>
             {kategoriler.map((k) => <option key={k.id} value={k.id}>{k.ad}</option>)}
           </select>

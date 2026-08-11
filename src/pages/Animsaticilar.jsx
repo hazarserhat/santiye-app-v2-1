@@ -103,6 +103,7 @@ export default function Animsaticilar() {
       {bildirimler.length > 0 && (
         <>
           <p className="alt-baslik">Bildirimlerim {okunmamisSayisi > 0 && <span className="etiket" style={{ background: '#D64545', color: 'white' }}>{okunmamisSayisi} yeni</span>}</p>
+          <p style={{ fontSize: 11, color: '#888780', margin: '0 0 8px' }}>Bir bildirime tıklarsanız doğrudan ilgili göreve gidersiniz.</p>
           <div className="liste" style={{ marginBottom: 16 }}>
             {bildirimler.map((b) => (
               <div

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
-import { paraFormatla } from '../lib/format'
+import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -190,7 +190,7 @@ export default function Cekler() {
           </div>
         </div>
 
-        <input type="number" placeholder="Tutar (₺)" value={tutar} onChange={(e) => setTutar(e.target.value)} />
+        <input type="number" placeholder="Tutar (₺)" value={tutar} onChange={(e) => setTutar(e.target.value)} onKeyDown={sadeceSayiTuslari} />
 
         <textarea
           placeholder="Açıklama / Not (opsiyonel)..."

@@ -452,10 +452,11 @@ function PuantajToplam() {
 function PuantajCalisanKayit() {
   const { santiyeler } = useSite()
   const [taseronlar, setTaseronlar] = useState([])
-  const [santiyeId, setSantiyeId] = useState('')
+  const [santiyeId, setSantiyeId] = useState('hepsi')
   const [taseronId, setTaseronId] = useState('')
   const [calisanlar, setCalisanlar] = useState([])
   const [yeniAd, setYeniAd] = useState('')
+  const [eklenecekSantiyeId, setEklenecekSantiyeId] = useState('')
   const [duzenlenenId, setDuzenlenenId] = useState(null)
   const [duzenlenenAd, setDuzenlenenAd] = useState('')
 
@@ -464,24 +465,26 @@ function PuantajCalisanKayit() {
   }, [])
 
   useEffect(() => {
-    if (santiyeler.length && !santiyeId) setSantiyeId(santiyeler[0].id)
+    if (santiyeler.length && !eklenecekSantiyeId) setEklenecekSantiyeId(santiyeler[0].id)
   }, [santiyeler])
 
   useEffect(() => {
-    if (santiyeId && taseronId) calisanlariYukle()
+    if (taseronId) calisanlariYukle()
     else setCalisanlar([])
   }, [santiyeId, taseronId])
 
   const calisanlariYukle = async () => {
-    const { data, error } = await supabase.from('taseron_calisanlari').select('*')
-      .eq('santiye_id', santiyeId).eq('taseron_id', taseronId).order('ad_soyad')
+    let sorgu = supabase.from('taseron_calisanlari').select('*, santiyeler(ad)').eq('taseron_id', taseronId).order('ad_soyad')
+    if (santiyeId !== 'hepsi') sorgu = sorgu.eq('santiye_id', santiyeId)
+    const { data, error } = await sorgu
     if (error) { alert('Çalışanlar yüklenemedi: ' + error.message); return }
     setCalisanlar(data || [])
   }
 
   const calisanEkle = async () => {
     if (!yeniAd.trim()) return
-    const { error } = await supabase.from('taseron_calisanlari').insert({ taseron_id: taseronId, santiye_id: santiyeId, ad_soyad: yeniAd })
+    const hedefSantiye = santiyeId !== 'hepsi' ? santiyeId : eklenecekSantiyeId
+    const { error } = await supabase.from('taseron_calisanlari').insert({ taseron_id: taseronId, santiye_id: hedefSantiye, ad_soyad: yeniAd })
     if (error) { alert('Eklenemedi: ' + error.message); return }
     setYeniAd('')
     calisanlariYukle()
@@ -500,59 +503,78 @@ function PuantajCalisanKayit() {
     calisanlariYukle()
   }
 
+  const CalisanSatiri = ({ c }) => (
+    <div className="kart" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {duzenlenenId === c.id ? (
+        <>
+          <input type="text" value={duzenlenenAd} onChange={(e) => setDuzenlenenAd(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && calisanGuncelle(c.id)} autoFocus style={{ flex: 1 }} />
+          <button className="sil-buton" onClick={() => calisanGuncelle(c.id)}>✓</button>
+        </>
+      ) : (
+        <>
+          <span style={{ flex: 1, fontSize: 13 }}>{c.ad_soyad}</span>
+          <button className="sil-buton" onClick={() => { setDuzenlenenId(c.id); setDuzenlenenAd(c.ad_soyad) }} aria-label="Düzenle">✎</button>
+          <button className="sil-buton" onClick={() => calisanSil(c.id)} aria-label="Sil">🗑</button>
+        </>
+      )}
+    </div>
+  )
+
   return (
     <>
       <p style={{ fontSize: 13, color: '#5F5E5A', marginTop: 0 }}>
-        Aynı taşeron farklı şantiyelerde farklı çalışanlarla bulunabilir — bu yüzden liste şantiye + taşeron ikilisine göre tutulur.
+        Aynı taşeron farklı şantiyelerde farklı çalışanlarla bulunabilir — "Tümü" ile hepsini bir arada, şantiye şantiye gruplanmış görebilirsiniz.
       </p>
 
-      <div className="ekleme-satiri-2" style={{ marginBottom: 14 }}>
-        <select value={santiyeId} onChange={(e) => setSantiyeId(e.target.value)}>
-          {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
-        </select>
-        <select value={taseronId} onChange={(e) => setTaseronId(e.target.value)}>
-          <option value="">Taşeron seç...</option>
-          {taseronlar.map((t) => <option key={t.id} value={t.id}>{t.ad}</option>)}
-        </select>
+      <div className="filtre-satiri">
+        <button className={`filtre-chip ${santiyeId === 'hepsi' ? 'secili' : ''}`} onClick={() => setSantiyeId('hepsi')}>Tümü</button>
+        {santiyeler.map((s) => (
+          <button key={s.id} className={`filtre-chip ${santiyeId === s.id ? 'secili' : ''}`} onClick={() => setSantiyeId(s.id)}>{s.ad}</button>
+        ))}
       </div>
+
+      <select value={taseronId} onChange={(e) => setTaseronId(e.target.value)} style={{ marginBottom: 14 }}>
+        <option value="">Taşeron seç...</option>
+        {taseronlar.map((t) => <option key={t.id} value={t.id}>{t.ad}</option>)}
+      </select>
 
       {!taseronId ? (
         <p className="bos-mesaj">Listeyi görmek için bir taşeron seçin.</p>
-      ) : (
+      ) : santiyeId === 'hepsi' ? (
         <>
-          <div className="liste">
-            {calisanlar.map((c) => (
-              <div key={c.id} className="kart" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {duzenlenenId === c.id ? (
-                  <>
-                    <input
-                      type="text"
-                      value={duzenlenenAd}
-                      onChange={(e) => setDuzenlenenAd(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && calisanGuncelle(c.id)}
-                      autoFocus
-                      style={{ flex: 1 }}
-                    />
-                    <button className="sil-buton" onClick={() => calisanGuncelle(c.id)}>✓</button>
-                  </>
-                ) : (
-                  <>
-                    <span style={{ flex: 1, fontSize: 13 }}>{c.ad_soyad}</span>
-                    <button className="sil-buton" onClick={() => { setDuzenlenenId(c.id); setDuzenlenenAd(c.ad_soyad) }} aria-label="Düzenle">✎</button>
-                    <button className="sil-buton" onClick={() => calisanSil(c.id)} aria-label="Sil">🗑</button>
-                  </>
-                )}
+          {santiyeler.map((s) => {
+            const grup = calisanlar.filter((c) => c.santiye_id === s.id)
+            if (grup.length === 0) return null
+            return (
+              <div key={s.id} style={{ marginBottom: 16 }}>
+                <p className="alt-baslik">{s.ad} <span style={{ color: '#888780', fontWeight: 400 }}>({grup.length} kişi)</span></p>
+                <div className="liste">
+                  {grup.map((c) => <CalisanSatiri key={c.id} c={c} />)}
+                </div>
               </div>
-            ))}
-            {calisanlar.length === 0 && <p className="bos-mesaj">Bu şantiye/taşeron için henüz çalışan kaydı yok.</p>}
-          </div>
-
-          <div className="ekleme-kutusu">
-            <input type="text" placeholder="Yeni çalışan adı soyadı..." value={yeniAd} onChange={(e) => setYeniAd(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && calisanEkle()} />
-            <button className="ekle-buton-genis" onClick={calisanEkle}>Çalışan ekle</button>
-          </div>
+            )
+          })}
+          {calisanlar.length === 0 && <p className="bos-mesaj">Bu taşeron için hiçbir şantiyede kayıtlı çalışan yok.</p>}
         </>
+      ) : (
+        <div className="liste">
+          {calisanlar.map((c) => <CalisanSatiri key={c.id} c={c} />)}
+          {calisanlar.length === 0 && <p className="bos-mesaj">Bu şantiye/taşeron için henüz çalışan kaydı yok.</p>}
+        </div>
+      )}
+
+      {taseronId && (
+        <div className="ekleme-kutusu">
+          {santiyeId === 'hepsi' && (
+            <select value={eklenecekSantiyeId} onChange={(e) => setEklenecekSantiyeId(e.target.value)}>
+              {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+            </select>
+          )}
+          <input type="text" placeholder="Yeni çalışan adı soyadı..." value={yeniAd} onChange={(e) => setYeniAd(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && calisanEkle()} />
+          <button className="ekle-buton-genis" onClick={calisanEkle}>Çalışan ekle</button>
+        </div>
       )}
     </>
   )

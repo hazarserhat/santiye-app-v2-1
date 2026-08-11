@@ -15,9 +15,7 @@ export default function Notlar() {
 
   const [ekleAcik, setEkleAcik] = useState(false)
   const [yeniBaslik, setYeniBaslik] = useState('')
-  const [yeniKategoriId, setYeniKategoriId] = useState('')
-  const [yeniKategoriEkleAcik, setYeniKategoriEkleAcik] = useState(false)
-  const [yeniKategoriAdi, setYeniKategoriAdi] = useState('')
+  const [yeniKategori, setYeniKategori] = useState('')
   const [yeniIcerik, setYeniIcerik] = useState('')
   const [dinliyor, setDinliyor] = useState(false)
 
@@ -39,26 +37,24 @@ export default function Notlar() {
   const kategorileriYukle = async () => {
     const { data } = await supabase.from('not_kategorileri').select('*').eq('kullanici_id', profile.id).order('ad')
     setKategoriler(data || [])
-    if (data?.length && !yeniKategoriId) setYeniKategoriId(data[0].ad)
-  }
-
-  const kategoriEkle = async () => {
-    if (!yeniKategoriAdi.trim()) return
-    const { data, error } = await supabase.from('not_kategorileri').insert({ kullanici_id: profile.id, ad: yeniKategoriAdi }).select().single()
-    if (error) { alert('Kategori eklenemedi: ' + error.message); return }
-    setKategoriler((onceki) => [...onceki, data].sort((a, b) => a.ad.localeCompare(b.ad)))
-    setYeniKategoriId(data.ad)
-    setYeniKategoriAdi('')
-    setYeniKategoriEkleAcik(false)
   }
 
   const notEkle = async () => {
     if (!yeniIcerik.trim()) return
+    const kategoriTemiz = yeniKategori.trim() || null
+
     const { error } = await supabase.from('kisisel_notlar').insert({
-      kullanici_id: profile.id, baslik: yeniBaslik || null, kategori: yeniKategoriId || null, icerik: yeniIcerik,
+      kullanici_id: profile.id, baslik: yeniBaslik || null, kategori: kategoriTemiz, icerik: yeniIcerik,
     })
     if (error) { alert('Not eklenemedi: ' + error.message); return }
-    setYeniBaslik(''); setYeniIcerik(''); setEkleAcik(false)
+
+    // Yeni yazılan kategori daha sonra tekrar seçilebilsin diye listeye kaydediliyor
+    if (kategoriTemiz && !kategoriler.find((k) => k.ad.toLowerCase() === kategoriTemiz.toLowerCase())) {
+      await supabase.from('not_kategorileri').insert({ kullanici_id: profile.id, ad: kategoriTemiz })
+      kategorileriYukle()
+    }
+
+    setYeniBaslik(''); setYeniIcerik(''); setYeniKategori(''); setEkleAcik(false)
     notlariYukle()
   }
 
@@ -68,8 +64,13 @@ export default function Notlar() {
 
   const notGuncelle = async (id) => {
     if (!duzIcerik.trim()) return
-    const { error } = await supabase.from('kisisel_notlar').update({ baslik: duzBaslik || null, kategori: duzKategori || null, icerik: duzIcerik }).eq('id', id)
+    const kategoriTemiz = duzKategori.trim() || null
+    const { error } = await supabase.from('kisisel_notlar').update({ baslik: duzBaslik || null, kategori: kategoriTemiz, icerik: duzIcerik }).eq('id', id)
     if (error) { alert('Güncellenemedi: ' + error.message); return }
+    if (kategoriTemiz && !kategoriler.find((k) => k.ad.toLowerCase() === kategoriTemiz.toLowerCase())) {
+      await supabase.from('not_kategorileri').insert({ kullanici_id: profile.id, ad: kategoriTemiz })
+      kategorileriYukle()
+    }
     setDuzenlenenId(null)
     notlariYukle()
   }
@@ -136,20 +137,10 @@ export default function Notlar() {
         <div className="ekleme-kutusu">
           <input type="text" placeholder="Başlık (opsiyonel)" value={yeniBaslik} onChange={(e) => setYeniBaslik(e.target.value)} />
 
-          {!yeniKategoriEkleAcik ? (
-            <div className="ekleme-satiri-2">
-              <select value={yeniKategoriId} onChange={(e) => setYeniKategoriId(e.target.value)}>
-                <option value="">Kategori yok</option>
-                {kategoriler.map((k) => <option key={k.id} value={k.ad}>{k.ad}</option>)}
-              </select>
-              <button onClick={() => setYeniKategoriEkleAcik(true)}>+ Yeni kategori</button>
-            </div>
-          ) : (
-            <div className="ekleme-satiri-2">
-              <input type="text" placeholder="Kategori adı" value={yeniKategoriAdi} onChange={(e) => setYeniKategoriAdi(e.target.value)} />
-              <button onClick={kategoriEkle}>Kaydet</button>
-            </div>
-          )}
+          <input type="text" placeholder="Kategori (opsiyonel)" value={yeniKategori} onChange={(e) => setYeniKategori(e.target.value)} list="kategori-onerileri" />
+          <datalist id="kategori-onerileri">
+            {kategoriler.map((k) => <option key={k.id} value={k.ad} />)}
+          </datalist>
 
           <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
             <textarea
@@ -228,10 +219,10 @@ function NotKarti({ n, ctx }) {
       {duzenlenenId === n.id ? (
         <div>
           <input type="text" placeholder="Başlık" value={duzBaslik} onChange={(e) => setDuzBaslik(e.target.value)} style={{ marginBottom: 6 }} />
-          <select value={duzKategori} onChange={(e) => setDuzKategori(e.target.value)} style={{ marginBottom: 6 }}>
-            <option value="">Kategori yok</option>
-            {kategoriler.map((k) => <option key={k.id} value={k.ad}>{k.ad}</option>)}
-          </select>
+          <input type="text" placeholder="Kategori (opsiyonel)" value={duzKategori} onChange={(e) => setDuzKategori(e.target.value)} list="kategori-onerileri-duzenle" style={{ marginBottom: 6 }} />
+          <datalist id="kategori-onerileri-duzenle">
+            {kategoriler.map((k) => <option key={k.id} value={k.ad} />)}
+          </datalist>
           <textarea value={duzIcerik} onChange={(e) => setDuzIcerik(e.target.value)} rows={3}
             style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', marginBottom: 6 }} />
           <div style={{ display: 'flex', gap: 6 }}>

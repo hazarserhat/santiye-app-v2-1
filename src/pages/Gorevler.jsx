@@ -212,8 +212,12 @@ export default function Gorevler() {
 
     setYeniBaslik('')
     setYeniOncelik('sari')
+    const etiketlenenSayisi = yeniEtiketliler.length
     setYeniEtiketliler([])
     gorevleriYukle()
+    if (etiketlenenSayisi > 0) {
+      alert(`Görev kaydedildi. ${etiketlenenSayisi} kişiye Uyarı sayfasında bildirim gönderildi.`)
+    }
   }
 
   const altGorevEkle = async (ustId, santiyeId) => {
@@ -398,6 +402,9 @@ export default function Gorevler() {
         </div>
 
         <p style={{ fontSize: 12, color: '#5F5E5A', margin: '4px 0 2px' }}>Etiketlenecek kişiler:</p>
+        <p style={{ fontSize: 11, color: '#888780', margin: '0 0 6px' }}>
+          🔔 Etiketlenen kişiye Uyarı sayfasında bildirim düşer, tıklayınca doğrudan bu göreve yönlendirilir.
+        </p>
         <div className="kisi-etiket-secici">
           {kullanicilar.map((k) => (
             <button
