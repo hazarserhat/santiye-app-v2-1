@@ -8,7 +8,9 @@ import Gorevler from './pages/Gorevler'
 import Masraflar from './pages/Masraflar'
 import CariKartlar from './pages/CariKartlar'
 import Puantaj from './pages/Puantaj'
-import YapimAsamasinda from './pages/YapimAsamasinda'
+import GunlukRapor from './pages/GunlukRapor'
+import Animsaticilar from './pages/Animsaticilar'
+import Notlar from './pages/Notlar'
 
 const SANTIYE_SECICI_GIZLI_SAYFALAR = ['/gorevler', '/masraflar', '/cari-kartlar']
 
@@ -38,9 +40,9 @@ function IcerikAlani() {
             <Route path="/masraflar" element={<Masraflar />} />
             <Route path="/cari-kartlar" element={<CariKartlar />} />
             <Route path="/puantaj" element={<Puantaj />} />
-            <Route path="/gunluk-rapor" element={<YapimAsamasinda baslik="Günlük Rapor" />} />
-            <Route path="/animsaticilar" element={<YapimAsamasinda baslik="Anımsatıcı / Uyarı" />} />
-            <Route path="/notlarim" element={<YapimAsamasinda baslik="Notlarım" />} />
+            <Route path="/gunluk-rapor" element={<GunlukRapor />} />
+            <Route path="/animsaticilar" element={<Animsaticilar />} />
+            <Route path="/notlarim" element={<Notlar />} />
           </Routes>
         </main>
 

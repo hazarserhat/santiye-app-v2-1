@@ -11,7 +11,7 @@ const gunEkle = (t, n) => {
 const tarihGoster = (t) => new Date(t).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
 
 export default function Puantaj() {
-  const [sayfa, setSayfa] = useState('takvim') // 'takvim' | 'toplam'
+  const [sayfa, setSayfa] = useState('takvim') // 'takvim' | 'toplam' | 'calisan'
 
   return (
     <div className="sayfa">
@@ -19,8 +19,11 @@ export default function Puantaj() {
       <div className="gorunum-secici" style={{ marginBottom: 14 }}>
         <button className={sayfa === 'takvim' ? 'secili-tab' : ''} onClick={() => setSayfa('takvim')}>Takvim</button>
         <button className={sayfa === 'toplam' ? 'secili-tab' : ''} onClick={() => setSayfa('toplam')}>Toplam / Rapor</button>
+        <button className={sayfa === 'calisan' ? 'secili-tab' : ''} onClick={() => setSayfa('calisan')}>Çalışan Kayıt</button>
       </div>
-      {sayfa === 'takvim' ? <PuantajTakvim /> : <PuantajToplam />}
+      {sayfa === 'takvim' && <PuantajTakvim />}
+      {sayfa === 'toplam' && <PuantajToplam />}
+      {sayfa === 'calisan' && <PuantajCalisanKayit />}
     </div>
   )
 }
@@ -134,10 +137,10 @@ function PuantajTakvim() {
     }
   }
 
-  const calisanEkle = async (taseronId) => {
+  const calisanEkle = async (taseronId, santiyeId) => {
     const ad = (yeniCalisanAdi[taseronId] || '').trim()
     if (!ad) return
-    const { data, error } = await supabase.from('taseron_calisanlari').insert({ taseron_id: taseronId, ad_soyad: ad }).select().single()
+    const { data, error } = await supabase.from('taseron_calisanlari').insert({ taseron_id: taseronId, santiye_id: santiyeId, ad_soyad: ad }).select().single()
     if (error) { alert('Çalışan eklenemedi: ' + error.message); return }
     setCalisanlar((onceki) => [...onceki, data])
     setYeniCalisanAdi((onceki) => ({ ...onceki, [taseronId]: '' }))
@@ -193,7 +196,7 @@ function PuantajTakvim() {
 
           <div className="liste">
             {kayitlar.map((k) => {
-              const taseronCalisanlari = calisanlar.filter((c) => c.taseron_id === k.taseron_id)
+              const taseronCalisanlari = calisanlar.filter((c) => c.taseron_id === k.taseron_id && c.santiye_id === k.santiye_id)
               const acik = acikKayitlar[k.id]
               return (
                 <div key={k.id} className="kart">
@@ -225,9 +228,9 @@ function PuantajTakvim() {
                           placeholder="Yeni çalışan adı..."
                           value={yeniCalisanAdi[k.taseron_id] || ''}
                           onChange={(e) => setYeniCalisanAdi((o) => ({ ...o, [k.taseron_id]: e.target.value }))}
-                          onKeyDown={(e) => e.key === 'Enter' && calisanEkle(k.taseron_id)}
+                          onKeyDown={(e) => e.key === 'Enter' && calisanEkle(k.taseron_id, k.santiye_id)}
                         />
-                        <button onClick={() => calisanEkle(k.taseron_id)}>Ekle</button>
+                        <button onClick={() => calisanEkle(k.taseron_id, k.santiye_id)}>Ekle</button>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, paddingTop: 10, borderTop: '1px solid #F1EFE8' }}>
@@ -439,6 +442,118 @@ function PuantajToplam() {
       )}
 
       {kayitlar.length === 0 && !yukleniyor && <p className="bos-mesaj">Bu filtrede kayıt yok.</p>}
+    </>
+  )
+}
+
+// ============================================================
+// SAYFA 3 — ÇALIŞAN KAYIT (taşeron + şantiye bazlı isim yönetimi)
+// ============================================================
+function PuantajCalisanKayit() {
+  const { santiyeler } = useSite()
+  const [taseronlar, setTaseronlar] = useState([])
+  const [santiyeId, setSantiyeId] = useState('')
+  const [taseronId, setTaseronId] = useState('')
+  const [calisanlar, setCalisanlar] = useState([])
+  const [yeniAd, setYeniAd] = useState('')
+  const [duzenlenenId, setDuzenlenenId] = useState(null)
+  const [duzenlenenAd, setDuzenlenenAd] = useState('')
+
+  useEffect(() => {
+    supabase.from('taseronlar').select('*').order('ad').then(({ data }) => setTaseronlar(data || []))
+  }, [])
+
+  useEffect(() => {
+    if (santiyeler.length && !santiyeId) setSantiyeId(santiyeler[0].id)
+  }, [santiyeler])
+
+  useEffect(() => {
+    if (santiyeId && taseronId) calisanlariYukle()
+    else setCalisanlar([])
+  }, [santiyeId, taseronId])
+
+  const calisanlariYukle = async () => {
+    const { data, error } = await supabase.from('taseron_calisanlari').select('*')
+      .eq('santiye_id', santiyeId).eq('taseron_id', taseronId).order('ad_soyad')
+    if (error) { alert('Çalışanlar yüklenemedi: ' + error.message); return }
+    setCalisanlar(data || [])
+  }
+
+  const calisanEkle = async () => {
+    if (!yeniAd.trim()) return
+    const { error } = await supabase.from('taseron_calisanlari').insert({ taseron_id: taseronId, santiye_id: santiyeId, ad_soyad: yeniAd })
+    if (error) { alert('Eklenemedi: ' + error.message); return }
+    setYeniAd('')
+    calisanlariYukle()
+  }
+
+  const calisanGuncelle = async (id) => {
+    if (!duzenlenenAd.trim()) return
+    await supabase.from('taseron_calisanlari').update({ ad_soyad: duzenlenenAd }).eq('id', id)
+    setDuzenlenenId(null)
+    calisanlariYukle()
+  }
+
+  const calisanSil = async (id) => {
+    if (!window.confirm('Bu çalışanı kayıtlardan çıkarmak istediğinize emin misiniz? (geçmiş puantaj kayıtları etkilenmez)')) return
+    await supabase.from('taseron_calisanlari').delete().eq('id', id)
+    calisanlariYukle()
+  }
+
+  return (
+    <>
+      <p style={{ fontSize: 13, color: '#5F5E5A', marginTop: 0 }}>
+        Aynı taşeron farklı şantiyelerde farklı çalışanlarla bulunabilir — bu yüzden liste şantiye + taşeron ikilisine göre tutulur.
+      </p>
+
+      <div className="ekleme-satiri-2" style={{ marginBottom: 14 }}>
+        <select value={santiyeId} onChange={(e) => setSantiyeId(e.target.value)}>
+          {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+        </select>
+        <select value={taseronId} onChange={(e) => setTaseronId(e.target.value)}>
+          <option value="">Taşeron seç...</option>
+          {taseronlar.map((t) => <option key={t.id} value={t.id}>{t.ad}</option>)}
+        </select>
+      </div>
+
+      {!taseronId ? (
+        <p className="bos-mesaj">Listeyi görmek için bir taşeron seçin.</p>
+      ) : (
+        <>
+          <div className="liste">
+            {calisanlar.map((c) => (
+              <div key={c.id} className="kart" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {duzenlenenId === c.id ? (
+                  <>
+                    <input
+                      type="text"
+                      value={duzenlenenAd}
+                      onChange={(e) => setDuzenlenenAd(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && calisanGuncelle(c.id)}
+                      autoFocus
+                      style={{ flex: 1 }}
+                    />
+                    <button className="sil-buton" onClick={() => calisanGuncelle(c.id)}>✓</button>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ flex: 1, fontSize: 13 }}>{c.ad_soyad}</span>
+                    <button className="sil-buton" onClick={() => { setDuzenlenenId(c.id); setDuzenlenenAd(c.ad_soyad) }} aria-label="Düzenle">✎</button>
+                    <button className="sil-buton" onClick={() => calisanSil(c.id)} aria-label="Sil">🗑</button>
+                  </>
+                )}
+              </div>
+            ))}
+            {calisanlar.length === 0 && <p className="bos-mesaj">Bu şantiye/taşeron için henüz çalışan kaydı yok.</p>}
+          </div>
+
+          <div className="ekleme-kutusu">
+            <input type="text" placeholder="Yeni çalışan adı soyadı..." value={yeniAd} onChange={(e) => setYeniAd(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && calisanEkle()} />
+            <button className="ekle-buton-genis" onClick={calisanEkle}>Çalışan ekle</button>
+          </div>
+        </>
+      )}
     </>
   )
 }
