@@ -233,15 +233,17 @@ export default function Gorevler() {
       for (const kullaniciId of yeniEtiketliler) {
         const { error: kisiEtiketHata } = await supabase.from('gorev_etiketleri').insert({ gorev_id: data.id, etiket_turu: 'kisi', deger: kullaniciId })
         if (kisiEtiketHata) console.error('Kişi etiketi eklenemedi:', kisiEtiketHata.message)
-        if (kullaniciId !== profile?.id) {
-          const { error: bildirimHata } = await supabase.from('bildirimler').insert({
-            kullanici_id: kullaniciId,
-            mesaj: `${profile?.ad_soyad || 'Bir kullanıcı'} sizi bir görevde etiketledi: "${yeniBaslik}"`,
-            gorev_id: data.id,
-            olusturan: profile?.id,
-          })
-          if (bildirimHata) { alert('Bildirim gönderilemedi: ' + bildirimHata.message) }
-        }
+
+        const kendiniEtiketledi = kullaniciId === profile?.id
+        const { error: bildirimHata } = await supabase.from('bildirimler').insert({
+          kullanici_id: kullaniciId,
+          mesaj: kendiniEtiketledi
+            ? `Kendinizi bir görevde etiketlediniz: "${yeniBaslik}"`
+            : `${profile?.ad_soyad || 'Bir kullanıcı'} sizi bir görevde etiketledi: "${yeniBaslik}"`,
+          gorev_id: data.id,
+          olusturan: profile?.id,
+        })
+        if (bildirimHata) { alert('Bildirim gönderilemedi: ' + bildirimHata.message) }
       }
     }
 
