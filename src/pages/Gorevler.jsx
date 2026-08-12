@@ -47,26 +47,29 @@ function GorevKarti({ gorev, seviye, ctx }) {
     <div style={{ marginLeft: seviye * 16 }}>
       <div className="kart" style={{ borderLeft: oncelik ? `4px solid ${oncelik.renk}` : undefined }}>
         <div className="kart-ust">
-          <input
-            type="checkbox"
-            checked={seciliGorevler.includes(gorev.id)}
-            onChange={() => setSeciliGorevler((onceki) =>
-              onceki.includes(gorev.id) ? onceki.filter((x) => x !== gorev.id) : [...onceki, gorev.id]
-            )}
-            style={{ marginRight: 8, flexShrink: 0, width: 16, height: 16 }}
-          />
-          {duzenlenenId === gorev.id ? (
+          <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, gap: 8 }}>
             <input
-              type="text"
-              value={duzenlenenBaslik}
-              onChange={(e) => setDuzenlenenBaslik(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && basligiKaydet(gorev.id)}
-              autoFocus
-              style={{ flex: 1, marginRight: 8 }}
+              type="checkbox"
+              checked={seciliGorevler.includes(gorev.id)}
+              onChange={() => setSeciliGorevler((onceki) =>
+                onceki.includes(gorev.id) ? onceki.filter((x) => x !== gorev.id) : [...onceki, gorev.id]
+              )}
+              style={{ flexShrink: 0, width: 16, height: 16 }}
             />
-          ) : (
-            <span className="kart-baslik"><span className="gorev-numara">{numaraHaritasi[gorev.id]}</span> {gorev.baslik}</span>
-          )}
+            {numaraHaritasi[gorev.id] && <span className="gorev-numara-rozet">{numaraHaritasi[gorev.id]}</span>}
+            {duzenlenenId === gorev.id ? (
+              <input
+                type="text"
+                value={duzenlenenBaslik}
+                onChange={(e) => setDuzenlenenBaslik(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && basligiKaydet(gorev.id)}
+                autoFocus
+                style={{ flex: 1 }}
+              />
+            ) : (
+              <span className="kart-baslik" style={{ textAlign: 'left' }}>{gorev.baslik}</span>
+            )}
+          </div>
           <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
             {duzenlenenId === gorev.id ? (
               <button className="sil-buton" onClick={() => basligiKaydet(gorev.id)} aria-label="Kaydet">✓</button>
