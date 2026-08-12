@@ -100,6 +100,21 @@ export default function GunlukRapor() {
     raporlariYukle()
   }
 
+  const raporPaylas = async (r) => {
+    let metin = `*Günlük Rapor* — ${new Date(r.tarih).toLocaleDateString('tr-TR')}\n`
+    metin += `*Şantiye* : ${r.santiyeler?.ad || '—'}\n\n`
+    ALANLAR.forEach((a) => {
+      if (r[a.anahtar]) metin += `*${a.etiket}*\n${r[a.anahtar]}\n\n`
+    })
+    metin += `Ekleyen: ${r.profiles?.ad_soyad || 'Bilinmiyor'}`
+
+    if (navigator.share) {
+      try { await navigator.share({ text: metin }) } catch { /* iptal */ }
+    } else {
+      window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
+    }
+  }
+
   if (!aktifSantiye) return <p className="bos-mesaj">Şantiye yükleniyor...</p>
 
   // Takvim hesaplamaları
@@ -142,6 +157,7 @@ export default function GunlukRapor() {
                   <span className="kart-baslik">{detayAcikId === r.id ? '▾' : '▸'} {new Date(r.tarih).toLocaleDateString('tr-TR')}</span>
                   <span className="etiket etiket-vurgu" style={{ marginLeft: 8 }}>{r.santiyeler?.ad}</span>
                 </div>
+                <button className="sil-buton" onClick={(e) => { e.stopPropagation(); raporPaylas(r) }} aria-label="Paylaş">📤</button>
                 <button className="sil-buton" onClick={(e) => { e.stopPropagation(); raporSil(r.id) }} aria-label="Sil">🗑</button>
               </div>
               <div className="gorev-alt-bilgi">Ekleyen: {r.profiles?.ad_soyad || 'Bilinmiyor'} · {new Date(r.created_at).toLocaleDateString('tr-TR')} {new Date(r.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>
