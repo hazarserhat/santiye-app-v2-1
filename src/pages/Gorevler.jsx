@@ -33,6 +33,7 @@ function GorevKarti({ gorev, seviye, ctx }) {
     gorevSil, durumGuncelle,
     altGorevAcikId, setAltGorevAcikId, altGorevMetni, setAltGorevMetni, altGorevEkle,
     seciliGorevler, setSeciliGorevler,
+    oncelikSeciciAcikId, setOncelikSeciciAcikId, oncelikDegistir,
   } = ctx
 
   const oncelikEtiketi = gorev.gorev_etiketleri?.find((e) => e.etiket_turu === 'oncelik')
@@ -78,12 +79,43 @@ function GorevKarti({ gorev, seviye, ctx }) {
 
         <div className="etiket-satiri">
           {seviye === 0 && filtreSantiye === 'hepsi' && <span className="etiket etiket-vurgu">{gorev.santiyeler?.ad}</span>}
-          {oncelik && <span className="etiket" style={{ background: oncelik.renk, color: 'white' }}>{oncelik.etiket}</span>}
+          {oncelik ? (
+            <span
+              className="etiket"
+              style={{ background: oncelik.renk, color: 'white', cursor: 'pointer' }}
+              onClick={() => setOncelikSeciciAcikId(oncelikSeciciAcikId === gorev.id ? null : gorev.id)}
+            >
+              {oncelik.etiket} ✎
+            </span>
+          ) : (
+            <span
+              className="etiket"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setOncelikSeciciAcikId(oncelikSeciciAcikId === gorev.id ? null : gorev.id)}
+            >
+              Öncelik ata
+            </span>
+          )}
           {kisiEtiketleri.map((e) => {
             const kisi = kullanicilar.find((k) => k.id === e.deger)
             return <span key={e.id} className="etiket">@{kisi?.ad_soyad || '—'}</span>
           })}
         </div>
+
+        {oncelikSeciciAcikId === gorev.id && (
+          <div className="oncelik-secici-satiri" style={{ marginBottom: 8 }}>
+            {ONCELIKLER.map((o) => (
+              <button
+                key={o.deger}
+                className={`oncelik-nokta ${oncelik?.deger === o.deger ? 'secili' : ''}`}
+                style={{ background: o.renk }}
+                onClick={() => oncelikDegistir(gorev, o.deger)}
+                aria-label={o.etiket}
+                title={o.etiket}
+              />
+            ))}
+          </div>
+        )}
 
         <select value={gorev.durum} onChange={(ev) => durumGuncelle(gorev.id, ev.target.value)} className="durum-secici">
           {DURUMLAR.filter((d) => d.deger !== 'hepsi').map((d) => (
@@ -154,6 +186,7 @@ export default function Gorevler() {
   const [altGorevAcikId, setAltGorevAcikId] = useState(null)
   const [altGorevMetni, setAltGorevMetni] = useState('')
   const [seciliGorevler, setSeciliGorevler] = useState([])
+  const [oncelikSeciciAcikId, setOncelikSeciciAcikId] = useState(null)
   const [siralamaYonu, setSiralamaYonu] = useState('yeni') // 'yeni' | 'eski'
   const [gosterilenSayisi, setGosterilenSayisi] = useState(10)
 
@@ -198,14 +231,16 @@ export default function Gorevler() {
       if (etiketHatasi) console.error('Öncelik etiketi eklenemedi:', etiketHatasi.message)
 
       for (const kullaniciId of yeniEtiketliler) {
-        await supabase.from('gorev_etiketleri').insert({ gorev_id: data.id, etiket_turu: 'kisi', deger: kullaniciId })
+        const { error: kisiEtiketHata } = await supabase.from('gorev_etiketleri').insert({ gorev_id: data.id, etiket_turu: 'kisi', deger: kullaniciId })
+        if (kisiEtiketHata) console.error('Kişi etiketi eklenemedi:', kisiEtiketHata.message)
         if (kullaniciId !== profile?.id) {
-          await supabase.from('bildirimler').insert({
+          const { error: bildirimHata } = await supabase.from('bildirimler').insert({
             kullanici_id: kullaniciId,
             mesaj: `${profile?.ad_soyad || 'Bir kullanıcı'} sizi bir görevde etiketledi: "${yeniBaslik}"`,
             gorev_id: data.id,
             olusturan: profile?.id,
           })
+          if (bildirimHata) { alert('Bildirim gönderilemedi: ' + bildirimHata.message) }
         }
       }
     }
@@ -236,6 +271,17 @@ export default function Gorevler() {
 
   const durumGuncelle = async (id, yeniDurum) => {
     await supabase.from('gorevler').update({ durum: yeniDurum }).eq('id', id)
+    gorevleriYukle()
+  }
+
+  const oncelikDegistir = async (gorev, yeniDeger) => {
+    const mevcutEtiket = gorev.gorev_etiketleri?.find((e) => e.etiket_turu === 'oncelik')
+    if (mevcutEtiket) {
+      await supabase.from('gorev_etiketleri').update({ deger: yeniDeger }).eq('id', mevcutEtiket.id)
+    } else {
+      await supabase.from('gorev_etiketleri').insert({ gorev_id: gorev.id, etiket_turu: 'oncelik', deger: yeniDeger })
+    }
+    setOncelikSeciciAcikId(null)
     gorevleriYukle()
   }
 
@@ -339,6 +385,7 @@ export default function Gorevler() {
     gorevSil, durumGuncelle,
     altGorevAcikId, setAltGorevAcikId, altGorevMetni, setAltGorevMetni, altGorevEkle,
     seciliGorevler, setSeciliGorevler,
+    oncelikSeciciAcikId, setOncelikSeciciAcikId, oncelikDegistir,
   }
 
   return (

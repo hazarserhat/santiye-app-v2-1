@@ -39,7 +39,8 @@ export default function Animsaticilar() {
   }, [santiyeler])
 
   const bildirimleriYukle = async () => {
-    const { data } = await supabase.from('bildirimler').select('*').eq('kullanici_id', profile.id).order('created_at', { ascending: false }).limit(20)
+    const { data, error } = await supabase.from('bildirimler').select('*').eq('kullanici_id', profile.id).order('created_at', { ascending: false }).limit(20)
+    if (error) { alert('Bildirimler yüklenemedi: ' + error.message); return }
     setBildirimler(data || [])
   }
 
