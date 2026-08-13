@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 const OGELER = [
   { yol: '/gorevler', etiket: 'Görevler', simge: '✓' },
@@ -11,9 +12,14 @@ const OGELER = [
 ]
 
 export default function AltMenu() {
+  const { profile } = useAuth()
+  const ogeler = profile?.sistem_yoneticisi
+    ? [...OGELER, { yol: '/yonetim', etiket: 'Yönetim', simge: '⚙️' }]
+    : OGELER
+
   return (
     <nav className="alt-menu">
-      {OGELER.map((oge) => (
+      {ogeler.map((oge) => (
         <NavLink key={oge.yol} to={oge.yol} className={({ isActive }) => `alt-menu-oge ${isActive ? 'aktif' : ''}`}>
           <span className="alt-menu-simge">{oge.simge}</span>
           <span className="alt-menu-etiket">{oge.etiket}</span>

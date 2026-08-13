@@ -1,27 +1,16 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useSite } from '../context/SiteContext'
-import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 
 export default function SiteSwitcher() {
-  const { santiyeler, aktifSantiye, santiyeSec, setSantiyeler } = useSite()
+  const { santiyeler, aktifSantiye, santiyeSec } = useSite()
+  const { profile } = useAuth()
+  const navigate = useNavigate()
   const [acik, setAcik] = useState(false)
   const [arama, setArama] = useState('')
-  const [yeniAcik, setYeniAcik] = useState(false)
-  const [yeniAd, setYeniAd] = useState('')
-  const [yeniAdres, setYeniAdres] = useState('')
 
   const filtreli = santiyeler.filter((s) => s.ad.toLowerCase().includes(arama.toLowerCase()))
-
-  const santiyeEkle = async () => {
-    if (!yeniAd.trim()) return
-    const { data, error } = await supabase.from('santiyeler').insert({ ad: yeniAd, adres: yeniAdres }).select().single()
-    if (!error && data) {
-      setSantiyeler((onceki) => [...onceki, data].sort((a, b) => a.ad.localeCompare(b.ad)))
-      santiyeSec(data)
-      setYeniAd(''); setYeniAdres(''); setYeniAcik(false)
-      setAcik(false)
-    }
-  }
 
   return (
     <>
@@ -57,16 +46,14 @@ export default function SiteSwitcher() {
               {filtreli.length === 0 && <p className="bos-mesaj">Şantiye bulunamadı</p>}
             </div>
 
-            {!yeniAcik ? (
-              <button className="ekle-buton-genis" style={{ marginTop: 12 }} onClick={() => setYeniAcik(true)}>
-                + Yeni şantiye ekle
+            {profile?.sistem_yoneticisi && (
+              <button
+                className="ekle-buton-genis"
+                style={{ marginTop: 12 }}
+                onClick={() => { setAcik(false); navigate('/yonetim/santiyeler') }}
+              >
+                + Yeni şantiye ekle (Yönetim'de)
               </button>
-            ) : (
-              <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <input type="text" placeholder="Şantiye adı" value={yeniAd} onChange={(e) => setYeniAd(e.target.value)} />
-                <input type="text" placeholder="Adres (opsiyonel)" value={yeniAdres} onChange={(e) => setYeniAdres(e.target.value)} />
-                <button className="ekle-buton-genis" onClick={santiyeEkle}>Kaydet</button>
-              </div>
             )}
           </div>
         </div>

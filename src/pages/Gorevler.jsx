@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
-import HizliSantiyeEkle from '../components/HizliSantiyeEkle'
 
 const DURUMLAR = [
   { deger: 'hepsi', etiket: 'Tümü' },
@@ -477,7 +476,6 @@ export default function Gorevler() {
         {santiyeler.map((s) => (
           <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
         ))}
-        <HizliSantiyeEkle />
       </div>
 
       <div className="filtre-satiri">

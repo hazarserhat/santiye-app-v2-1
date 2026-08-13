@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
-import HizliSantiyeEkle from '../components/HizliSantiyeEkle'
 import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
 
 export default function CariKartlar() {
@@ -349,7 +348,6 @@ export default function CariKartlar() {
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
         <input type="text" placeholder="Taşeron ara..." value={arama} onChange={(e) => setArama(e.target.value)} style={{ flex: 1, margin: 0 }} />
-        <HizliSantiyeEkle />
       </div>
 
       <div className="gorunum-secici" style={{ marginBottom: 12 }}>

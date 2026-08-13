@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
-import HizliSantiyeEkle from '../components/HizliSantiyeEkle'
 import Cekler from './Cekler'
 import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
 
@@ -198,7 +197,6 @@ export default function Masraflar() {
           </button>
         ))}
         <button className={`filtre-chip ${filtreSantiye === 'genel' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('genel')}>Genel Gider</button>
-        <HizliSantiyeEkle />
       </div>
 
       {yonetici && (
