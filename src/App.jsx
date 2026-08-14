@@ -15,7 +15,6 @@ import Yonetim from './pages/Yonetim'
 import YonetimSantiyeler from './pages/yonetim/YonetimSantiyeler'
 import CekTakip from './pages/yonetim/CekTakip'
 import Teminatlar from './pages/yonetim/Teminatlar'
-import AbonelikBedelleri from './pages/yonetim/AbonelikBedelleri'
 import YapiKimlikNo from './pages/yonetim/YapiKimlikNo'
 import ProjeDetaylari from './pages/yonetim/ProjeDetaylari'
 import FaturaBilgileri from './pages/yonetim/FaturaBilgileri'
@@ -67,7 +66,7 @@ function IcerikAlani() {
             <Route path="/yonetim/cek-takip" element={<YonetimKoruma><CekTakip /></YonetimKoruma>} />
             <Route path="/yonetim/teminatlar/banka" element={<YonetimKoruma><Teminatlar tur="banka_teminat_mektubu" /></YonetimKoruma>} />
             <Route path="/yonetim/teminatlar/belediye" element={<YonetimKoruma><Teminatlar tur="belediye_teminati" /></YonetimKoruma>} />
-            <Route path="/yonetim/teminatlar/abonelik" element={<YonetimKoruma><AbonelikBedelleri /></YonetimKoruma>} />
+            <Route path="/yonetim/teminatlar/abonelik" element={<YonetimKoruma><Teminatlar tur="abonelik_bedeli" /></YonetimKoruma>} />
             <Route path="/yonetim/yapi-kimlik" element={<YonetimKoruma><YapiKimlikNo /></YonetimKoruma>} />
             <Route path="/yonetim/proje-detaylari" element={<YonetimKoruma><ProjeDetaylari /></YonetimKoruma>} />
             <Route path="/yonetim/fatura-bilgileri" element={<YonetimKoruma><FaturaBilgileri /></YonetimKoruma>} />
