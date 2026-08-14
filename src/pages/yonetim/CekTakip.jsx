@@ -49,6 +49,9 @@ export default function CekTakip() {
   const bugun = new Date().toISOString().slice(0, 10)
   const vadesiGelmemis = cekler.filter((c) => c.cek_vadesi && c.cek_vadesi >= bugun)
   const vadesiGelmemisTutar = vadesiGelmemis.reduce((t, c) => t + Number(c.tutar), 0)
+  const odenenCekler = cekler.filter((c) => c.cek_vadesi && c.cek_vadesi < bugun)
+  const odenenTutar = odenenCekler.reduce((t, c) => t + Number(c.tutar), 0)
+  const tumZamanlarToplam = cekler.reduce((t, c) => t + Number(c.tutar), 0)
 
   const baslikStil = { cursor: 'pointer', whiteSpace: 'nowrap', padding: '8px 10px', textAlign: 'left', fontSize: 11, color: '#5F5E5A', borderBottom: '1px solid #D3D1C7' }
   const hucreStil = { padding: '8px 10px', fontSize: 12, whiteSpace: 'nowrap', borderBottom: '1px solid #F1EFE8' }
@@ -66,6 +69,16 @@ export default function CekTakip() {
         <div className="ozet-kart">
           <p className="ozet-etiket">Vadesi gelmemiş toplam</p>
           <p className="ozet-tutar">{paraFormatla(vadesiGelmemisTutar)} ₺</p>
+        </div>
+      </div>
+      <div className="ozet-satiri">
+        <div className="ozet-kart">
+          <p className="ozet-etiket">Ödenen çekler toplamı</p>
+          <p className="ozet-tutar">{paraFormatla(odenenTutar)} ₺</p>
+        </div>
+        <div className="ozet-kart">
+          <p className="ozet-etiket">Bugüne kadar verilen toplam</p>
+          <p className="ozet-tutar">{paraFormatla(tumZamanlarToplam)} ₺</p>
         </div>
       </div>
 
@@ -104,6 +117,7 @@ export default function CekTakip() {
               <th style={baslikStil} onClick={() => siralamaTikla('tutar')}>Tutar{ok('tutar')}</th>
               <th style={baslikStil}>Açıklama</th>
               <th style={baslikStil} onClick={() => siralamaTikla('santiyeler')}>Şantiye{ok('santiyeler')}</th>
+              <th style={baslikStil}>Durum</th>
             </tr>
           </thead>
           <tbody>
@@ -117,6 +131,11 @@ export default function CekTakip() {
                 <td style={hucreStil}>{paraFormatla(c.tutar)} ₺</td>
                 <td style={hucreStil}>{c.aciklama || '—'}</td>
                 <td style={hucreStil}>{c.santiyeler?.ad || '—'}</td>
+                <td style={hucreStil}>
+                  {c.cek_vadesi && c.cek_vadesi < bugun
+                    ? <span className="durum-rozet rozet-yesil">Ödendi</span>
+                    : <span className="durum-rozet rozet-sari">Bekliyor</span>}
+                </td>
               </tr>
             ))}
           </tbody>
