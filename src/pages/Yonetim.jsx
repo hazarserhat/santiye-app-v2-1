@@ -6,7 +6,7 @@ const SAYFALAR = [
   { yol: '/yonetim/cek-takip', ad: 'Çek Takip Sayfası', aciklama: 'Sıralanabilir/filtrelenebilir tablo' },
   { yol: '/yonetim/teminatlar/banka', ad: 'Banka Teminat Mektupları', aciklama: '' },
   { yol: '/yonetim/teminatlar/belediye', ad: 'Belediye Teminatları', aciklama: '' },
-  { yol: '/yonetim/teminatlar/abonelik', ad: 'Abonelik Bedelleri', aciklama: 'Elektrik / Su / Doğalgaz' },
+  { yol: '/yonetim/teminatlar/abonelik', ad: 'Abonelik Bedelleri / Teminatları', aciklama: 'Elektrik / Su / Doğalgaz' },
   { yol: '/yonetim/yapi-kimlik', ad: 'Bina Yapı Kimlik Numaraları', aciklama: '' },
   { yol: '/yonetim/proje-detaylari', ad: 'Proje Detaylı Bilgiler', aciklama: 'Şantiye başına teknik detaylar' },
   { yol: '/yonetim/fatura-bilgileri', ad: 'Fatura Bilgileri', aciklama: 'Elektrik/su sözleşme no' },

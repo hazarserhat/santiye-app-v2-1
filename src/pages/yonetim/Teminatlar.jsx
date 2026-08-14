@@ -8,7 +8,7 @@ import { paraFormatla, sadeceSayiTuslari } from '../../lib/format'
 const BASLIKLAR = {
   banka_teminat_mektubu: 'Banka Teminat Mektupları',
   belediye_teminati: 'Belediye Teminatları',
-  abonelik_bedeli: 'Abonelik Bedelleri',
+  abonelik_bedeli: 'Abonelik Bedelleri / Teminatları',
 }
 
 export default function Teminatlar({ tur }) {
