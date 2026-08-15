@@ -12,6 +12,7 @@ const SAYFALAR = [
   { yol: '/yonetim/fatura-bilgileri', ad: 'Fatura Bilgileri', aciklama: 'Elektrik/su sözleşme no' },
   { yol: '/yonetim/yapi-denetim', ad: 'Yapı Denetim Bilgileri', aciklama: '' },
   { yol: '/yonetim/santiye-adresleri', ad: 'Şantiye Adresleri', aciklama: 'Google Maps linkleri' },
+  { yol: '/yonetim/yarisi-bizden', ad: 'Yarısı Bizden Ödemeleri', aciklama: 'Devlet desteği takibi' },
 ]
 
 export default function Yonetim() {

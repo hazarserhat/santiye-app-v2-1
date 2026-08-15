@@ -20,6 +20,7 @@ import ProjeDetaylari from './pages/yonetim/ProjeDetaylari'
 import FaturaBilgileri from './pages/yonetim/FaturaBilgileri'
 import YapiDenetim from './pages/yonetim/YapiDenetim'
 import SantiyeAdresleri from './pages/yonetim/SantiyeAdresleri'
+import YarisiBizden from './pages/yonetim/YarisiBizden'
 
 const SANTIYE_SECICI_GIZLI_SAYFALAR = ['/gorevler', '/masraflar', '/cari-kartlar']
 
@@ -72,6 +73,7 @@ function IcerikAlani() {
             <Route path="/yonetim/fatura-bilgileri" element={<YonetimKoruma><FaturaBilgileri /></YonetimKoruma>} />
             <Route path="/yonetim/yapi-denetim" element={<YonetimKoruma><YapiDenetim /></YonetimKoruma>} />
             <Route path="/yonetim/santiye-adresleri" element={<YonetimKoruma><SantiyeAdresleri /></YonetimKoruma>} />
+            <Route path="/yonetim/yarisi-bizden" element={<YonetimKoruma><YarisiBizden /></YonetimKoruma>} />
           </Routes>
         </main>
 
