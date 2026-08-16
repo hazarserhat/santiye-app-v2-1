@@ -6,6 +6,7 @@ import AltMenu from './components/AltMenu'
 import Login from './pages/Login'
 import Gorevler from './pages/Gorevler'
 import Masraflar from './pages/Masraflar'
+import Gelirler from './pages/Gelirler'
 import CariKartlar from './pages/CariKartlar'
 import Puantaj from './pages/Puantaj'
 import GunlukRapor from './pages/GunlukRapor'
@@ -21,6 +22,7 @@ import FaturaBilgileri from './pages/yonetim/FaturaBilgileri'
 import YapiDenetim from './pages/yonetim/YapiDenetim'
 import SantiyeAdresleri from './pages/yonetim/SantiyeAdresleri'
 import YarisiBizden from './pages/yonetim/YarisiBizden'
+import ProjeGelirleri from './pages/yonetim/ProjeGelirleri'
 
 const SANTIYE_SECICI_GIZLI_SAYFALAR = ['/gorevler', '/masraflar', '/cari-kartlar']
 
@@ -56,6 +58,7 @@ function IcerikAlani() {
             <Route path="/" element={<Navigate to="/gorevler" replace />} />
             <Route path="/gorevler" element={<Gorevler />} />
             <Route path="/masraflar" element={<Masraflar />} />
+            <Route path="/gelirler" element={<Gelirler />} />
             <Route path="/cari-kartlar" element={<CariKartlar />} />
             <Route path="/puantaj" element={<Puantaj />} />
             <Route path="/gunluk-rapor" element={<GunlukRapor />} />
@@ -74,6 +77,7 @@ function IcerikAlani() {
             <Route path="/yonetim/yapi-denetim" element={<YonetimKoruma><YapiDenetim /></YonetimKoruma>} />
             <Route path="/yonetim/santiye-adresleri" element={<YonetimKoruma><SantiyeAdresleri /></YonetimKoruma>} />
             <Route path="/yonetim/yarisi-bizden" element={<YonetimKoruma><YarisiBizden /></YonetimKoruma>} />
+            <Route path="/yonetim/proje-gelirleri" element={<YonetimKoruma><ProjeGelirleri /></YonetimKoruma>} />
           </Routes>
         </main>
 

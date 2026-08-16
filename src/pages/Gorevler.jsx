@@ -31,8 +31,8 @@ function GorevKarti({ gorev, seviye, ctx }) {
     duzenlenenId, setDuzenlenenId, duzenlenenBaslik, setDuzenlenenBaslik, basligiKaydet,
     gorevSil, durumGuncelle,
     altGorevAcikId, setAltGorevAcikId, altGorevMetni, setAltGorevMetni, altGorevEkle,
-    seciliGorevler, setSeciliGorevler,
-    oncelikSeciciAcikId, setOncelikSeciciAcikId, oncelikDegistir,
+    seciliGorevler, setSeciliGorevler, kisiSeciciAcikId, setKisiSeciciAcikId,
+    oncelikSeciciAcikId, setOncelikSeciciAcikId, oncelikDegistir, kisiEtiketiDegistir,
   } = ctx
 
   const oncelikEtiketi = gorev.gorev_etiketleri?.find((e) => e.etiket_turu === 'oncelik')
@@ -102,7 +102,31 @@ function GorevKarti({ gorev, seviye, ctx }) {
             const kisi = kullanicilar.find((k) => k.id === e.deger)
             return <span key={e.id} className="etiket">@{kisi?.ad_soyad || '—'}</span>
           })}
+          <span
+            className="etiket"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setKisiSeciciAcikId(kisiSeciciAcikId === gorev.id ? null : gorev.id)}
+          >
+            👤 Kişi ata/kaldır
+          </span>
         </div>
+
+        {kisiSeciciAcikId === gorev.id && (
+          <div className="kisi-etiket-secici" style={{ marginBottom: 8 }}>
+            {kullanicilar.map((k) => {
+              const atanmis = kisiEtiketleri.some((e) => e.deger === k.id)
+              return (
+                <button
+                  key={k.id}
+                  className={`filtre-chip ${atanmis ? 'secili' : ''}`}
+                  onClick={() => kisiEtiketiDegistir(gorev, k.id)}
+                >
+                  {atanmis ? '✓ ' : ''}{k.ad_soyad}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {oncelikSeciciAcikId === gorev.id && (
           <div className="oncelik-secici-satiri" style={{ marginBottom: 8 }}>
@@ -189,6 +213,7 @@ export default function Gorevler() {
   const [altGorevMetni, setAltGorevMetni] = useState('')
   const [seciliGorevler, setSeciliGorevler] = useState([])
   const [oncelikSeciciAcikId, setOncelikSeciciAcikId] = useState(null)
+  const [kisiSeciciAcikId, setKisiSeciciAcikId] = useState(null)
   const [siralamaYonu, setSiralamaYonu] = useState('yeni') // 'yeni' | 'eski'
   const [gosterilenSayisi, setGosterilenSayisi] = useState(10)
 
@@ -286,6 +311,24 @@ export default function Gorevler() {
       await supabase.from('gorev_etiketleri').insert({ gorev_id: gorev.id, etiket_turu: 'oncelik', deger: yeniDeger })
     }
     setOncelikSeciciAcikId(null)
+    gorevleriYukle()
+  }
+
+  const kisiEtiketiDegistir = async (gorev, kullaniciId) => {
+    const mevcutEtiket = gorev.gorev_etiketleri?.find((e) => e.etiket_turu === 'kisi' && e.deger === kullaniciId)
+    if (mevcutEtiket) {
+      await supabase.from('gorev_etiketleri').delete().eq('id', mevcutEtiket.id)
+    } else {
+      await supabase.from('gorev_etiketleri').insert({ gorev_id: gorev.id, etiket_turu: 'kisi', deger: kullaniciId })
+      if (kullaniciId !== profile?.id) {
+        await supabase.from('bildirimler').insert({
+          kullanici_id: kullaniciId,
+          mesaj: `${profile?.ad_soyad || 'Bir kullanıcı'} sizi bir görevde etiketledi: "${gorev.baslik}"`,
+          gorev_id: gorev.id,
+          olusturan: profile?.id,
+        })
+      }
+    }
     gorevleriYukle()
   }
 
@@ -388,8 +431,8 @@ export default function Gorevler() {
     duzenlenenId, setDuzenlenenId, duzenlenenBaslik, setDuzenlenenBaslik, basligiKaydet,
     gorevSil, durumGuncelle,
     altGorevAcikId, setAltGorevAcikId, altGorevMetni, setAltGorevMetni, altGorevEkle,
-    seciliGorevler, setSeciliGorevler,
-    oncelikSeciciAcikId, setOncelikSeciciAcikId, oncelikDegistir,
+    seciliGorevler, setSeciliGorevler, kisiSeciciAcikId, setKisiSeciciAcikId,
+    oncelikSeciciAcikId, setOncelikSeciciAcikId, oncelikDegistir, kisiEtiketiDegistir,
   }
 
   return (

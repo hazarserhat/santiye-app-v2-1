@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext'
 
 const OGELER = [
   { yol: '/gorevler', etiket: 'Görevler', simge: '✓' },
-  { yol: '/masraflar', etiket: 'Muhasebe', simge: '₺' },
+  { yol: '/masraflar', etiket: 'Giderler', simge: '₺' },
+  { yol: '/gelirler', etiket: 'Gelirler', simge: '💰' },
   { yol: '/cari-kartlar', etiket: 'Rehber', simge: '👤' },
   { yol: '/puantaj', etiket: 'Puantaj', simge: '📅' },
   { yol: '/gunluk-rapor', etiket: 'Rapor', simge: '📝' },

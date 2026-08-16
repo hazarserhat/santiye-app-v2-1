@@ -4,6 +4,7 @@ import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 import Cekler from './Cekler'
 import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
+import CariAramaSecici from '../components/CariAramaSecici'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -166,7 +167,7 @@ export default function Masraflar() {
 
   return (
     <div className="sayfa">
-      <h2>Muhasebe</h2>
+      <h2>GİDERLER</h2>
 
       {yonetici && (
         <div className="gorunum-secici" style={{ marginBottom: 14 }}>
@@ -258,7 +259,7 @@ export default function Masraflar() {
           <option value="genel">Genel Gider (şantiyeye bağlı değil)</option>
         </select>
         <input type="text" placeholder="Masraf başlığı..." value={baslik} onChange={(e) => setBaslik(e.target.value)} />
-        <input type="text" placeholder="Ödenen kişi/firma (opsiyonel)..." value={odenenKisi} onChange={(e) => setOdenenKisi(e.target.value)} />
+        <CariAramaSecici deger={odenenKisi} onDegisti={setOdenenKisi} placeholder="Ödenen kişi/firma (opsiyonel)..." />
         <textarea
           placeholder="Açıklama / not (opsiyonel)..."
           value={aciklama}
