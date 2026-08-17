@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useSite } from '../../context/SiteContext'
-import { paraFormatla, sadeceSayiTuslari } from '../../lib/format'
+import { paraFormatla } from '../../lib/format'
 
 const ASAMALAR = [
   { anahtar: 'asama1_odendi', yuzde: 0.30, etiket: '1. Aşama (%30)', aciklama: 'Kat İrtifakı Kurulunca' },
@@ -14,6 +14,7 @@ const ASAMALAR = [
 export default function YarisiBizden() {
   const { santiyeler } = useSite()
   const [kayitlar, setKayitlar] = useState({}) // { santiyeId: row }
+  const [devletDestegiHaritasi, setDevletDestegiHaritasi] = useState({}) // { santiyeId: toplam }
 
   const yenile = async () => {
     const { data, error } = await supabase.from('yarisi_bizden_odemeleri').select('*')
@@ -21,6 +22,13 @@ export default function YarisiBizden() {
     const harita = {}
     ;(data || []).forEach((r) => { harita[r.santiye_id] = r })
     setKayitlar(harita)
+
+    // Toplam tutar artık Proje Gelirleri'ndeki maliklerin "Devlet Desteği" alanından otomatik çekiliyor
+    const { data: malikler, error: e2 } = await supabase.from('malikler').select('santiye_id, devlet_destegi')
+    if (e2) { alert('Malik verileri yüklenemedi: ' + e2.message); return }
+    const destekHarita = {}
+    ;(malikler || []).forEach((m) => { destekHarita[m.santiye_id] = (destekHarita[m.santiye_id] || 0) + Number(m.devlet_destegi || 0) })
+    setDevletDestegiHaritasi(destekHarita)
   }
 
   useEffect(() => { yenile() }, [])
@@ -41,14 +49,6 @@ export default function YarisiBizden() {
     setKayitlar((onceki) => ({ ...onceki, [santiyeId]: { ...onceki[santiyeId], basvuru_durumu: yeni } }))
   }
 
-  const tutarGuncelle = async (santiyeId, deger) => {
-    const satir = await satirGetirVeyaOlustur(santiyeId)
-    if (!satir) return
-    const sayi = Number(deger) || 0
-    await supabase.from('yarisi_bizden_odemeleri').update({ toplam_tutar: sayi }).eq('id', satir.id)
-    setKayitlar((onceki) => ({ ...onceki, [santiyeId]: { ...onceki[santiyeId], toplam_tutar: sayi } }))
-  }
-
   const asamaTikle = async (santiyeId, asamaAnahtari) => {
     const satir = await satirGetirVeyaOlustur(santiyeId)
     if (!satir) return
@@ -57,18 +57,19 @@ export default function YarisiBizden() {
     setKayitlar((onceki) => ({ ...onceki, [santiyeId]: { ...onceki[santiyeId], [asamaAnahtari]: yeni } }))
   }
 
-  // ---- Hesaplamalar ----
-  const satirAlinan = (satir) => {
-    if (!satir) return 0
-    return ASAMALAR.reduce((t, a) => t + (satir[a.anahtar] ? Number(satir.toplam_tutar || 0) * a.yuzde : 0), 0)
-  }
-  const satirBeklenen = (satir) => Number(satir?.toplam_tutar || 0) - satirAlinan(satir)
+  // ---- Hesaplamalar (toplam tutar artık malik devlet desteklerinin toplamı) ----
+  const toplamTutarBul = (santiyeId) => devletDestegiHaritasi[santiyeId] || 0
 
-  const tumSatirlar = santiyeler.map((s) => kayitlar[s.id]).filter(Boolean)
-  const toplamDevletDestegi = tumSatirlar.reduce((t, s) => t + Number(s.toplam_tutar || 0), 0)
-  const alinmisDestek = tumSatirlar.reduce((t, s) => t + satirAlinan(s), 0)
-  const beklenenBasvurulan = tumSatirlar.filter((s) => s.basvuru_durumu).reduce((t, s) => t + satirBeklenen(s), 0)
-  const tumBeklenen = tumSatirlar.reduce((t, s) => t + satirBeklenen(s), 0)
+  const satirAlinan = (santiyeId, satir) => {
+    const toplam = toplamTutarBul(santiyeId)
+    return ASAMALAR.reduce((t, a) => t + (satir?.[a.anahtar] ? toplam * a.yuzde : 0), 0)
+  }
+  const satirBeklenen = (santiyeId, satir) => toplamTutarBul(santiyeId) - satirAlinan(santiyeId, satir)
+
+  const toplamDevletDestegi = santiyeler.reduce((t, s) => t + toplamTutarBul(s.id), 0)
+  const alinmisDestek = santiyeler.reduce((t, s) => t + satirAlinan(s.id, kayitlar[s.id]), 0)
+  const beklenenBasvurulan = santiyeler.filter((s) => kayitlar[s.id]?.basvuru_durumu).reduce((t, s) => t + satirBeklenen(s.id, kayitlar[s.id]), 0)
+  const tumBeklenen = santiyeler.reduce((t, s) => t + satirBeklenen(s.id, kayitlar[s.id]), 0)
 
   const hucreStil = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #F1EFE8' }
   const baslikStil = { ...hucreStil, fontWeight: 700, color: '#5F5E5A', fontSize: 11, borderBottom: '1px solid #D3D1C7', whiteSpace: 'nowrap' }
@@ -77,6 +78,9 @@ export default function YarisiBizden() {
     <div className="sayfa">
       <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
       <h2>Yarısı Bizden Ödemeleri</h2>
+      <p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 0 }}>
+        Toplam tutar, Proje Gelirleri sayfasındaki maliklerin "Devlet Desteği" alanlarının toplamından otomatik hesaplanır — buradan elle girilmez.
+      </p>
 
       <div style={{ background: 'white', border: '1px solid #D3D1C7', borderRadius: 12, padding: 12, marginBottom: 14 }}>
         {ASAMALAR.map((a) => (
@@ -92,7 +96,7 @@ export default function YarisiBizden() {
             <tr>
               <th style={{ ...baslikStil, position: 'sticky', left: 0, background: 'white' }}>Şantiye</th>
               <th style={baslikStil}>Başvuru</th>
-              <th style={baslikStil}>Toplam Tutar</th>
+              <th style={baslikStil}>Toplam Tutar (otomatik)</th>
               {ASAMALAR.map((a) => <th key={a.anahtar} style={baslikStil}>{a.etiket}</th>)}
               <th style={baslikStil}>Alınan</th>
               <th style={baslikStil}>Beklenen</th>
@@ -101,30 +105,22 @@ export default function YarisiBizden() {
           <tbody>
             {santiyeler.map((s) => {
               const satir = kayitlar[s.id]
+              const toplam = toplamTutarBul(s.id)
               return (
                 <tr key={s.id}>
                   <td style={{ ...hucreStil, position: 'sticky', left: 0, background: 'white', fontWeight: 700 }}>{s.ad}</td>
                   <td style={{ ...hucreStil, textAlign: 'center' }}>
                     <input type="checkbox" checked={satir?.basvuru_durumu || false} onChange={() => basvuruGuncelle(s.id)} style={{ width: 16, height: 16 }} />
                   </td>
-                  <td style={hucreStil}>
-                    <input
-                      type="number"
-                      defaultValue={satir?.toplam_tutar || ''}
-                      onKeyDown={sadeceSayiTuslari}
-                      onBlur={(e) => tutarGuncelle(s.id, e.target.value)}
-                      style={{ border: 'none', background: 'transparent', width: 100, fontSize: 12 }}
-                      placeholder="0"
-                    />
-                  </td>
+                  <td style={hucreStil}>{paraFormatla(toplam)} ₺</td>
                   {ASAMALAR.map((a) => (
                     <td key={a.anahtar} style={{ ...hucreStil, textAlign: 'center' }}>
                       <input type="checkbox" checked={satir?.[a.anahtar] || false} onChange={() => asamaTikle(s.id, a.anahtar)} style={{ width: 16, height: 16, marginBottom: 4 }} />
-                      <div style={{ fontSize: 11, color: '#5F5E5A' }}>{paraFormatla(Number(satir?.toplam_tutar || 0) * a.yuzde)} ₺</div>
+                      <div style={{ fontSize: 11, color: '#5F5E5A' }}>{paraFormatla(toplam * a.yuzde)} ₺</div>
                     </td>
                   ))}
-                  <td style={{ ...hucreStil, color: '#1D9596', fontWeight: 700 }}>{paraFormatla(satirAlinan(satir))} ₺</td>
-                  <td style={hucreStil}>{paraFormatla(satirBeklenen(satir))} ₺</td>
+                  <td style={{ ...hucreStil, color: '#1D9596', fontWeight: 700 }}>{paraFormatla(satirAlinan(s.id, satir))} ₺</td>
+                  <td style={hucreStil}>{paraFormatla(satirBeklenen(s.id, satir))} ₺</td>
                 </tr>
               )
             })}
