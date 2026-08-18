@@ -298,10 +298,21 @@ export default function Gorevler() {
     gorevleriYukle()
   }
 
+  // --- İŞTE DEĞİŞİKLİĞİ BURAYA YAPTIK ---
   const durumGuncelle = async (id, yeniDurum) => {
     await supabase.from('gorevler').update({ durum: yeniDurum }).eq('id', id)
+    
+    // Eğer yeni durum "tamamlandi" ise, bu görevin bildirimlerini okundu olarak işaretle
+    if (yeniDurum === 'tamamlandi') {
+      await supabase
+        .from('bildirimler')
+        .update({ okundu: true })
+        .eq('gorev_id', id);
+    }
+    
     gorevleriYukle()
   }
+  // --------------------------------------
 
   const oncelikDegistir = async (gorev, yeniDeger) => {
     const mevcutEtiket = gorev.gorev_etiketleri?.find((e) => e.etiket_turu === 'oncelik')
