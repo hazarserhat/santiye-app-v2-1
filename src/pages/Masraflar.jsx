@@ -17,7 +17,7 @@ export default function Masraflar() {
   const [kullanicilar, setKullanicilar] = useState([])
   const [kategoriler, setKategoriler] = useState([])
   const [odemeYontemleri, setOdemeYontemleri] = useState([])
-  const [taseronlar, setTaseronlar] = useState([]) // ID eşlemesi için taşeron listesi
+  const [taseronlar, setTaseronlar] = useState([]) // Otomatik ID eşleşmesi için taşeron listesi
   const [filtreKategori, setFiltreKategori] = useState('hepsi')
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreKullanici, setFiltreKullanici] = useState('hepsi')
@@ -52,7 +52,7 @@ export default function Masraflar() {
     })
     supabase.from('profiles').select('*').order('ad_soyad').then(({ data }) => setKullanicilar(data || []))
     
-    // Yazarak arama yaparken isimden ID'yi bulabilmek için taşeronları çekiyoruz
+    // Otomatik eşleşme için taşeronları çekiyoruz
     supabase.from('taseronlar').select('*').then(({ data }) => {
       setTaseronlar(data || [])
     })
@@ -92,13 +92,11 @@ export default function Masraflar() {
     if (!baslik.trim() || !tutar) return
     setYukleniyor(true)
 
-    // Yazılan isme göre taseronlar tablosundan eşleşen carinin ID'sini otomatik buluyoruz
-    let bulutCariId = secilenCariId
-    if (!bulutCariId && odenenKisi.trim()) {
+    // OTOMATİK EŞLEŞTİRME: Eğer cariId boşsa ama isim yazılmışsa listeden otomatik bulur
+    let sonCariId = secilenCariId
+    if (!sonCariId && odenenKisi.trim()) {
       const bulunan = taseronlar.find(t => t.ad.toLowerCase() === odenenKisi.trim().toLowerCase() || (t.firma && t.firma.toLowerCase() === odenenKisi.trim().toLowerCase()))
-      if (bulunan) {
-        bulutCariId = bulunan.id
-      }
+      if (bulunan) sonCariId = bulunan.id
     }
 
     let fotografUrl = null
@@ -116,7 +114,7 @@ export default function Masraflar() {
       kategori_id: kategoriId,
       baslik,
       odenen_kisi: odenenKisi,
-      cari_id: bulutCariId || null, // <--- OTOMATİK EŞLEŞEN VE YAKALANAN CARİ ID
+      cari_id: sonCariId || null, // <--- OTOMATİK YAKALANAN VE EŞLEŞEN CARİ ID
       aciklama,
       tutar: Number(tutar),
       odeme_yontemi_id: odemeYontemiId,
@@ -278,7 +276,7 @@ export default function Masraflar() {
         </select>
         <input type="text" placeholder="Masraf başlığı..." value={baslik} onChange={(e) => setBaslik(e.target.value)} />
         
-        {/* YAZARAK ARAMA (CARİ ARAMA SEÇİCİ KORUNDU VE ID EŞLEŞMESİ EKLENDİ) */}
+        {/* YAZARAK ARAMA VE OTOMATİK ID YAKALAMA */}
         <CariAramaSecici 
           deger={odenenKisi} 
           onDegisti={(isim, cariId) => { 
