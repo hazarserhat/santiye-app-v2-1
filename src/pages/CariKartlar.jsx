@@ -37,6 +37,24 @@ export default function CariKartlar() {
     }
   }
 
+  // Cari hesabı silme fonksiyonu (Sadece Yönetici)
+  const taseronSil = async (id, e) => {
+    e.stopPropagation() // Kartın tıklama olayını engeller
+    if (!window.confirm('Bu cari hesap kaydını silmek istediğinize emin misiniz?')) return
+
+    const { error } = await supabase
+      .from('taseronlar')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      alert('Silme işlemi başarısız: ' + error.message)
+    } else {
+      taseronlariYukle()
+      if (seciliId === id) setSeciliId(null)
+    }
+  }
+
   return (
     <div className="sayfa">
       <h2>Cari Hesaplar</h2>
@@ -48,17 +66,27 @@ export default function CariKartlar() {
               <p style={{ fontSize: 12, color: '#666' }}>{t.firma}</p>
             </div>
             
-            {yonetici && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                <label style={{ cursor: 'pointer' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={t.sef_gorunur || false} 
-                    onChange={() => gorunurlukDegistir(t.id, t.sef_gorunur)}
-                  /> Şef Görebilir
-                </label>
-              </div>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
+              {yonetici && (
+                <>
+                  <label style={{ cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={t.sef_gorunur || false} 
+                      onChange={() => gorunurlukDegistir(t.id, t.sef_gorunur)}
+                    /> Şef Görebilir
+                  </label>
+                  
+                  <button 
+                    onClick={(e) => taseronSil(t.id, e)} 
+                    style={{ background: '#ffe6e6', color: '#d9534f', border: 'none', padding: '4px 8px', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}
+                    aria-label="Cari sil"
+                  >
+                    🗑 Sil
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         ))}
       </div>
