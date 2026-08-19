@@ -10,8 +10,8 @@ export default function CariKartlar() {
   const yonetici = profile?.rol === 'yonetici'
 
   const [taseronlar, setTaseronlar] = useState([])
-  const [taseronSantiyeHaritasi, setTaseronSantiyeHaritasi] = useState({}) // { taseronId: [{id, ad}, ...] }
-  const [siralama, setSiralama] = useState('alfabetik') // 'alfabetik' | 'tarih'
+  const [taseronSantiyeHaritasi, setTaseronSantiyeHaritasi] = useState({})
+  const [siralama, setSiralama] = useState('alfabetik')
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [seciliId, setSeciliId] = useState(null)
   const [arama, setArama] = useState('')
@@ -19,7 +19,7 @@ export default function CariKartlar() {
   const [notlar, setNotlar] = useState([])
   const [iliskiliSantiyeler, setIliskiliSantiyeler] = useState([])
   const [hakedisler, setHakedisler] = useState([])
-  const [masraflar, setMasraflar] = useState([]) // <--- Taşerona ait masraflar için state
+  const [masraflar, setMasraflar] = useState([])
 
   const [duzenleModu, setDuzenleModu] = useState(false)
   const [duzAd, setDuzAd] = useState('')
@@ -85,19 +85,17 @@ export default function CariKartlar() {
     if (santiyeHata) { alert('Şantiye ilişkileri yüklenemedi: ' + santiyeHata.message); return }
     setIliskiliSantiyeler(santiyeData || [])
 
-    // --- BU TAŞERONA AİT GİDERLERİ (MASRAFLARI) ÇEKİYORUZ ---
+    // Masrafları çek
     const { data: masrafData } = await supabase
       .from('masraflar')
       .select('*, santiyeler(ad), masraf_kategorileri(ad)')
       .eq('cari_id', id)
       .order('harcama_tarihi', { ascending: false })
     setMasraflar(masrafData || [])
-    // --------------------------------------------------------
 
-    if (yonetici) {
-      const { data: hkData } = await supabase.from('hakedisler').select('*').eq('taseron_id', id).order('donem', { ascending: false })
-      setHakedisler(hkData || [])
-    }
+    // Hakedişleri çek
+    const { data: hkData } = await supabase.from('hakedisler').select('*').eq('taseron_id', id).order('created_at', { ascending: false })
+    setHakedisler(hkData || [])
   }
 
   const taseronEkle = async () => {
@@ -106,10 +104,7 @@ export default function CariKartlar() {
       .from('taseronlar')
       .insert({ ad: yeniAd, sifat: yeniSifat, firma: yeniFirma, telefon: yeniTelefon, adres: yeniAdres })
       .select().single()
-    if (error) {
-      alert('Taşeron eklenemedi: ' + error.message)
-      return
-    }
+    if (error) { alert('Taşeron eklenemedi: ' + error.message); return }
     if (data) {
       setYeniAd(''); setYeniSifat(''); setYeniFirma(''); setYeniTelefon(''); setYeniAdres('')
       setYeniTaseronAcik(false)
@@ -130,10 +125,7 @@ export default function CariKartlar() {
   const santiyeIliskisiEkle = async () => {
     if (!eklenecekSantiyeId) return
     const { error } = await supabase.from('taseron_santiyeler').insert({ taseron_id: seciliId, santiye_id: eklenecekSantiyeId })
-    if (error) {
-      alert('Şantiye eklenemedi: ' + error.message)
-      return
-    }
+    if (error) { alert('Şantiye eklenemedi: ' + error.message); return }
     setEklenecekSantiyeId('')
     detayYukle(seciliId)
     taseronlariYukle()
@@ -186,9 +178,23 @@ export default function CariKartlar() {
       const santiyeyeUyuyorMu = filtreSantiye === 'hepsi' || (taseronSantiyeHaritasi[t.id] || []).includes(filtreSantiye)
       return eslesiyorMu && santiyeyeUyuyorMu
     })
-    .sort((a, b) => siralama === 'alfabetik' ? a.ad.localeCompare(b.ad) : new Date(b.created_at) - new Date(a.created_at))
+    .sort((a, b) => siralama === 'alfabetik' ? a.ad.localeCompare(b.ad) : new Date(b.created_at) - new Date(b.created_at))
 
   const eklenebilirSantiyeler = santiyeler.filter((s) => !iliskiliSantiyeler.find((r) => r.santiye_id === s.id))
+
+  // ---- HAKEDİŞLER VE MASRAFLARI ZAMAN ÇİZELGESİNDE (TIMELINE) BİRLEŞTİRME ----
+  const timelineOlaylari = [
+    ...hakedisler.map((h) => ({
+      tip: 'hakedis',
+      tarih: h.created_at || h.donem,
+      veri: h,
+    })),
+    ...masraflar.map((m) => ({
+      tip: 'masraf',
+      tarih: m.harcama_tarihi || m.kayit_tarihi,
+      veri: m,
+    })),
+  ].sort((a, b) => new Date(b.tarih) - new Date(a.tarih))
 
   // ---- DETAY GÖRÜNÜMÜ ----
   if (seciliId && seciliTaseron) {
@@ -245,7 +251,6 @@ export default function CariKartlar() {
               {santiyeler.find((s) => s.id === r.santiye_id)?.ad || '—'}
               <button className="etiket-sil-x" onClick={() => santiyeIliskisiSil(r.id)} aria-label="Şantiye ilişkisini kaldır">×</button>
             </span>
-
           ))}
           {iliskiliSantiyeler.length === 0 && <span className="bos-mesaj" style={{ padding: 0 }}>Henüz şantiye eklenmemiş.</span>}
         </div>
@@ -258,27 +263,6 @@ export default function CariKartlar() {
             <button onClick={santiyeIliskisiEkle}>Ekle</button>
           </div>
         )}
-
-        {/* --- İLGİLİ TAŞERONA AİT HARCAMALAR / GİDERLER LİSTESİ --- */}
-        <p className="alt-baslik" style={{ marginTop: 20 }}>Yapılan Masraflar / Giderler</p>
-        <div className="liste">
-          {masraflar.map((m) => (
-            <div key={m.id} className="kart">
-              <div className="kart-ust">
-                <span className="kart-baslik">{m.baslik}</span>
-                <span style={{ fontWeight: 700, color: '#D64545' }}>{paraFormatla(m.tutar)} ₺</span>
-              </div>
-              <div className="etiket-satiri">
-                <span className="etiket etiket-vurgu">{m.santiyeler?.ad || '—'}</span>
-                <span className="etiket">{m.masraf_kategorileri?.ad || 'Genel'}</span>
-              </div>
-              {m.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{m.aciklama}</p>}
-              <span className="not-alt">Tarih: {new Date(m.harcama_tarihi).toLocaleDateString('tr-TR')}</span>
-            </div>
-          ))}
-          {masraflar.length === 0 && <p className="bos-mesaj">Bu cariye ait masraf kaydı bulunmuyor.</p>}
-        </div>
-        {/* --------------------------------------------------------- */}
 
         <p className="alt-baslik">Notlar</p>
         <div className="liste">
@@ -322,39 +306,62 @@ export default function CariKartlar() {
           <button className="ekle-buton-genis" onClick={notEkle}>Notu ekle</button>
         </div>
 
-        <p className="alt-baslik" style={{ marginTop: 20 }}>Hakediş kartları</p>
+        {/* --- HAKEDİŞLER VE MASRAFLAR ORTAK ZAMAN ÇİZELGESİ (TIMELINE) --- */}
+        <p className="alt-baslik" style={{ marginTop: 20 }}>Finansal Hareketler (Hakedişler & Masraflar)</p>
 
         {!yonetici && (
           <div className="kilit-kutusu">
             <span className="kilit-ikon">🔒</span>
-            <p>Hakediş bilgileri sadece yöneticiler tarafından görülebilir.</p>
+            <p>Finansal bilgiler sadece yöneticiler tarafından görülebilir.</p>
           </div>
         )}
 
         {yonetici && (
           <>
             <div className="liste">
-              {hakedisler.map((h) => (
-                <div key={h.id} className="kart">
-                  <div className="kart-ust">
-                    <span className="kart-baslik">{h.donem}</span>
-                    <span className={`durum-rozet ${h.odeme_durumu === 'odendi' ? 'rozet-yesil' : 'rozet-sari'}`}>
-                      {h.odeme_durumu === 'odendi' ? 'Ödendi' : 'Ödeme bekliyor'}
-                    </span>
-                  </div>
-                  <div className="hakedis-hesap">
-                    <span>Tutar</span><span>{paraFormatla(h.tutar)} ₺</span>
-                    <span>Kesinti/Avans</span><span>-{paraFormatla(h.kesinti_avans)} ₺</span>
-                    <span className="hakedis-net-etiket">Net</span>
-                    <span className="hakedis-net-tutar">{paraFormatla(Number(h.tutar) - Number(h.kesinti_avans))} ₺</span>
-                  </div>
-                  {h.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{h.aciklama}</p>}
-                </div>
-              ))}
-              {hakedisler.length === 0 && <p className="bos-mesaj">Henüz hakediş kaydı yok.</p>}
+              {timelineOlaylari.map((olay, index) => {
+                if (olay.tip === 'hakedis') {
+                  const h = olay.veri
+                  return (
+                    <div key={`hk-${h.id || index}`} className="kart" style={{ borderLeft: '4px solid #1D9596' }}>
+                      <div className="kart-ust">
+                        <span className="kart-baslik">Hakediş: {h.donem}</span>
+                        <span className={`durum-rozet ${h.odeme_durumu === 'odendi' ? 'rozet-yesil' : 'rozet-sari'}`}>
+                          {h.odeme_durumu === 'odendi' ? 'Ödendi' : 'Ödeme bekliyor'}
+                        </span>
+                      </div>
+                      <div className="hakedis-hesap">
+                        <span>Tutar</span><span>{paraFormatla(h.tutar)} ₺</span>
+                        <span>Kesinti/Avans</span><span>-{paraFormatla(h.kesinti_avans)} ₺</span>
+                        <span className="hakedis-net-etiket">Net</span>
+                        <span className="hakedis-net-tutar">{paraFormatla(Number(h.tutar) - Number(h.kesinti_avans))} ₺</span>
+                      </div>
+                      {h.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{h.aciklama}</p>}
+                    </div>
+                  )
+                } else {
+                  const m = olay.veri
+                  return (
+                    <div key={`msf-${m.id || index}`} className="kart" style={{ borderLeft: '4px solid #E08A2E' }}>
+                      <div className="kart-ust">
+                        <span className="kart-baslik">Masraf: {m.baslik}</span>
+                        <span style={{ fontWeight: 700, color: '#D64545' }}>-{paraFormatla(m.tutar)} ₺</span>
+                      </div>
+                      <div className="etiket-satiri">
+                        <span className="etiket etiket-vurgu">{m.santiyeler?.ad || '—'}</span>
+                        <span className="etiket">{m.masraf_kategorileri?.ad || 'Genel'}</span>
+                      </div>
+                      {m.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{m.aciklama}</p>}
+                      <span className="not-alt">Tarih: {new Date(m.harcama_tarihi).toLocaleDateString('tr-TR')}</span>
+                    </div>
+                  )
+                }
+              })}
+              {timelineOlaylari.length === 0 && <p className="bos-mesaj">Henüz hakediş veya masraf kaydı yok.</p>}
             </div>
 
             <div className="ekleme-kutusu">
+              <p style={{ fontSize: 13, fontWeight: 700, margin: '0 0 8px' }}>Yeni Hakediş Ekle</p>
               <input type="text" placeholder="Dönem (örn. Temmuz 2026)" value={hkDonem} onChange={(e) => setHkDonem(e.target.value)} />
               <div className="ekleme-satiri-2">
                 <input type="number" placeholder="Tutar (₺)" value={hkTutar} onChange={(e) => setHkTutar(e.target.value)} onKeyDown={sadeceSayiTuslari} />
