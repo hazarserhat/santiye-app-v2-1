@@ -4,6 +4,8 @@ import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
 
+const bugun = () => new Date().toISOString().slice(0, 10)
+
 export default function CariKartlar() {
   const { santiyeler } = useSite()
   const { profile } = useAuth()
@@ -40,23 +42,32 @@ export default function CariKartlar() {
 
   const [eklenecekSantiyeId, setEklenecekSantiyeId] = useState('')
 
+  // --- YENİLENEN HAKEDİŞ / BİLGİ KARTI FORM STATE'LERİ ---
   const [hkDonem, setHkDonem] = useState('')
   const [hkTutar, setHkTutar] = useState('')
   const [hkKesinti, setHkKesinti] = useState('')
   const [hkDurum, setHkDurum] = useState('bekliyor')
   const [hkAciklama, setHkAciklama] = useState('')
+  const [hkSantiyeId, setHkSantiyeId] = useState('')
+  const [hkTarih, setHkTarih] = useState(bugun())
 
-  // --- HAKEDİŞ DÜZENLEME STATE'LERİ ---
+  // --- DÜZENLEME STATE'LERİ ---
   const [duzenlenenHakedisId, setDuzenlenenHakedisId] = useState(null)
   const [duzHkDonem, setDuzHkDonem] = useState('')
   const [duzHkTutar, setDuzHkTutar] = useState('')
   const [duzHkKesinti, setDuzHkKesinti] = useState('')
   const [duzHkDurum, setDuzHkDurum] = useState('bekliyor')
   const [duzHkAciklama, setDuzHkAciklama] = useState('')
+  const [duzHkSantiyeId, setDuzHkSantiyeId] = useState('')
+  const [duzHkTarih, setDuzHkTarih] = useState(bugun())
 
   useEffect(() => {
     taseronlariYukle()
   }, [])
+
+  useEffect(() => {
+    if (santiyeler.length && !hkSantiyeId) setHkSantiyeId(santiyeler[0].id)
+  }, [santiyeler])
 
   const taseronlariYukle = async () => {
     const { data, error: taseronHata } = await supabase.from('taseronlar').select('*')
@@ -102,8 +113,12 @@ export default function CariKartlar() {
       .order('harcama_tarihi', { ascending: false })
     setMasraflar(masrafData || [])
 
-    // Hakedişleri çek
-    const { data: hkData } = await supabase.from('hakedisler').select('*').eq('taseron_id', id).order('created_at', { ascending: false })
+    // Hakedişleri çek (santiyeler ilişkisiyle birlikte)
+    const { data: hkData } = await supabase
+      .from('hakedisler')
+      .select('*, santiyeler(ad)')
+      .eq('taseron_id', id)
+      .order('created_at', { ascending: false })
     setHakedisler(hkData || [])
   }
 
@@ -170,18 +185,27 @@ export default function CariKartlar() {
 
   const hakedisEkle = async () => {
     if (!hkDonem.trim() || !hkTutar) return
-    await supabase.from('hakedisler').insert({
-      taseron_id: seciliId, donem: hkDonem, tutar: Number(hkTutar), kesinti_avans: Number(hkKesinti) || 0,
-      odeme_durumu: hkDurum, aciklama: hkAciklama, ekleyen: profile?.id,
+    const { error } = await supabase.from('hakedisler').insert({
+      taseron_id: seciliId,
+      santiye_id: hkSantiyeId || null,
+      islem_tarihi: hkTarih,
+      donem: hkDonem,
+      tutar: Number(hkTutar),
+      kesinti_avans: Number(hkKesinti) || 0,
+      odeme_durumu: hkDurum,
+      aciklama: hkAciklama,
+      ekleyen: profile?.id,
     })
-    setHkDonem(''); setHkTutar(''); setHkKesinti(''); setHkDurum('bekliyor'); setHkAciklama('')
+    if (error) { alert('Hakediş eklenemedi: ' + error.message); return }
+    setHkDonem(''); setHkTutar(''); setHkKesinti(''); setHkDurum('bekliyor'); setHkAciklama(''); setHkTarih(bugun())
     detayYukle(seciliId)
   }
 
-  // --- HAKEDİŞ GÜNCELLEME VE SİLME FONKSİYONLARI ---
   const hakedisGuncelle = async (hakedisId) => {
     if (!duzHkDonem.trim() || !duzHkTutar) return
     const { error } = await supabase.from('hakedisler').update({
+      santiye_id: duzHkSantiyeId || null,
+      islem_tarihi: duzHkTarih,
       donem: duzHkDonem,
       tutar: Number(duzHkTutar),
       kesinti_avans: Number(duzHkKesinti) || 0,
@@ -189,18 +213,38 @@ export default function CariKartlar() {
       aciklama: duzHkAciklama,
     }).eq('id', hakedisId)
 
-    if (error) { alert('Hakediş güncellenemedi: ' + error.message); return }
+    if (error) { alert('Güncellenemedi: ' + error.message); return }
     setDuzenlenenHakedisId(null)
     detayYukle(seciliId)
   }
 
   const hakedisSil = async (hakedisId) => {
-    if (!window.confirm('Bu hakediş kaydını silmek istediğinize emin misiniz?')) return
+    if (!window.confirm('Bu kaydı silmek istediğinize emin misiniz?')) return
     const { error } = await supabase.from('hakedisler').delete().eq('id', hakedisId)
-    if (error) { alert('Hakediş silinemedi: ' + error.message); return }
+    if (error) { alert('Silinemedi: ' + error.message); return }
     detayYukle(seciliId)
   }
-  // ------------------------------------------------
+
+  const hakedisPaylas = (h) => {
+    const santiyeAdi = h.santiyeler?.ad || santiyeler.find((s) => s.id === h.santiye_id)?.ad || '—'
+    const netTutar = Number(h.tutar) - Number(h.kesinti_avans || 0)
+    const metin =
+      `📋 *BİLGİ KARTI: ${h.donem}*\n` +
+      `*Taşeron/Cari* : ${seciliTaseron?.ad || '—'}\n` +
+      `*Şantiye* : ${santiyeAdi}\n` +
+      `*Tarih* : ${h.islem_tarihi ? new Date(h.islem_tarihi).toLocaleDateString('tr-TR') : '—'}\n` +
+      `*Tutar* : ${paraFormatla(h.tutar)} ₺\n` +
+      `*Kesinti/Avans* : -${paraFormatla(h.kesinti_avans || 0)} ₺\n` +
+      `*Net Tutar* : ${paraFormatla(netTutar)} ₺\n` +
+      `*Durum* : ${h.odeme_durumu === 'odendi' ? 'Ödendi' : 'Ödeme bekliyor'}\n` +
+      `*Açıklama* : ${h.aciklama || '—'}`
+
+    if (navigator.share) {
+      try { navigator.share({ text: metin }) } catch { /* kullanıcı iptal etti */ }
+    } else {
+      window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
+    }
+  }
 
   const seciliTaseron = taseronlar.find((t) => t.id === seciliId)
 
@@ -218,7 +262,7 @@ export default function CariKartlar() {
   const timelineOlaylari = [
     ...hakedisler.map((h) => ({
       tip: 'hakedis',
-      tarih: h.created_at || h.donem,
+      tarih: h.islem_tarihi || h.created_at || h.donem,
       veri: h,
     })),
     ...masraflar.map((m) => ({
@@ -338,8 +382,8 @@ export default function CariKartlar() {
           <button className="ekle-buton-genis" onClick={notEkle}>Notu ekle</button>
         </div>
 
-        {/* --- FİNANSAL HAREKETLER (HAKEDİŞLER & MASRAFLAR) --- */}
-        <p className="alt-baslik" style={{ marginTop: 20 }}>Finansal Hareketler (Hakedişler & Masraflar)</p>
+        {/* --- FİNANSAL HAREKETLER (ANLAŞMA / AVANS / İSKONTO / HAKEDİŞ KARTLARI) --- */}
+        <p className="alt-baslik" style={{ marginTop: 20 }}>Anlaşma / Avans / İskonto / Hakediş Bilgi Kartları</p>
 
         {!yonetici && (
           <div className="kilit-kutusu">
@@ -355,12 +399,18 @@ export default function CariKartlar() {
                 if (olay.tip === 'hakedis') {
                   const h = olay.veri
                   const duzenlekte = duzenlenenHakedisId === h.id
+                  const santiyeAdi = h.santiyeler?.ad || santiyeler.find((s) => s.id === h.santiye_id)?.ad || 'Genel'
 
                   return (
                     <div key={`hk-${h.id || index}`} className="kart" style={{ borderLeft: '4px solid #1D9596' }}>
                       {duzenlekte ? (
                         <div className="ekleme-kutusu" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
-                          <input type="text" placeholder="Dönem" value={duzHkDonem} onChange={(e) => setDuzHkDonem(e.target.value)} style={{ marginBottom: 6 }} />
+                          <select value={duzHkSantiyeId} onChange={(e) => setDuzHkSantiyeId(e.target.value)} style={{ marginBottom: 6 }}>
+                            <option value="">Şantiye seç...</option>
+                            {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+                          </select>
+                          <input type="date" value={duzHkTarih} onChange={(e) => setDuzHkTarih(e.target.value)} style={{ marginBottom: 6 }} />
+                          <input type="text" placeholder="Başlık / Dönem (örn. Temel İşçiliği / Temmuz 2026)" value={duzHkDonem} onChange={(e) => setDuzHkDonem(e.target.value)} style={{ marginBottom: 6 }} />
                           <div className="ekleme-satiri-2" style={{ marginBottom: 6 }}>
                             <input type="number" placeholder="Tutar (₺)" value={duzHkTutar} onChange={(e) => setDuzHkTutar(e.target.value)} onKeyDown={sadeceSayiTuslari} />
                             <input type="number" placeholder="Kesinti/Avans (₺)" value={duzHkKesinti} onChange={(e) => setDuzHkKesinti(e.target.value)} onKeyDown={sadeceSayiTuslari} />
@@ -378,11 +428,12 @@ export default function CariKartlar() {
                       ) : (
                         <>
                           <div className="kart-ust">
-                            <span className="kart-baslik">Hakediş: {h.donem}</span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span className="kart-baslik">{h.donem}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                               <span className={`durum-rozet ${h.odeme_durumu === 'odendi' ? 'rozet-yesil' : 'rozet-sari'}`}>
                                 {h.odeme_durumu === 'odendi' ? 'Ödendi' : 'Ödeme bekliyor'}
                               </span>
+                              <button className="sil-buton" onClick={() => hakedisPaylas(h)} aria-label="Paylaş">📤</button>
                               <button className="sil-buton" onClick={() => {
                                 setDuzenlenenHakedisId(h.id)
                                 setDuzHkDonem(h.donem)
@@ -390,9 +441,15 @@ export default function CariKartlar() {
                                 setDuzHkKesinti(h.kesinti_avans || '')
                                 setDuzHkDurum(h.odeme_durumu || 'bekliyor')
                                 setDuzHkAciklama(h.aciklama || '')
-                              }} aria-label="Hakedişi düzenle">✎</button>
-                              <button className="sil-buton" onClick={() => hakedisSil(h.id)} aria-label="Hakedişi sil">🗑</button>
+                                setDuzHkSantiyeId(h.santiye_id || '')
+                                setDuzHkTarih(h.islem_tarihi || bugun())
+                              }} aria-label="Düzenle">✎</button>
+                              <button className="sil-buton" onClick={() => hakedisSil(h.id)} aria-label="Sil">🗑</button>
                             </div>
+                          </div>
+                          <div className="etiket-satiri" style={{ marginTop: 4 }}>
+                            <span className="etiket etiket-vurgu">{santiyeAdi}</span>
+                            <span className="etiket">İşlem: {h.islem_tarihi ? new Date(h.islem_tarihi).toLocaleDateString('tr-TR') : '—'}</span>
                           </div>
                           <div className="hakedis-hesap">
                             <span>Tutar</span><span>{paraFormatla(h.tutar)} ₺</span>
@@ -401,6 +458,7 @@ export default function CariKartlar() {
                             <span className="hakedis-net-tutar">{paraFormatla(Number(h.tutar) - Number(h.kesinti_avans))} ₺</span>
                           </div>
                           {h.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{h.aciklama}</p>}
+                          <span className="not-alt" style={{ display: 'block', marginTop: 4 }}>Eklenme Tarihi: {new Date(h.created_at).toLocaleDateString('tr-TR')} {new Date(h.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
                         </>
                       )}
                     </div>
@@ -418,27 +476,32 @@ export default function CariKartlar() {
                         <span className="etiket">{m.masraf_kategorileri?.ad || 'Genel'}</span>
                       </div>
                       {m.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{m.aciklama}</p>}
-                      <span className="not-alt">Tarih: {new Date(m.harcama_tarihi).toLocaleDateString('tr-TR')}</span>
+                      <span className="not-alt">Harcama Tarihi: {new Date(m.harcama_tarihi).toLocaleDateString('tr-TR')}</span>
                     </div>
                   )
                 }
               })}
-              {timelineOlaylari.length === 0 && <p className="bos-mesaj">Henüz hakediş veya masraf kaydı yok.</p>}
+              {timelineOlaylari.length === 0 && <p className="bos-mesaj">Henüz finansal hareket kaydı yok.</p>}
             </div>
 
             <div className="ekleme-kutusu">
-              <p style={{ fontSize: 13, fontWeight: 700, margin: '0 0 8px' }}>Yeni Hakediş Ekle</p>
-              <input type="text" placeholder="Dönem (örn. Temmuz 2026)" value={hkDonem} onChange={(e) => setHkDonem(e.target.value)} />
-              <div className="ekleme-satiri-2">
+              <p style={{ fontSize: 13, fontWeight: 700, margin: '0 0 8px' }}>Yeni Bilgi Kartı Ekle (Anlaşma / Avans / İskonto / Hakediş)</p>
+              <select value={hkSantiyeId} onChange={(e) => setHkSantiyeId(e.target.value)} style={{ marginBottom: 6 }}>
+                <option value="">Şantiye seç...</option>
+                {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+              </select>
+              <input type="date" value={hkTarih} onChange={(e) => setHkTarih(e.target.value)} style={{ marginBottom: 6 }} />
+              <input type="text" placeholder="Başlık / Dönem (örn. İskonto / Temmuz 2026)" value={hkDonem} onChange={(e) => setHkDonem(e.target.value)} style={{ marginBottom: 6 }} />
+              <div className="ekleme-satiri-2" style={{ marginBottom: 6 }}>
                 <input type="number" placeholder="Tutar (₺)" value={hkTutar} onChange={(e) => setHkTutar(e.target.value)} onKeyDown={sadeceSayiTuslari} />
                 <input type="number" placeholder="Kesinti/Avans (₺)" value={hkKesinti} onChange={(e) => setHkKesinti(e.target.value)} onKeyDown={sadeceSayiTuslari} />
               </div>
-              <select value={hkDurum} onChange={(e) => setHkDurum(e.target.value)}>
+              <select value={hkDurum} onChange={(e) => setHkDurum(e.target.value)} style={{ marginBottom: 6 }}>
                 <option value="bekliyor">Ödeme bekliyor</option>
                 <option value="odendi">Ödendi</option>
               </select>
-              <input type="text" placeholder="Açıklama (opsiyonel)" value={hkAciklama} onChange={(e) => setHkAciklama(e.target.value)} />
-              <button className="ekle-buton-genis" onClick={hakedisEkle}>Hakediş kaydı ekle</button>
+              <input type="text" placeholder="Açıklama (opsiyonel)" value={hkAciklama} onChange={(e) => setHkAciklama(e.target.value)} style={{ marginBottom: 8 }} />
+              <button className="ekle-buton-genis" onClick={hakedisEkle}>Bilgi kartı kaydı ekle</button>
             </div>
           </>
         )}
