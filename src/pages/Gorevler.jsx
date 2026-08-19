@@ -298,26 +298,17 @@ export default function Gorevler() {
     gorevleriYukle()
   }
 
-  // --- İŞTE DEĞİŞİKLİĞİ BURAYA YAPTIK ---
   const durumGuncelle = async (id, yeniDurum) => {
-    // 1. Görevin durumunu veritabanında günceller
     await supabase.from('gorevler').update({ durum: yeniDurum }).eq('id', id)
     
-    // 2. Eğer yeni durum "tamamlandi" ise, bu göreve ait bildirimleri GEÇMİŞ (OKUNDU) YAP
     if (yeniDurum === 'tamamlandi') {
-      const { error } = await supabase
-        .from('bildirimler')
-        .update({ okundu: true }) // <--- .delete() yerine .update() yazdık
-        .eq('gorev_id', id);
-
-      if (error) {
-        alert("Bildirim güncellenirken bir hata oluştu: " + error.message);
-      }
+      await supabase.from('bildirimler').update({ okundu: true }).eq('gorev_id', id)
+    } else {
+      await supabase.from('bildirimler').update({ okundu: false }).eq('gorev_id', id)
     }
     
     gorevleriYukle()
   }
-  // --------------------------------------
 
   const oncelikDegistir = async (gorev, yeniDeger) => {
     const mevcutEtiket = gorev.gorev_etiketleri?.find((e) => e.etiket_turu === 'oncelik')

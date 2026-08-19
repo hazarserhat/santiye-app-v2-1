@@ -1,7 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { SiteProvider } from './context/SiteContext'
-import SiteSwitcher from './components/SiteSwitcher'
 import AltMenu from './components/AltMenu'
 import Login from './pages/Login'
 import Gorevler from './pages/Gorevler'
@@ -24,8 +23,6 @@ import SantiyeAdresleri from './pages/yonetim/SantiyeAdresleri'
 import YarisiBizden from './pages/yonetim/YarisiBizden'
 import ProjeGelirleri from './pages/yonetim/ProjeGelirleri'
 
-const SANTIYE_SECICI_GIZLI_SAYFALAR = ['/gorevler', '/masraflar', '/cari-kartlar']
-
 function YonetimKoruma({ children }) {
   const { profile } = useAuth()
   if (!profile?.sistem_yoneticisi) {
@@ -36,8 +33,6 @@ function YonetimKoruma({ children }) {
 
 function IcerikAlani() {
   const { session, profile, yukleniyor, cikisYap } = useAuth()
-  const konum = useLocation()
-  const seciciGizli = SANTIYE_SECICI_GIZLI_SAYFALAR.includes(konum.pathname)
 
   if (yukleniyor) return <p className="bos-mesaj">Yükleniyor...</p>
   if (!session) return <Login />
@@ -48,7 +43,6 @@ function IcerikAlani() {
         <header className="ust-bar">
           <div className="ust-bar-sol">
             <span className="kullanici-adi">{profile?.ad_soyad || '...'}</span>
-            {!seciciGizli && <SiteSwitcher />}
           </div>
           <button className="cikis-buton" onClick={cikisYap}>Çıkış</button>
         </header>

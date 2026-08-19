@@ -19,6 +19,7 @@ export default function CariKartlar() {
   const [notlar, setNotlar] = useState([])
   const [iliskiliSantiyeler, setIliskiliSantiyeler] = useState([])
   const [hakedisler, setHakedisler] = useState([])
+  const [masraflar, setMasraflar] = useState([]) // <--- Taşerona ait masraflar için state
 
   const [duzenleModu, setDuzenleModu] = useState(false)
   const [duzAd, setDuzAd] = useState('')
@@ -83,6 +84,15 @@ export default function CariKartlar() {
     const { data: santiyeData, error: santiyeHata } = await supabase.from('taseron_santiyeler').select('id, santiye_id').eq('taseron_id', id)
     if (santiyeHata) { alert('Şantiye ilişkileri yüklenemedi: ' + santiyeHata.message); return }
     setIliskiliSantiyeler(santiyeData || [])
+
+    // --- BU TAŞERONA AİT GİDERLERİ (MASRAFLARI) ÇEKİYORUZ ---
+    const { data: masrafData } = await supabase
+      .from('masraflar')
+      .select('*, santiyeler(ad), masraf_kategorileri(ad)')
+      .eq('cari_id', id)
+      .order('harcama_tarihi', { ascending: false })
+    setMasraflar(masrafData || [])
+    // --------------------------------------------------------
 
     if (yonetici) {
       const { data: hkData } = await supabase.from('hakedisler').select('*').eq('taseron_id', id).order('donem', { ascending: false })
@@ -235,6 +245,7 @@ export default function CariKartlar() {
               {santiyeler.find((s) => s.id === r.santiye_id)?.ad || '—'}
               <button className="etiket-sil-x" onClick={() => santiyeIliskisiSil(r.id)} aria-label="Şantiye ilişkisini kaldır">×</button>
             </span>
+
           ))}
           {iliskiliSantiyeler.length === 0 && <span className="bos-mesaj" style={{ padding: 0 }}>Henüz şantiye eklenmemiş.</span>}
         </div>
@@ -247,6 +258,27 @@ export default function CariKartlar() {
             <button onClick={santiyeIliskisiEkle}>Ekle</button>
           </div>
         )}
+
+        {/* --- İLGİLİ TAŞERONA AİT HARCAMALAR / GİDERLER LİSTESİ --- */}
+        <p className="alt-baslik" style={{ marginTop: 20 }}>Yapılan Masraflar / Giderler</p>
+        <div className="liste">
+          {masraflar.map((m) => (
+            <div key={m.id} className="kart">
+              <div className="kart-ust">
+                <span className="kart-baslik">{m.baslik}</span>
+                <span style={{ fontWeight: 700, color: '#D64545' }}>{paraFormatla(m.tutar)} ₺</span>
+              </div>
+              <div className="etiket-satiri">
+                <span className="etiket etiket-vurgu">{m.santiyeler?.ad || '—'}</span>
+                <span className="etiket">{m.masraf_kategorileri?.ad || 'Genel'}</span>
+              </div>
+              {m.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{m.aciklama}</p>}
+              <span className="not-alt">Tarih: {new Date(m.harcama_tarihi).toLocaleDateString('tr-TR')}</span>
+            </div>
+          ))}
+          {masraflar.length === 0 && <p className="bos-mesaj">Bu cariye ait masraf kaydı bulunmuyor.</p>}
+        </div>
+        {/* --------------------------------------------------------- */}
 
         <p className="alt-baslik">Notlar</p>
         <div className="liste">
