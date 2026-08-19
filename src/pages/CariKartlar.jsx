@@ -56,8 +56,6 @@ export default function CariKartlar() {
   const [duzHkTutar, setDuzHkTutar] = useState('')
   const [duzHkKesinti, setDuzHkKesinti] = useState('')
   const [duzHkAciklama, setDuzHkAciklama] = useState('')
-  const [duzHkSantiyeId, setDuzHkSantiyeId] = useState('')
-  const [duzHkTarih, setDuzHkTarih] = useState(bugun())
 
   useEffect(() => {
     taseronlariYukle()
@@ -103,7 +101,7 @@ export default function CariKartlar() {
     if (santiyeHata) { alert('Şantiye ilişkileri yüklenemedi: ' + santiyeHata.message); return }
     setIliskiliSantiyeler(santiyeData || [])
 
-    // Masrafları çek
+    // Masrafları çek (cari_id eşleşmesine göre)
     const { data: masrafData } = await supabase
       .from('masraflar')
       .select('*, santiyeler(ad), masraf_kategorileri(ad)')
@@ -191,7 +189,7 @@ export default function CariKartlar() {
       aciklama: hkAciklama,
       ekleyen: profile?.id,
     })
-    if (error) { alert('Hakediş eklenemedi: ' + error.message); return }
+    if (error) { alert('Bilgi kartı eklenemedi: ' + error.message); return }
     setHkDonem(''); setHkTutar(''); setHkKesinti(''); setHkAciklama(''); setHkTarih(bugun())
     detayYukle(seciliId)
   }
@@ -370,7 +368,7 @@ export default function CariKartlar() {
           <button className="ekle-buton-genis" onClick={notEkle}>Notu ekle</button>
         </div>
 
-        {/* --- FİNANSAL HAREKETLER --- */}
+        {/* --- FİNANSAL HAREKETLER (BİLGİ KARTLARI & MASRAFLAR) --- */}
         <p className="alt-baslik" style={{ marginTop: 20 }}>Anlaşma / Avans / İskonto / Hakediş Bilgi Kartları</p>
 
         {!yonetici && (
@@ -436,15 +434,15 @@ export default function CariKartlar() {
                   return (
                     <div key={`msf-${m.id || index}`} className="kart" style={{ borderLeft: '4px solid #E08A2E' }}>
                       <div className="kart-ust">
-                        <span className="kart-baslik">Masraf: {m.baslik}</span>
+                        <span className="kart-baslik">Ödeme / Masraf: {m.baslik}</span>
                         <span style={{ fontWeight: 700, color: '#D64545' }}>-{paraFormatla(m.tutar)} ₺</span>
                       </div>
                       <div className="etiket-satiri">
-                        <span className="etiket etiket-vurgu">{m.santiyeler?.ad || '—'}</span>
-                        <span className="etiket">{m.masraf_kategorileri?.ad || 'Genel'}</span>
+                        <span className="etiket etiket-vurgu">{m.santiyeler?.ad || 'Genel Gider'}</span>
+                        <span className="etiket">{m.masraf_kategorileri?.ad || 'Ödeme'}</span>
                       </div>
                       {m.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{m.aciklama}</p>}
-                      <span className="not-alt">Harcama Tarihi: {new Date(m.harcama_tarihi).toLocaleDateString('tr-TR')}</span>
+                      <span className="not-alt">Ödeme Tarihi: {new Date(m.harcama_tarihi).toLocaleDateString('tr-TR')}</span>
                     </div>
                   )
                 }
