@@ -24,6 +24,7 @@ export default function Masraflar() {
 
   const [baslik, setBaslik] = useState('')
   const [odenenKisi, setOdenenKisi] = useState('')
+  const [secilenCariId, setSecilenCariId] = useState(null) // <--- Cari ID'sini tutmak için state eklendi
   const [aciklama, setAciklama] = useState('')
   const [tutar, setTutar] = useState('')
   const [kategoriId, setKategoriId] = useState('')
@@ -100,6 +101,7 @@ export default function Masraflar() {
       kategori_id: kategoriId,
       baslik,
       odenen_kisi: odenenKisi,
+      cari_id: secilenCariId || null, // <--- Cari kartlarla eşleşmesi için cari_id eklendi
       aciklama,
       tutar: Number(tutar),
       odeme_yontemi_id: odemeYontemiId,
@@ -116,6 +118,7 @@ export default function Masraflar() {
 
     setBaslik('')
     setOdenenKisi('')
+    setSecilenCariId(null)
     setAciklama('')
     setTutar('')
     setFotograf(null)
@@ -259,7 +262,17 @@ export default function Masraflar() {
           <option value="genel">Genel Gider (şantiyeye bağlı değil)</option>
         </select>
         <input type="text" placeholder="Masraf başlığı..." value={baslik} onChange={(e) => setBaslik(e.target.value)} />
-        <CariAramaSecici deger={odenenKisi} onDegisti={setOdenenKisi} placeholder="Ödenen kişi/firma (opsiyonel)..." />
+        
+        {/* CariAramaSecici bileşenine cari ID'sini yakalayacak prop eklendi */}
+        <CariAramaSecici 
+          deger={odenenKisi} 
+          onDegisti={(isim, cariId) => { 
+            setOdenenKisi(isim)
+            setSecilenCariId(cariId || null) 
+          }} 
+          placeholder="Ödenen kişi/firma (opsiyonel)..." 
+        />
+
         <textarea
           placeholder="Açıklama / not (opsiyonel)..."
           value={aciklama}
@@ -276,7 +289,7 @@ export default function Masraflar() {
         <div className="ekleme-satiri-2">
           <input type="date" value={harcamaTarihi} onChange={(e) => setHarcamaTarihi(e.target.value)} />
           <select value={odemeYontemiId} onChange={(e) => setOdemeYontemiId(e.target.value)}>
-            {odemeYontemleri.map((o) => <option key={o.id} value={o.id}>{o.ad}</option>)}
+            {odeme_yontemleri?.map((o) => <option key={o.id} value={o.id}>{o.ad}</option>)}
           </select>
         </div>
         <div className="ekleme-satiri-2">
