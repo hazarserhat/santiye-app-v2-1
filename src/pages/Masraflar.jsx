@@ -24,7 +24,7 @@ export default function Masraflar() {
 
   const [baslik, setBaslik] = useState('')
   const [odenenKisi, setOdenenKisi] = useState('')
-  const [secilenCariId, setSecilenCariId] = useState(null) // <--- Cari ID'sini tutmak için state eklendi
+  const [secilenCariId, setSecilenCariId] = useState(null)
   const [aciklama, setAciklama] = useState('')
   const [tutar, setTutar] = useState('')
   const [kategoriId, setKategoriId] = useState('')
@@ -78,7 +78,7 @@ export default function Masraflar() {
     ? santiyeyeGoreFiltreli
     : santiyeyeGoreFiltreli.filter((m) => m.kategori_id === filtreKategori)
 
-  const buAy = gorunenler.filter((m) => m.harcama_tarihi.slice(0, 7) === bugun().slice(0, 7))
+  const buAy = gorunenler.filter((m) => m.harcama_tarihi?.slice(0, 7) === bugun().slice(0, 7))
   const buAyToplam = buAy.reduce((t, m) => t + Number(m.tutar), 0)
   const nakitToplam = buAy.filter((m) => m.odeme_yontemleri?.ad?.toUpperCase().includes('KASA')).reduce((t, m) => t + Number(m.tutar), 0)
 
@@ -87,7 +87,7 @@ export default function Masraflar() {
     setYukleniyor(true)
 
     let fotografUrl = null
-    if (fotograf) {
+    if (fotograf && aktifSantiye) {
       const dosyaAdi = `${aktifSantiye.id}/${Date.now()}_${fotograf.name}`
       const { data, error } = await supabase.storage.from('masraf-fotograflari').upload(dosyaAdi, fotograf)
       if (!error) {
@@ -101,7 +101,7 @@ export default function Masraflar() {
       kategori_id: kategoriId,
       baslik,
       odenen_kisi: odenenKisi,
-      cari_id: secilenCariId || null, // <--- Cari kartlarla eşleşmesi için cari_id eklendi
+      cari_id: secilenCariId || null,
       aciklama,
       tutar: Number(tutar),
       odeme_yontemi_id: odemeYontemiId,
@@ -123,7 +123,7 @@ export default function Masraflar() {
     setTutar('')
     setFotograf(null)
     setHarcamaTarihi(bugun())
-    setSecilenSantiyeId(aktifSantiye.id)
+    if (aktifSantiye) setSecilenSantiyeId(aktifSantiye.id)
     setYukleniyor(false)
     masraflariYukle()
   }
@@ -243,8 +243,8 @@ export default function Masraflar() {
               {m.fotograf_url && <a className="etiket" href={m.fotograf_url} target="_blank" rel="noreferrer">Fotoğraf</a>}
             </div>
             <div className="kart-alt-tarih">
-              <span>Harcama: {new Date(m.harcama_tarihi).toLocaleDateString('tr-TR')}</span>
-              <span>Kayıt: {new Date(m.kayit_tarihi).toLocaleDateString('tr-TR')}</span>
+              <span>Harcama: {m.harcama_tarihi ? new Date(m.harcama_tarihi).toLocaleDateString('tr-TR') : '—'}</span>
+              <span>Kayıt: {m.kayit_tarihi ? new Date(m.kayit_tarihi).toLocaleDateString('tr-TR') : '—'}</span>
             </div>
             <div className="kart-alt-tarih" style={{ marginTop: 2 }}>
               <span>Ekleyen: {m.profiles?.ad_soyad || 'Bilinmiyor'}</span>
@@ -263,7 +263,6 @@ export default function Masraflar() {
         </select>
         <input type="text" placeholder="Masraf başlığı..." value={baslik} onChange={(e) => setBaslik(e.target.value)} />
         
-        {/* CariAramaSecici bileşenine cari ID'sini yakalayacak prop eklendi */}
         <CariAramaSecici 
           deger={odenenKisi} 
           onDegisti={(isim, cariId) => { 
@@ -289,7 +288,7 @@ export default function Masraflar() {
         <div className="ekleme-satiri-2">
           <input type="date" value={harcamaTarihi} onChange={(e) => setHarcamaTarihi(e.target.value)} />
           <select value={odemeYontemiId} onChange={(e) => setOdemeYontemiId(e.target.value)}>
-            {odeme_yontemleri?.map((o) => <option key={o.id} value={o.id}>{o.ad}</option>)}
+            {odemeYontemleri.map((o) => <option key={o.id} value={o.id}>{o.ad}</option>)}
           </select>
         </div>
         <div className="ekleme-satiri-2">
