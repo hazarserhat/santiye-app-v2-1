@@ -29,6 +29,9 @@ export default function Animsaticilar() {
   const [yeniAciklama, setYeniAciklama] = useState('')
   const [yeniOncelik, setYeniOncelik] = useState('bilgi_amacli')
 
+  // --- YENİ EKLENEN: Bildirim sekmeleri için state ---
+  const [bildirimSekmesi, setBildirimSekmesi] = useState('yeni') // 'yeni' veya 'gecmis'
+
   useEffect(() => {
     if (profile) bildirimleriYukle()
     animsaticilariYukle()
@@ -39,7 +42,8 @@ export default function Animsaticilar() {
   }, [santiyeler])
 
   const bildirimleriYukle = async () => {
-    const { data, error } = await supabase.from('bildirimler').select('*').eq('kullanici_id', profile.id).order('created_at', { ascending: false }).limit(20)
+    // Daha çok geçmiş görebilmek için limiti 50'ye çıkardık
+    const { data, error } = await supabase.from('bildirimler').select('*').eq('kullanici_id', profile.id).order('created_at', { ascending: false }).limit(50)
     if (error) { alert('Bildirimler yüklenemedi: ' + error.message); return }
     setBildirimler(data || [])
   }
@@ -51,6 +55,7 @@ export default function Animsaticilar() {
   }
 
   const bildirimeTikla = async (b) => {
+    // Tıklandığında silmek yerine okundu olarak işaretleyip Geçmiş'e yolluyoruz
     await supabase.from('bildirimler').update({ okundu: true }).eq('id', b.id)
     bildirimleriYukle()
     if (b.gorev_id) navigate('/gorevler')
@@ -94,7 +99,11 @@ export default function Animsaticilar() {
     animsaticilariYukle()
   }
 
-  const okunmamisSayisi = bildirimler.filter((b) => !b.okundu).length
+  // --- BİLDİRİM SEKMELERİ İÇİN FİLTRELEME ---
+  const yeniBildirimler = bildirimler.filter((b) => !b.okundu)
+  const gecmisBildirimler = bildirimler.filter((b) => b.okundu)
+  const gosterilenBildirimler = bildirimSekmesi === 'yeni' ? yeniBildirimler : gecmisBildirimler
+  
   const gorunenler = filtreSantiye === 'hepsi' ? animsaticilar : animsaticilar.filter((a) => a.santiye_id === filtreSantiye)
 
   return (
@@ -103,10 +112,21 @@ export default function Animsaticilar() {
 
       {bildirimler.length > 0 && (
         <>
-          <p className="alt-baslik">Bildirimlerim {okunmamisSayisi > 0 && <span className="etiket" style={{ background: '#D64545', color: 'white' }}>{okunmamisSayisi} yeni</span>}</p>
-          <p style={{ fontSize: 11, color: '#888780', margin: '0 0 8px' }}>Bir bildirime tıklarsanız doğrudan ilgili göreve gidersiniz.</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <p className="alt-baslik" style={{ margin: 0 }}>Bildirimlerim {yeniBildirimler.length > 0 && <span className="etiket" style={{ background: '#D64545', color: 'white' }}>{yeniBildirimler.length} yeni</span>}</p>
+          </div>
+
+          <div className="gorunum-secici" style={{ marginBottom: 12 }}>
+            <button className={bildirimSekmesi === 'yeni' ? 'secili-tab' : ''} onClick={() => setBildirimSekmesi('yeni')}>Yeni ({yeniBildirimler.length})</button>
+            <button className={bildirimSekmesi === 'gecmis' ? 'secili-tab' : ''} onClick={() => setBildirimSekmesi('gecmis')}>Geçmiş ({gecmisBildirimler.length})</button>
+          </div>
+
+          <p style={{ fontSize: 11, color: '#888780', margin: '0 0 8px' }}>
+            {bildirimSekmesi === 'yeni' ? 'Bir bildirime tıklarsanız okundu olarak işaretlenip Geçmiş sekmesine taşınır.' : 'Önceden okunan veya tamamlanan görevlerin bildirimleri.'}
+          </p>
+
           <div className="liste" style={{ marginBottom: 16 }}>
-            {bildirimler.map((b) => (
+            {gosterilenBildirimler.map((b) => (
               <div
                 key={b.id}
                 className="kart"
@@ -117,6 +137,9 @@ export default function Animsaticilar() {
                 <span className="not-alt">{new Date(b.created_at).toLocaleDateString('tr-TR')} {new Date(b.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
             ))}
+            {gosterilenBildirimler.length === 0 && (
+              <p className="bos-mesaj">Bu sekmede bildirim bulunmuyor.</p>
+            )}
           </div>
         </>
       )}

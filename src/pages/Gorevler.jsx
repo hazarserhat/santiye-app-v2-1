@@ -303,15 +303,15 @@ export default function Gorevler() {
     // 1. Görevin durumunu veritabanında günceller
     await supabase.from('gorevler').update({ durum: yeniDurum }).eq('id', id)
     
-    // 2. Eğer yeni durum "tamamlandi" ise, bu göreve ait bildirimleri VERİTABANINDAN SİL
+    // 2. Eğer yeni durum "tamamlandi" ise, bu göreve ait bildirimleri GEÇMİŞ (OKUNDU) YAP
     if (yeniDurum === 'tamamlandi') {
       const { error } = await supabase
         .from('bildirimler')
-        .delete()
+        .update({ okundu: true }) // <--- .delete() yerine .update() yazdık
         .eq('gorev_id', id);
 
       if (error) {
-        alert("Bildirim silinirken bir hata oluştu: " + error.message);
+        alert("Bildirim güncellenirken bir hata oluştu: " + error.message);
       }
     }
     
