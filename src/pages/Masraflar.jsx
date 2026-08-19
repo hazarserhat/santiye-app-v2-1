@@ -264,11 +264,16 @@ export default function Masraflar() {
         </select>
         <input type="text" placeholder="Masraf başlığı..." value={baslik} onChange={(e) => setBaslik(e.target.value)} />
         
-        <CariAramaSecici 
+    <CariAramaSecici 
           deger={odenenKisi} 
-          onDegisti={(isim, cariId) => { 
-            setOdenenKisi(isim)
-            setSecilenCariId(cariId || null) 
+          onDegisti={(secilen) => { 
+            // Eğer arama seçici bileşeni doğrudan obje veya id dönüyorsa yakalayalım
+            if (typeof secilen === 'object' && secilen !== null) {
+              setOdenenKisi(secilen.ad || '')
+              setSecilenCariId(secilen.id || null)
+            } else {
+              setOdenenKisi(secilen || '')
+            }
           }} 
           placeholder="Ödenen kişi/firma (opsiyonel)..." 
         />
