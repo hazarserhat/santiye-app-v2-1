@@ -300,14 +300,19 @@ export default function Gorevler() {
 
   // --- İŞTE DEĞİŞİKLİĞİ BURAYA YAPTIK ---
   const durumGuncelle = async (id, yeniDurum) => {
+    // 1. Görevin durumunu veritabanında günceller
     await supabase.from('gorevler').update({ durum: yeniDurum }).eq('id', id)
     
-    // Eğer yeni durum "tamamlandi" ise, bu görevin bildirimlerini okundu olarak işaretle
+    // 2. Eğer yeni durum "tamamlandi" ise, bu göreve ait bildirimleri VERİTABANINDAN SİL
     if (yeniDurum === 'tamamlandi') {
-      await supabase
+      const { error } = await supabase
         .from('bildirimler')
-        .update({ okundu: true })
+        .delete()
         .eq('gorev_id', id);
+
+      if (error) {
+        alert("Bildirim silinirken bir hata oluştu: " + error.message);
+      }
     }
     
     gorevleriYukle()
