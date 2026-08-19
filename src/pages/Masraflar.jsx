@@ -56,11 +56,12 @@ export default function Masraflar() {
     masraflariYukle()
   }, [])
 
+  // --- KAYIT TARİHİNE (SANİYE HASSASİYETİNE) GÖRE EN YENİDEN EN ESKİYE SIRALAMA ---
   const masraflariYukle = async () => {
     const { data } = await supabase
       .from('masraflar')
       .select('*, masraf_kategorileri(ad), odeme_yontemleri(ad), profiles(ad_soyad)')
-      .order('harcama_tarihi', { ascending: false })
+      .order('kayit_tarihi', { ascending: false })
     setMasraflar(data || [])
   }
 
@@ -101,7 +102,7 @@ export default function Masraflar() {
       kategori_id: kategoriId,
       baslik,
       odenen_kisi: odenenKisi,
-      cari_id: secilenCariId || null,
+      cari_id: secilenCariId || null, // <--- CARİ KARTLA BAĞLANTIYI KURAN KRİTİK ALAN
       aciklama,
       tutar: Number(tutar),
       odeme_yontemi_id: odemeYontemiId,
@@ -244,7 +245,7 @@ export default function Masraflar() {
             </div>
             <div className="kart-alt-tarih">
               <span>Harcama: {m.harcama_tarihi ? new Date(m.harcama_tarihi).toLocaleDateString('tr-TR') : '—'}</span>
-              <span>Kayıt: {m.kayit_tarihi ? new Date(m.kayit_tarihi).toLocaleDateString('tr-TR') : '—'}</span>
+              <span>Kayıt: {m.kayit_tarihi ? `${new Date(m.kayit_tarihi).toLocaleDateString('tr-TR')} ${new Date(m.kayit_tarihi).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : '—'}</span>
             </div>
             <div className="kart-alt-tarih" style={{ marginTop: 2 }}>
               <span>Ekleyen: {m.profiles?.ad_soyad || 'Bilinmiyor'}</span>
