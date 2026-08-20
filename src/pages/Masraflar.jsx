@@ -104,7 +104,7 @@ export default function Masraflar() {
         `💳 *Ödeme:* ${m.odeme_yontemleri?.ad || '—'}\n` +
         (m.odenen_kisi ? `👤 *Ödenen:* ${m.odenen_kisi}\n` : '') +
         `📅 *Tarih*: ${m.harcama_tarihi ? new Date(m.harcama_tarihi).toLocaleDateString('tr-TR') : '—'}\n` +
-        (m.aciklama ? `📝 Not: ${m.aciklama}` : '')
+        (m.aciklama ? `📝 *Not:* ${m.aciklama}` : '')
 
       if (navigator.canShare && navigator.canShare({ files: dosyalar })) {
         await navigator.share({

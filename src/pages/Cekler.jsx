@@ -127,17 +127,17 @@ export default function Cekler() {
       }
 
       const metin =
-        `💳 ÇEK / ÖDEME BİLDİRİMİ\n` +
-        `📌 Konu: ${c.odeme_konusu}\n` +
-        `🏗 Şantiye: ${c.santiyeler?.ad || 'Genel'}\n` +
-        `💵 Tutar: ${paraFormatla(c.tutar)} ₺\n` +
-        `🏦 Banka: ${c.banka || '—'}\n` +
-        `🔢 Seri No: ${c.cek_seri_no || '—'}\n` +
-        `👤 Ödeyen: ${c.odeyen || '—'}\n` +
-        `👤 Ödenen: ${c.odenen || '—'}\n` +
-        `📅 Veriliş: ${new Date(c.verilis_tarihi).toLocaleDateString('tr-TR')}\n` +
-        `⏳ Vade: ${c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : '—'}\n` +
-        (c.aciklama ? `📝 Not: ${c.aciklama}` : '')
+        `💳 *ÇEK / ÖDEME BİLDİRİMİ*\n` +
+        `📌 *Konu:* ${c.odeme_konusu}\n` +
+        `🏗 *Şantiye:* ${c.santiyeler?.ad || 'Genel'}\n` +
+        `💵 *Tutar:* ${paraFormatla(c.tutar)} ₺\n` +
+        `🏦 *Banka:* ${c.banka || '—'}\n` +
+        `🔢 *Seri No:* ${c.cek_seri_no || '—'}\n` +
+        `👤 *Ödeyen:* ${c.odeyen || '—'}\n` +
+        `👤 *Ödenen:* ${c.odenen || '—'}\n` +
+        `📅 *Veriliş:* ${new Date(c.verilis_tarihi).toLocaleDateString('tr-TR')}\n` +
+        `⏳ *Vade:* ${c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : '—'}\n` +
+        (c.aciklama ? `📝 *Not:* ${c.aciklama}` : '')
 
       if (navigator.canShare && navigator.canShare({ files: dosyalar })) {
         await navigator.share({
@@ -221,7 +221,7 @@ export default function Cekler() {
                 gap: 6 
               }}
             >
-              💬 WhatsApp ile Görsel Gönder
+              💬 WhatsApp ile Paylaş
             </button>
           </div>
         ))}
