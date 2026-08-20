@@ -56,9 +56,12 @@ export default function GunlukRapor() {
     setFotograflar((onceki) => ({ ...onceki, [raporId]: data || [] }))
   }
 
-  const detayAc = (id) => {
-    setDetayAcikId(detayAcikId === id ? null : id)
-    if (detayAcikId !== id) fotograflariYukle(id)
+  const detayAc = async (id) => {
+    const yeniDurum = detayAcikId === id ? null : id
+    setDetayAcikId(yeniDurum)
+    if (yeniDurum) {
+      await fotograflariYukle(id)
+    }
   }
 
   const raporEkle = async () => {
@@ -100,18 +103,57 @@ export default function GunlukRapor() {
     raporlariYukle()
   }
 
+  // WhatsApp ile Çoklu Görsel ve Metin Paylaşım Fonksiyonu
   const raporPaylas = async (r) => {
-    let metin = `*Günlük Rapor* — ${new Date(r.tarih).toLocaleDateString('tr-TR')}\n`
-    metin += `*Şantiye* : ${r.santiyeler?.ad || '—'}\n\n`
-    ALANLAR.forEach((a) => {
-      if (r[a.anahtar]) metin += `*${a.etiket}*\n${r[a.anahtar]}\n\n`
-    })
-    metin += `Ekleyen: ${r.profiles?.ad_soyad || 'Bilinmiyor'}`
+    try {
+      // Fotoğraflar henüz yüklenmediyse önce veritabanından çekelim
+      let raporFotolari = fotograflar[r.id]
+      if (!raporFotolari) {
+        const { data } = await supabase.from('gunluk_rapor_fotograflari').select('*').eq('rapor_id', r.id)
+        raporFotolari = data || []
+        setFotograflar((onceki) => ({ ...onceki, [r.id]: raporFotolari }))
+      }
 
-    if (navigator.share) {
-      try { await navigator.share({ text: metin }) } catch { /* iptal */ }
-    } else {
-      window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
+      let dosyalar = []
+      for (let i = 0; i < raporFotolari.length; i++) {
+        const foto = raporFotolari[i]
+        try {
+          const response = await fetch(foto.url)
+          const blob = await response.blob()
+          const file = new File([blob], `rapor_foto_${i + 1}.jpg`, { type: blob.type })
+          dosyalar.push(file)
+        } catch (e) {
+          console.error('Fotoğraf indirilemedi:', e)
+        }
+      }
+
+      let metin = `📋 *GÜNLÜK RAPOR* — ${new Date(r.tarih).toLocaleDateString('tr-TR')}\n`
+      metin += `🏗 *Şantiye:* ${r.santiyeler?.ad || '—'}\n\n`
+      
+      ALANLAR.forEach((a) => {
+        if (r[a.anahtar]) metin += `${a.simge} *${a.etiket}*\n${r[a.anahtar]}\n\n`
+      })
+      metin += `👤 *Ekleyen:* ${r.profiles?.ad_soyad || 'Bilinmiyor'}`
+
+      if (navigator.canShare && navigator.canShare({ files: dosyalar })) {
+        await navigator.share({
+          title: 'Günlük Rapor',
+          text: metin,
+          files: dosyalar,
+        })
+      } else if (navigator.share) {
+        await navigator.share({
+          title: 'Günlük Rapor',
+          text: metin + (raporFotolari.length > 0 ? `\n🔗 Fotoğraflar yüklendi.` : ''),
+        })
+      } else {
+        window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('Paylaşım hatası:', err)
+        alert('Paylaşım sırasında bir hata oluştu.')
+      }
     }
   }
 
@@ -157,7 +199,6 @@ export default function GunlukRapor() {
                   <span className="kart-baslik">{detayAcikId === r.id ? '▾' : '▸'} {new Date(r.tarih).toLocaleDateString('tr-TR')}</span>
                   <span className="etiket etiket-vurgu" style={{ marginLeft: 8 }}>{r.santiyeler?.ad}</span>
                 </div>
-                <button className="sil-buton" onClick={(e) => { e.stopPropagation(); raporPaylas(r) }} aria-label="Paylaş">📤</button>
                 <button className="sil-buton" onClick={(e) => { e.stopPropagation(); raporSil(r.id) }} aria-label="Sil">🗑</button>
               </div>
               <div className="gorev-alt-bilgi">Ekleyen: {r.profiles?.ad_soyad || 'Bilinmiyor'} · {new Date(r.created_at).toLocaleDateString('tr-TR')} {new Date(r.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>
@@ -181,6 +222,29 @@ export default function GunlukRapor() {
                   )}
                 </div>
               )}
+
+              {/* WhatsApp ile Çoklu Görsel ve Metin Gönderme Butonu */}
+              <button 
+                onClick={() => raporPaylas(r)}
+                style={{ 
+                  marginTop: 10, 
+                  width: '100%', 
+                  padding: '8px 12px', 
+                  background: '#25D366', 
+                  color: '#fff', 
+                  border: 'none', 
+                  borderRadius: 6, 
+                  cursor: 'pointer', 
+                  fontWeight: 600, 
+                  fontSize: 12, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  gap: 6 
+                }}
+              >
+                💬 WhatsApp ile Paylaş
+              </button>
             </div>
           ))}
           {raporlar.length === 0 && <p className="bos-mesaj">Bu filtrede rapor yok.</p>}
