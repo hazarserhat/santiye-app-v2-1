@@ -96,14 +96,14 @@ export default function Masraflar() {
 
       const santiyeAdi = m.santiye_id ? (santiyeler.find((s) => s.id === m.santiye_id)?.ad || 'Şantiye') : 'Genel Gider'
       const metin = 
-        `💰 GİDER BİLDİRİMİ\n` +
-        `📌 Başlık: ${m.baslik}\n` +
-        `💵 Tutar: ${paraFormatla(m.tutar)} ₺\n` +
-        `🏗 Şantiye: ${santiyeAdi}\n` +
-        `📁 Kategori: ${m.masraf_kategorileri?.ad || '—'}\n` +
-        `💳 Ödeme: ${m.odeme_yontemleri?.ad || '—'}\n` +
-        (m.odenen_kisi ? `👤 Ödenen: ${m.odenen_kisi}\n` : '') +
-        `📅 Tarih: ${m.harcama_tarihi ? new Date(m.harcama_tarihi).toLocaleDateString('tr-TR') : '—'}\n` +
+        `💰 *GİDER BİLDİRİMİ*\n` +
+        `📌 *Başlık:* ${m.baslik}\n` +
+        `💵 *Tutar:* ${paraFormatla(m.tutar)} ₺\n` +
+        `🏗 *Şantiye:* ${santiyeAdi}\n` +
+        `📁 *Kategori:* ${m.masraf_kategorileri?.ad || '—'}\n` +
+        `💳 *Ödeme:* ${m.odeme_yontemleri?.ad || '—'}\n` +
+        (m.odenen_kisi ? `👤 *Ödenen:* ${m.odenen_kisi}\n` : '') +
+        `📅 *Tarih*: ${m.harcama_tarihi ? new Date(m.harcama_tarihi).toLocaleDateString('tr-TR') : '—'}\n` +
         (m.aciklama ? `📝 Not: ${m.aciklama}` : '')
 
       if (navigator.canShare && navigator.canShare({ files: dosyalar })) {
@@ -297,7 +297,7 @@ export default function Masraflar() {
                   gap: 6 
                 }}
               >
-                💬 WhatsApp ile Görsel Gönder
+                💬 WhatsApp ile Paylaş
               </button>
             </div>
           ))}
