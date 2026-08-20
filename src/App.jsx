@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import Gorevler from './pages/Gorevler'
 import Masraflar from './pages/Masraflar'
 import Gelirler from './pages/Gelirler'
+import Rehber from './pages/Rehber' // <--- REHBER SAYFASI İÇİN IMPORT EKLENDİ
 import CariKartlar from './pages/CariKartlar'
 import Puantaj from './pages/Puantaj'
 import GunlukRapor from './pages/GunlukRapor'
@@ -62,6 +63,7 @@ function IcerikAlani() {
             <Route path="/gorevler" element={<Gorevler />} />
             <Route path="/masraflar" element={<Masraflar />} />
             <Route path="/gelirler" element={<GelirKoruma><Gelirler /></GelirKoruma>} />
+            <Route path="/rehber" element={<Rehber />} /> {/* <--- REHBER ROTOSU EKLENDİ */}
             <Route path="/cari-kartlar" element={<CariKartlar />} />
             <Route path="/puantaj" element={<Puantaj />} />
             <Route path="/gunluk-rapor" element={<GunlukRapor />} />
@@ -81,6 +83,7 @@ function IcerikAlani() {
             <Route path="/yonetim/santiye-adresleri" element={<YonetimKoruma><SantiyeAdresleri /></YonetimKoruma>} />
             <Route path="/yonetim/yarisi-bizden" element={<YonetimKoruma><YarisiBizden /></YonetimKoruma>} />
             <Route path="/yonetim/proje-gelirleri" element={<YonetimKoruma><ProjeGelirleri /></YonetimKoruma>} />
+
           </Routes>
         </main>
 
