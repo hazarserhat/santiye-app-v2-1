@@ -13,11 +13,12 @@ export default function Gorevler() {
   const [kullanicilar, setKullanicilar] = useState([])
   const [etiketler, setEtiketler] = useState([])
   
-  // Filtre State'leri
-  const [filtreKimden, setFiltreKimden] = useState('hepsi') // 'hepsi' | 'benim' | 'digerleri'
-  const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreEtiket, setFiltreEtiket] = useState('hepsi')
-  
+  const [filtreDurum, setFiltreDurum] = useState('hepsi')
+  const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
+  const [filtreAtanan, setFiltreAtanan] = useState('hepsi')
+  const [filtreKimden, setFiltreKimden] = useState('hepsi') // 'hepsi' | 'benim' | 'digerleri'
+
   const [yukleniyor, setYukleniyor] = useState(false)
   const [baslik, setBaslik] = useState('')
   const [aciklama, setAciklama] = useState('')
@@ -89,22 +90,16 @@ export default function Gorevler() {
     gorevleriYukle()
   }
 
-  // Filtreleme Mantığı
-  let filtrelenmisListe = gorevler.filter((g) => {
-    // Şantiye filtresi
-    const santiyeUygun = filtreSantiye === 'hepsi' || (filtreSantiye === 'genel' ? !g.santiye_id : g.santiye_id === filtreSantiye)
-    // Etiket filtresi
-    const etiketUygun = filtreEtiket === 'hepsi' || g.etiket_id === filtreEtiket
-    // Kimden eklendiği filtresi (Benim eklediklerim / Diğerleri)
-    let kimdenUygun = true
-    if (filtreKimden === 'benim') {
-      kimdenUygun = g.ekleyen === profile?.id
-    } else if (filtreKimden === 'digerleri') {
-      kimdenUygun = g.ekleyen !== profile?.id
-    }
-
-    return santiyeUygun && etiketUygun && kimdenUygun
-  })
+  const filtrelenmisListe = gorevler
+    .filter((g) => filtreEtiket === 'hepsi' || g.etiket_id === filtreEtiket)
+    .filter((g) => filtreDurum === 'hepsi' || g.durum === filtreDurum)
+    .filter((g) => filtreSantiye === 'hepsi' || (filtreSantiye === 'genel' ? !g.santiye_id : g.santiye_id === filtreSantiye))
+    .filter((g) => filtreAtanan === 'hepsi' || g.atanan_id === filtreAtanan)
+    .filter((g) => {
+      if (filtreKimden === 'benim') return g.ekleyen === profile?.id
+      if (filtreKimden === 'digerleri') return g.ekleyen !== profile?.id
+      return true
+    })
 
   if (!aktifSantiye) return <p className="bos-mesaj">Şantiye yükleniyor...</p>
 
@@ -113,7 +108,7 @@ export default function Gorevler() {
       <h2>GÖREVLER</h2>
 
       {/* Şantiye Filtreleri */}
-      <div className="filtre-satiri" style={{ marginBottom: 8 }}>
+      <div className="filtre-satiri" style={{ marginBottom: 6 }}>
         <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm Şantiyeler</button>
         {santiyeler.map((s) => (
           <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>
@@ -123,19 +118,37 @@ export default function Gorevler() {
         <button className={`filtre-chip ${filtreSantiye === 'genel' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('genel')}>Genel</button>
       </div>
 
-      {/* Kim Tarafından Eklendiğine Göre Filtre Butonları (Aynı sayfa içinde) */}
-      <div className="filtre-satiri" style={{ marginBottom: 8 }}>
-        <button className={`filtre-chip ${filtreKimden === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreKimden('hepsi')}>Tüm Görevler</button>
+      {/* Kim Tarafından Eklendiğine Göre Filtre Butonları */}
+      <div className="filtre-satiri" style={{ marginBottom: 6 }}>
+        <button className={`filtre-chip ${filtreKimden === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreKimden('hepsi')}>Tüm Ekleyenler</button>
         <button className={`filtre-chip ${filtreKimden === 'benim' ? 'secili' : ''}`} onClick={() => setFiltreKimden('benim')}>Benim Eklediklerim</button>
         <button className={`filtre-chip ${filtreKimden === 'digerleri' ? 'secili' : ''}`} onClick={() => setFiltreKimden('digerleri')}>Diğerleri Tarafından Eklenenler</button>
       </div>
 
       {/* Etiket Filtreleri */}
-      <div className="filtre-satiri" style={{ marginBottom: 14 }}>
+      <div className="filtre-satiri" style={{ marginBottom: 6 }}>
         <button className={`filtre-chip ${filtreEtiket === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreEtiket('hepsi')}>Tüm Etiketler</button>
         {etiketler.map((e) => (
           <button key={e.id} className={`filtre-chip ${filtreEtiket === e.id ? 'secili' : ''}`} onClick={() => setFiltreEtiket(e.id)}>
             {e.ad}
+          </button>
+        ))}
+      </div>
+
+      {/* Durum Filtreleri */}
+      <div className="filtre-satiri" style={{ marginBottom: 6 }}>
+        <button className={`filtre-chip ${filtreDurum === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreDurum('hepsi')}>Tüm Durumlar</button>
+        <button className={`filtre-chip ${filtreDurum === 'bekliyor' ? 'secili' : ''}`} onClick={() => setFiltreDurum('bekliyor')}>Bekliyor</button>
+        <button className={`filtre-chip ${filtreDurum === 'devam' ? 'secili' : ''}`} onClick={() => setFiltreDurum('devam')}>Devam Ediyor</button>
+        <button className={`filtre-chip ${filtreDurum === 'tamamlandi' ? 'secili' : ''}`} onClick={() => setFiltreDurum('tamamlandi')}>Tamamlandı</button>
+      </div>
+
+      {/* Kişi Atama Filtreleri */}
+      <div className="filtre-satiri" style={{ marginBottom: 14 }}>
+        <button className={`filtre-chip ${filtreAtanan === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreAtanan('hepsi')}>Tüm Kişiler</button>
+        {kullanicilar.map((k) => (
+          <button key={k.id} className={`filtre-chip ${filtreAtanan === k.id ? 'secili' : ''}`} onClick={() => setFiltreAtanan(k.id)}>
+            {k.ad_soyad}
           </button>
         ))}
       </div>
