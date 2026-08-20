@@ -81,6 +81,53 @@ export default function Masraflar() {
     return 0
   })
 
+  // WhatsApp ile Görsel ve Metin Paylaşım Fonksiyonu
+  const whatsappGorselliPaylas = async (m) => {
+    try {
+      let dosyalar = []
+      
+      if (m.fotograf_url) {
+        const response = await fetch(m.fotograf_url)
+        const blob = await response.blob()
+        const dosyaAdi = m.baslik ? `${m.baslik.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.jpg` : 'masraf_belgesi.jpg'
+        const file = new File([blob], dosyaAdi, { type: blob.type })
+        dosyalar.push(file)
+      }
+
+      const santiyeAdi = m.santiye_id ? (santiyeler.find((s) => s.id === m.santiye_id)?.ad || 'Şantiye') : 'Genel Gider'
+      const metin = 
+        `💰 GİDER BİLDİRİMİ\n` +
+        `📌 Başlık: ${m.baslik}\n` +
+        `💵 Tutar: ${paraFormatla(m.tutar)} ₺\n` +
+        `🏗 Şantiye: ${santiyeAdi}\n` +
+        `📁 Kategori: ${m.masraf_kategorileri?.ad || '—'}\n` +
+        `💳 Ödeme: ${m.odeme_yontemleri?.ad || '—'}\n` +
+        (m.odenen_kisi ? `👤 Ödenen: ${m.odenen_kisi}\n` : '') +
+        `📅 Tarih: ${m.harcama_tarihi ? new Date(m.harcama_tarihi).toLocaleDateString('tr-TR') : '—'}\n` +
+        (m.aciklama ? `📝 Not: ${m.aciklama}` : '')
+
+      if (navigator.canShare && navigator.canShare({ files: dosyalar })) {
+        await navigator.share({
+          title: 'Masraf Belgesi',
+          text: metin,
+          files: dosyalar,
+        })
+      } else if (navigator.share) {
+        await navigator.share({
+          title: 'Masraf Belgesi',
+          text: metin + (m.fotograf_url ? `\n🔗 Belge Linki: ${m.fotograf_url}` : ''),
+        })
+      } else {
+        window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('Paylaşım hatası:', err)
+        alert('Paylaşım sırasında bir hata oluştu.')
+      }
+    }
+  }
+
   const masrafEkle = async () => {
     if (!baslik.trim() || !tutar) return
     setYukleniyor(true)
@@ -229,6 +276,29 @@ export default function Masraflar() {
                   </a>
                 </div>
               )}
+
+              {/* WhatsApp ile Görsel ve Metin Gönderme Butonu */}
+              <button 
+                onClick={() => whatsappGorselliPaylas(m)}
+                style={{ 
+                  marginTop: 8, 
+                  width: '100%', 
+                  padding: '8px 12px', 
+                  background: '#25D366', 
+                  color: '#fff', 
+                  border: 'none', 
+                  borderRadius: 6, 
+                  cursor: 'pointer', 
+                  fontWeight: 600, 
+                  fontSize: 12, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  gap: 6 
+                }}
+              >
+                💬 WhatsApp ile Görsel Gönder
+              </button>
             </div>
           ))}
           {islenecekListe.length === 0 && <p className="bos-mesaj">Kayıt yok.</p>}
