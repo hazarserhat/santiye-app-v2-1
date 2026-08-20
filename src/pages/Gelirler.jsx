@@ -83,6 +83,51 @@ export default function Gelirler() {
     gelirleriYukle()
   }
 
+  // WhatsApp ile Görsel ve Metin Paylaşım Fonksiyonu
+  const gelirPaylas = async (g) => {
+    try {
+      let dosyalar = []
+      
+      if (g.belge_url) {
+        const response = await fetch(g.belge_url)
+        const blob = await response.blob()
+        const dosyaAdi = g.odeme_yapan_adi ? `${g.odeme_yapan_adi.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.jpg` : 'gelir_belgesi.jpg'
+        const file = new File([blob], dosyaAdi, { type: blob.type })
+        dosyalar.push(file)
+      }
+
+      const yatanKisi = g.odeme_yapan_adi || g.malikler?.ad_soyad || 'İsimsiz'
+      const santiyeAdi = g.santiyeler?.ad || 'Şantiye'
+      const metin =
+        `📈 *PROJE GELİR / TAHSİLAT BİLDİRİMİ*\n` +
+        `👤 *Ödeme Yapan:* ${yatanKisi}\n` +
+        `🏗 *Şantiye:* ${santiyeAdi}\n` +
+        `💵 *Tutar:* ${paraFormatla(g.tutar)} ₺\n` +
+        `📅 *Tarih:* ${g.tarih ? new Date(g.tarih).toLocaleDateString('tr-TR') : '—'}\n` +
+        (g.not_metni ? `📝 *Not:* ${g.not_metni}` : '')
+
+      if (navigator.canShare && navigator.canShare({ files: dosyalar })) {
+        await navigator.share({
+          title: 'Gelir Belgesi',
+          text: metin,
+          files: dosyalar,
+        })
+      } else if (navigator.share) {
+        await navigator.share({
+          title: 'Gelir Belgesi',
+          text: metin + (g.belge_url ? `\n🔗 Belge Linki: ${g.belge_url}` : ''),
+        })
+      } else {
+        window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('Paylaşım hatası:', err)
+        alert('Paylaşım sırasında bir hata oluştu.')
+      }
+    }
+  }
+
   const gorunenler = filtreSantiye === 'hepsi' ? gelirler : gelirler.filter((g) => g.santiye_id === filtreSantiye)
   const buAyToplam = gorunenler.filter((g) => g.tarih.slice(0, 7) === bugun().slice(0, 7)).reduce((t, g) => t + Number(g.tutar), 0)
   const genelToplam = gorunenler.reduce((t, g) => t + Number(g.tutar), 0)
@@ -102,35 +147,8 @@ export default function Gelirler() {
         </div>
       </div>
 
-      <div className="filtre-satiri">
-        <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
-        {santiyeler.map((s) => (
-          <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
-        ))}
-      </div>
-
-      <div className="liste">
-        {gorunenler.map((g) => (
-          <div key={g.id} className="kart">
-            <div className="kart-ust">
-              <span className="kart-baslik">{g.odeme_yapan_adi || g.malikler?.ad_soyad || 'İsimsiz'}</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span className="kart-tutar">{paraFormatla(g.tutar)} ₺</span>
-                <button className="sil-buton" onClick={() => gelirSil(g.id)} aria-label="Sil">🗑</button>
-              </div>
-            </div>
-            <div className="etiket-satiri">
-              <span className="etiket etiket-vurgu">{g.santiyeler?.ad}</span>
-              <span className="etiket">{new Date(g.tarih).toLocaleDateString('tr-TR')}</span>
-              {g.belge_url && <a className="etiket" href={g.belge_url} target="_blank" rel="noreferrer">Belge</a>}
-            </div>
-            {g.not_metni && <p className="not-icerik" style={{ marginTop: 6 }}>{g.not_metni}</p>}
-          </div>
-        ))}
-        {gorunenler.length === 0 && <p className="bos-mesaj">Kayıt yok.</p>}
-      </div>
-
-      <div className="ekleme-kutusu">
+      {/* YENİ GELİR EKLEME ALANI (EN ÜSTTE) */}
+      <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
         <select value={santiyeId} onChange={(e) => { setSantiyeId(e.target.value); setMalikId('') }}>
           {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
         </select>
@@ -163,6 +181,70 @@ export default function Gelirler() {
         <button className="ekle-buton-genis" onClick={gelirEkle} disabled={yukleniyor}>
           {yukleniyor ? 'Ekleniyor...' : 'Geliri kaydet'}
         </button>
+      </div>
+
+      <div className="filtre-satiri">
+        <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
+        {santiyeler.map((s) => (
+          <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
+        ))}
+      </div>
+
+      {/* LİSTE / AKIŞ ALANI (ALTTA) */}
+      <div className="liste">
+        {gorunenler.map((g) => (
+          <div key={g.id} className="kart">
+            <div className="kart-ust">
+              <span className="kart-baslik">{g.odeme_yapan_adi || g.malikler?.ad_soyad || 'İsimsiz'}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span className="kart-tutar">{paraFormatla(g.tutar)} ₺</span>
+                <button className="sil-buton" onClick={() => gelirSil(g.id)} aria-label="Sil">🗑</button>
+              </div>
+            </div>
+            <div className="etiket-satiri">
+              <span className="etiket etiket-vurgu">{g.santiyeler?.ad}</span>
+              <span className="etiket">{new Date(g.tarih).toLocaleDateString('tr-TR')}</span>
+            </div>
+            {g.not_metni && <p className="not-icerik" style={{ marginTop: 6 }}>{g.not_metni}</p>}
+
+            {/* Belge / Fotoğraf Önizlemesi */}
+            {g.belge_url && (
+              <div style={{ marginTop: 8 }}>
+                <a href={g.belge_url} target="_blank" rel="noopener noreferrer">
+                  <img 
+                    src={g.belge_url} 
+                    alt="Gelir Belgesi" 
+                    style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, border: '1px solid #d3d1c7' }} 
+                  />
+                </a>
+              </div>
+            )}
+
+            {/* WhatsApp ile Görsel ve Metin Gönderme Butonu */}
+            <button 
+              onClick={() => gelirPaylas(g)}
+              style={{ 
+                marginTop: 8, 
+                width: '100%', 
+                padding: '8px 12px', 
+                background: '#25D366', 
+                color: '#fff', 
+                border: 'none', 
+                borderRadius: 6, 
+                cursor: 'pointer', 
+                fontWeight: 600, 
+                fontSize: 12, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: 6 
+              }}
+            >
+              💬 WhatsApp ile Paylaş
+            </button>
+          </div>
+        ))}
+        {gorunenler.length === 0 && <p className="bos-mesaj">Kayıt yok.</p>}
       </div>
     </div>
   )
