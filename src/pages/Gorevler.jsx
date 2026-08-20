@@ -8,7 +8,6 @@ const bugun = () => new Date().toISOString().slice(0, 10)
 export default function Gorevler() {
   const { aktifSantiye, santiyeler } = useSite()
   const { profile } = useAuth()
-  
   const [gorevler, setGorevler] = useState([])
   const [kullanicilar, setKullanicilar] = useState([])
   const [etiketler, setEtiketler] = useState([])
@@ -17,7 +16,6 @@ export default function Gorevler() {
   const [filtreDurum, setFiltreDurum] = useState('hepsi')
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreAtanan, setFiltreAtanan] = useState('hepsi')
-  const [filtreKimden, setFiltreKimden] = useState('hepsi') // 'hepsi' | 'benim' | 'digerleri'
 
   const [yukleniyor, setYukleniyor] = useState(false)
   const [baslik, setBaslik] = useState('')
@@ -95,11 +93,6 @@ export default function Gorevler() {
     .filter((g) => filtreDurum === 'hepsi' || g.durum === filtreDurum)
     .filter((g) => filtreSantiye === 'hepsi' || (filtreSantiye === 'genel' ? !g.santiye_id : g.santiye_id === filtreSantiye))
     .filter((g) => filtreAtanan === 'hepsi' || g.atanan_id === filtreAtanan)
-    .filter((g) => {
-      if (filtreKimden === 'benim') return g.ekleyen === profile?.id
-      if (filtreKimden === 'digerleri') return g.ekleyen !== profile?.id
-      return true
-    })
 
   if (!aktifSantiye) return <p className="bos-mesaj">Şantiye yükleniyor...</p>
 
@@ -107,7 +100,6 @@ export default function Gorevler() {
     <div className="sayfa">
       <h2>GÖREVLER</h2>
 
-      {/* Şantiye Filtreleri */}
       <div className="filtre-satiri" style={{ marginBottom: 6 }}>
         <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm Şantiyeler</button>
         {santiyeler.map((s) => (
@@ -118,14 +110,6 @@ export default function Gorevler() {
         <button className={`filtre-chip ${filtreSantiye === 'genel' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('genel')}>Genel</button>
       </div>
 
-      {/* Kim Tarafından Eklendiğine Göre Filtre Butonları */}
-      <div className="filtre-satiri" style={{ marginBottom: 6 }}>
-        <button className={`filtre-chip ${filtreKimden === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreKimden('hepsi')}>Tüm Ekleyenler</button>
-        <button className={`filtre-chip ${filtreKimden === 'benim' ? 'secili' : ''}`} onClick={() => setFiltreKimden('benim')}>Benim Eklediklerim</button>
-        <button className={`filtre-chip ${filtreKimden === 'digerleri' ? 'secili' : ''}`} onClick={() => setFiltreKimden('digerleri')}>Diğerleri Tarafından Eklenenler</button>
-      </div>
-
-      {/* Etiket Filtreleri */}
       <div className="filtre-satiri" style={{ marginBottom: 6 }}>
         <button className={`filtre-chip ${filtreEtiket === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreEtiket('hepsi')}>Tüm Etiketler</button>
         {etiketler.map((e) => (
@@ -135,7 +119,6 @@ export default function Gorevler() {
         ))}
       </div>
 
-      {/* Durum Filtreleri */}
       <div className="filtre-satiri" style={{ marginBottom: 6 }}>
         <button className={`filtre-chip ${filtreDurum === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreDurum('hepsi')}>Tüm Durumlar</button>
         <button className={`filtre-chip ${filtreDurum === 'bekliyor' ? 'secili' : ''}`} onClick={() => setFiltreDurum('bekliyor')}>Bekliyor</button>
@@ -143,7 +126,6 @@ export default function Gorevler() {
         <button className={`filtre-chip ${filtreDurum === 'tamamlandi' ? 'secili' : ''}`} onClick={() => setFiltreDurum('tamamlandi')}>Tamamlandı</button>
       </div>
 
-      {/* Kişi Atama Filtreleri */}
       <div className="filtre-satiri" style={{ marginBottom: 14 }}>
         <button className={`filtre-chip ${filtreAtanan === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreAtanan('hepsi')}>Tüm Kişiler</button>
         {kullanicilar.map((k) => (
@@ -153,7 +135,6 @@ export default function Gorevler() {
         ))}
       </div>
 
-      {/* Görev Listesi */}
       <div className="liste">
         {filtrelenmisListe.map((g) => (
           <div key={g.id} className="kart" style={{ borderLeft: `4px solid ${g.gorev_etiketleri?.renk || '#1D9596'}` }}>
@@ -199,7 +180,6 @@ export default function Gorevler() {
         {filtrelenmisListe.length === 0 && <p className="bos-mesaj">Kriterlere uygun görev bulunmuyor.</p>}
       </div>
 
-      {/* Yeni Görev Ekleme Formu */}
       <div className="ekleme-kutusu">
         <p style={{ fontSize: 13, fontWeight: 700, margin: '0 0 8px' }}>Yeni Görev Oluştur</p>
         <select value={secilenSantiyeId} onChange={(e) => setSecilenSantiyeId(e.target.value)} className="santiye-secici-form" style={{ marginBottom: 8 }}>
