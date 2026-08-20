@@ -11,13 +11,18 @@ export default function Gorevler() {
   
   const [gorevler, setGorevler] = useState([])
   const [kullanicilar, setKullanicilar] = useState([])
-  const [aktifSekme, setAktifSekme] = useState('benim') // 'benim' | 'digerleri'
+  const [etiketler, setEtiketler] = useState([])
+  
+  // Filtre State'leri
+  const [filtreKimden, setFiltreKimden] = useState('hepsi') // 'hepsi' | 'benim' | 'digerleri'
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
+  const [filtreEtiket, setFiltreEtiket] = useState('hepsi')
+  
   const [yukleniyor, setYukleniyor] = useState(false)
-
   const [baslik, setBaslik] = useState('')
   const [aciklama, setAciklama] = useState('')
   const [atananId, setAtananId] = useState('')
+  const [etiketId, setEtiketId] = useState('')
   const [sonTarih, setSonTarih] = useState(bugun())
   const [secilenSantiyeId, setSecilenSantiyeId] = useState('')
 
@@ -27,14 +32,18 @@ export default function Gorevler() {
 
   useEffect(() => {
     supabase.from('profiles').select('*').then(({ data }) => setKullanicilar(data || []))
+    supabase.from('gorev_etiketleri').select('*').order('ad').then(({ data }) => {
+      setEtiketler(data || [])
+      if (data?.length) setEtiketId(data[0].id)
+    })
     gorevleriYukle()
   }, [])
 
   const gorevleriYukle = async () => {
     const { data } = await supabase
       .from('gorevler')
-      .select('*, santiyeler(ad), ekleyen_profil:profiles!gorevler_ekleyen_fkey(ad_soyad), atanan_profil:profiles!gorevler_atanan_id_fkey(ad_soyad)')
-      .order('kayit_tarihi', { ascending: false }) // Saniye hassasiyetli sıralama için
+      .select('*, santiyeler(ad), gorev_etiketleri(ad, renk), ekleyen_profil:profiles!gorevler_ekleyen_fkey(ad_soyad), atanan_profil:profiles!gorevler_atanan_id_fkey(ad_soyad)')
+      .order('kayit_tarihi', { ascending: false })
     setGorevler(data || [])
   }
 
@@ -47,10 +56,11 @@ export default function Gorevler() {
       aciklama,
       santiye_id: secilenSantiyeId === 'genel' ? null : secilenSantiyeId,
       atanan_id: atananId || null,
+      etiket_id: etiketId || null,
       son_tarih: sonTarih || null,
       ekleyen: profile?.id,
       durum: 'bekliyor',
-      kayit_tarihi: new Date().toISOString(), // Saniye/milisaniye hassasiyetli kayıt zamanı
+      kayit_tarihi: new Date().toISOString(),
     })
 
     if (error) {
@@ -79,18 +89,22 @@ export default function Gorevler() {
     gorevleriYukle()
   }
 
-  // Şantiye filtresi
-  const santiyeyeGoreFiltreli = filtreSantiye === 'hepsi'
-    ? gorevler
-    : filtreSantiye === 'genel'
-      ? gorevler.filter((g) => !g.santiye_id)
-      : gorevler.filter((g) => g.santiye_id === filtreSantiye)
+  // Filtreleme Mantığı
+  let filtrelenmisListe = gorevler.filter((g) => {
+    // Şantiye filtresi
+    const santiyeUygun = filtreSantiye === 'hepsi' || (filtreSantiye === 'genel' ? !g.santiye_id : g.santiye_id === filtreSantiye)
+    // Etiket filtresi
+    const etiketUygun = filtreEtiket === 'hepsi' || g.etiket_id === filtreEtiket
+    // Kimden eklendiği filtresi (Benim eklediklerim / Diğerleri)
+    let kimdenUygun = true
+    if (filtreKimden === 'benim') {
+      kimdenUygun = g.ekleyen === profile?.id
+    } else if (filtreKimden === 'digerleri') {
+      kimdenUygun = g.ekleyen !== profile?.id
+    }
 
-  // Kullanıcıya göre ayırma (Benim eklediklerim / Diğerlerinin ekledikleri)
-  const benimEklediklerim = santiyeyeGoreFiltreli.filter((g) => g.ekleyen === profile?.id)
-  const digerlerininEkledikleri = santiyeyeGoreFiltreli.filter((g) => g.ekleyen !== profile?.id)
-
-  const gorunenListe = aktifSekme === 'benim' ? benimEklediklerim : digerlerininEkledikleri
+    return santiyeUygun && etiketUygun && kimdenUygun
+  })
 
   if (!aktifSantiye) return <p className="bos-mesaj">Şantiye yükleniyor...</p>
 
@@ -98,8 +112,8 @@ export default function Gorevler() {
     <div className="sayfa">
       <h2>GÖREVLER</h2>
 
-      {/* Şantiye Filtresi */}
-      <div className="filtre-satiri" style={{ marginBottom: 10 }}>
+      {/* Şantiye Filtreleri */}
+      <div className="filtre-satiri" style={{ marginBottom: 8 }}>
         <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm Şantiyeler</button>
         {santiyeler.map((s) => (
           <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>
@@ -109,20 +123,27 @@ export default function Gorevler() {
         <button className={`filtre-chip ${filtreSantiye === 'genel' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('genel')}>Genel</button>
       </div>
 
-      {/* Görünüm Sekmeleri (Benim Eklediklerim / Diğerleri) */}
-      <div className="gorunum-secici" style={{ marginBottom: 14 }}>
-        <button className={aktifSekme === 'benim' ? 'secili-tab' : ''} onClick={() => setAktifSekme('benim')}>
-          Benim Eklediklerim ({benimEklediklerim.length})
-        </button>
-        <button className={aktifSekme === 'digerleri' ? 'secili-tab' : ''} onClick={() => setAktifSekme('digerleri')}>
-          Diğerleri Tarafından Eklenenler ({digerlerininEkledikleri.length})
-        </button>
+      {/* Kim Tarafından Eklendiğine Göre Filtre Butonları (Aynı sayfa içinde) */}
+      <div className="filtre-satiri" style={{ marginBottom: 8 }}>
+        <button className={`filtre-chip ${filtreKimden === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreKimden('hepsi')}>Tüm Görevler</button>
+        <button className={`filtre-chip ${filtreKimden === 'benim' ? 'secili' : ''}`} onClick={() => setFiltreKimden('benim')}>Benim Eklediklerim</button>
+        <button className={`filtre-chip ${filtreKimden === 'digerleri' ? 'secili' : ''}`} onClick={() => setFiltreKimden('digerleri')}>Diğerleri Tarafından Eklenenler</button>
+      </div>
+
+      {/* Etiket Filtreleri */}
+      <div className="filtre-satiri" style={{ marginBottom: 14 }}>
+        <button className={`filtre-chip ${filtreEtiket === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreEtiket('hepsi')}>Tüm Etiketler</button>
+        {etiketler.map((e) => (
+          <button key={e.id} className={`filtre-chip ${filtreEtiket === e.id ? 'secili' : ''}`} onClick={() => setFiltreEtiket(e.id)}>
+            {e.ad}
+          </button>
+        ))}
       </div>
 
       {/* Görev Listesi */}
       <div className="liste">
-        {gorunenListe.map((g) => (
-          <div key={g.id} className="kart" style={{ borderLeft: `4px solid ${g.durum === 'tamamlandi' ? '#1D9596' : '#E08A2E'}` }}>
+        {filtrelenmisListe.map((g) => (
+          <div key={g.id} className="kart" style={{ borderLeft: `4px solid ${g.gorev_etiketleri?.renk || '#1D9596'}` }}>
             <div className="kart-ust">
               <span className="kart-baslik" style={{ textDecoration: g.durum === 'tamamlandi' ? 'line-through' : 'none' }}>
                 {g.baslik}
@@ -145,6 +166,11 @@ export default function Gorevler() {
               <span className="etiket etiket-vurgu">
                 {g.santiye_id ? (santiyeler.find((s) => s.id === g.santiye_id)?.ad || 'Şantiye') : 'Genel'}
               </span>
+              {g.gorev_etiketleri && (
+                <span className="etiket" style={{ background: g.gorev_etiketleri.renk ? `${g.gorev_etiketleri.renk}22` : undefined, color: g.gorev_etiketleri.renk }}>
+                  {g.gorev_etiketleri.ad}
+                </span>
+              )}
               <span className="etiket">Ekleyen: {g.ekleyen_profil?.ad_soyad || 'Bilinmiyor'}</span>
               {g.atanan_profil && <span className="etiket">Atanan: {g.atanan_profil.ad_soyad}</span>}
             </div>
@@ -157,7 +183,7 @@ export default function Gorevler() {
             {g.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{g.aciklama}</p>}
           </div>
         ))}
-        {gorunenListe.length ===0 && <p className="bos-mesaj">Bu kategoride görev bulunmuyor.</p>}
+        {filtrelenmisListe.length === 0 && <p className="bos-mesaj">Kriterlere uygun görev bulunmuyor.</p>}
       </div>
 
       {/* Yeni Görev Ekleme Formu */}
@@ -183,6 +209,12 @@ export default function Gorevler() {
             <option value="">Kişiye ata (opsiyonel)</option>
             {kullanicilar.map((k) => <option key={k.id} value={k.id}>{k.ad_soyad}</option>)}
           </select>
+          <select value={etiketId} onChange={(e) => setEtiketId(e.target.value)}>
+            {etiketler.map((e) => <option key={e.id} value={e.id}>{e.ad}</option>)}
+          </select>
+        </div>
+
+        <div className="ekleme-satiri-2" style={{ marginBottom: 8 }}>
           <input type="date" value={sonTarih} onChange={(e) => setSonTarih(e.target.value)} />
         </div>
 
