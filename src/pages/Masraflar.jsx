@@ -209,6 +209,60 @@ export default function Masraflar() {
 
       {sekme === 'cek' && yonetici ? <Cekler /> : (
       <>
+        {/* YENİ MASRAF EKLEME ALANI (EN ÜSTTE) */}
+        <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
+          <select value={secilenSantiyeId} onChange={(e) => setSecilenSantiyeId(e.target.value)} className="santiye-secici-form">
+            {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+            <option value="genel">Genel Gider (şantiyeye bağlı değil)</option>
+          </select>
+          <input type="text" placeholder="Masraf başlığı..." value={baslik} onChange={(e) => setBaslik(e.target.value)} />
+          
+          <CariAramaSecici 
+            deger={odenenKisi} 
+            onDegisti={(isim, cariId) => { 
+              setOdenenKisi(isim)
+              setSecilenCariId(cariId || null) 
+            }} 
+            placeholder="Ödenen kişi/firma (opsiyonel)..." 
+          />
+
+          <textarea
+            placeholder="Açıklama / not (opsiyonel)..."
+            value={aciklama}
+            onChange={(e) => setAciklama(e.target.value)}
+            rows={2}
+            style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical' }}
+          />
+          <div className="ekleme-satiri-2">
+            <input type="number" placeholder="Tutar (₺)" value={tutar} onChange={(e) => setTutar(e.target.value)} onKeyDown={sadeceSayiTuslari} />
+            <select value={kategoriId} onChange={(e) => setKategoriId(e.target.value)}>
+              {kategoriler.map((k) => <option key={k.id} value={k.id}>{k.ad}</option>)}
+            </select>
+          </div>
+          <div className="ekleme-satiri-2">
+            <input type="date" value={harcamaTarihi} onChange={(e) => setHarcamaTarihi(e.target.value)} />
+            <select value={odemeYontemiId} onChange={(e) => setOdemeYontemiId(e.target.value)}>
+              {odemeYontemleri.map((o) => <option key={o.id} value={o.id}>{o.ad}</option>)}
+            </select>
+          </div>
+
+          {/* Dosya / Fotoğraf / Fatura Ekleme Inputu */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+            <label style={{ fontSize: 12, color: '#5F5E5A', fontWeight: 600 }}>Fiş / Fatura / Görsel Ekle (Opsiyonel):</label>
+            <input 
+              type="file" 
+              accept="image/*,application/pdf" 
+              onChange={(e) => setFotograf(e.target.files[0])}
+              style={{ fontSize: 12, padding: '6px 0' }}
+            />
+          </div>
+
+          <button className="ekle-buton-genis" onClick={masrafEkle} disabled={yukleniyor}>
+            {yukleniyor ? 'Ekleniyor...' : 'Masrafı kaydet'}
+          </button>
+        </div>
+
+        {/* FİLTRE VE SIRALAMA ALANI */}
         <div style={{ marginBottom: 14 }}>
           <button className="ekle-buton-genis" onClick={() => setFiltreAcik(!filtreAcik)}>
             {filtreAcik ? 'Filtreleri Gizle' : 'Filtreleri & Sıralamayı Göster'}
@@ -240,6 +294,7 @@ export default function Masraflar() {
           </div>
         )}
 
+        {/* LİSTE / AKIŞ ALANI */}
         <div className="liste">
           {islenecekListe.map((m) => (
             <div key={m.id} className="kart">
@@ -302,58 +357,6 @@ export default function Masraflar() {
             </div>
           ))}
           {islenecekListe.length === 0 && <p className="bos-mesaj">Kayıt yok.</p>}
-        </div>
-
-        <div className="ekleme-kutusu">
-          <select value={secilenSantiyeId} onChange={(e) => setSecilenSantiyeId(e.target.value)} className="santiye-secici-form">
-            {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
-            <option value="genel">Genel Gider (şantiyeye bağlı değil)</option>
-          </select>
-          <input type="text" placeholder="Masraf başlığı..." value={baslik} onChange={(e) => setBaslik(e.target.value)} />
-          
-          <CariAramaSecici 
-            deger={odenenKisi} 
-            onDegisti={(isim, cariId) => { 
-              setOdenenKisi(isim)
-              setSecilenCariId(cariId || null) 
-            }} 
-            placeholder="Ödenen kişi/firma (opsiyonel)..." 
-          />
-
-          <textarea
-            placeholder="Açıklama / not (opsiyonel)..."
-            value={aciklama}
-            onChange={(e) => setAciklama(e.target.value)}
-            rows={2}
-            style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical' }}
-          />
-          <div className="ekleme-satiri-2">
-            <input type="number" placeholder="Tutar (₺)" value={tutar} onChange={(e) => setTutar(e.target.value)} onKeyDown={sadeceSayiTuslari} />
-            <select value={kategoriId} onChange={(e) => setKategoriId(e.target.value)}>
-              {kategoriler.map((k) => <option key={k.id} value={k.id}>{k.ad}</option>)}
-            </select>
-          </div>
-          <div className="ekleme-satiri-2">
-            <input type="date" value={harcamaTarihi} onChange={(e) => setHarcamaTarihi(e.target.value)} />
-            <select value={odemeYontemiId} onChange={(e) => setOdemeYontemiId(e.target.value)}>
-              {odemeYontemleri.map((o) => <option key={o.id} value={o.id}>{o.ad}</option>)}
-            </select>
-          </div>
-
-          {/* Dosya / Fotoğraf / Fatura Ekleme Inputu */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
-            <label style={{ fontSize: 12, color: '#5F5E5A', fontWeight: 600 }}>Fiş / Fatura / Görsel Ekle (Opsiyonel):</label>
-            <input 
-              type="file" 
-              accept="image/*,application/pdf" 
-              onChange={(e) => setFotograf(e.target.files[0])}
-              style={{ fontSize: 12, padding: '6px 0' }}
-            />
-          </div>
-
-          <button className="ekle-buton-genis" onClick={masrafEkle} disabled={yukleniyor}>
-            {yukleniyor ? 'Ekleniyor...' : 'Masrafı kaydet'}
-          </button>
         </div>
       </>
       )}

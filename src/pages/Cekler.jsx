@@ -163,72 +163,8 @@ export default function Cekler() {
 
   return (
     <div>
-      <div className="liste">
-        {cekler.map((c) => (
-          <div key={c.id} className="kart">
-            <div className="kart-ust">
-              <span className="kart-baslik">{c.odeme_konusu}</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span className="kart-tutar">{paraFormatla(c.tutar)} ₺</span>
-                <button className="sil-buton" onClick={() => cekSil(c.id)} aria-label="Sil">🗑</button>
-              </div>
-            </div>
-            <div className="etiket-satiri">
-              <span className="etiket etiket-vurgu">{c.santiyeler?.ad || 'Genel'}</span>
-              <span className="etiket">{c.banka}</span>
-              <span className="etiket">Seri: {c.cek_seri_no || '—'}</span>
-            </div>
-            <div className="kart-alt-tarih">
-              <span>Veriliş: {new Date(c.verilis_tarihi).toLocaleDateString('tr-TR')}</span>
-              <span>Vade: {c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : '—'}</span>
-            </div>
-            <div className="kart-alt-tarih" style={{ marginTop: 2 }}>
-              <span>Ödeyen: {c.odeyen || '—'}</span>
-              <span>Ödenen: {c.odenen || '—'}</span>
-            </div>
-            {c.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{c.aciklama}</p>}
-
-            {/* Belge / Fotoğraf Önizlemesi */}
-            {c.belge_url && (
-              <div style={{ marginTop: 8 }}>
-                <a href={c.belge_url} target="_blank" rel="noopener noreferrer">
-                  <img 
-                    src={c.belge_url} 
-                    alt="Çek Belgesi" 
-                    style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, border: '1px solid #d3d1c7' }} 
-                  />
-                </a>
-              </div>
-            )}
-
-            {/* WhatsApp ile Görsel ve Metin Gönderme Butonu */}
-            <button 
-              onClick={() => cekPaylas(c)}
-              style={{ 
-                marginTop: 8, 
-                width: '100%', 
-                padding: '8px 12px', 
-                background: '#25D366', 
-                color: '#fff', 
-                border: 'none', 
-                borderRadius: 6, 
-                cursor: 'pointer', 
-                fontWeight: 600, 
-                fontSize: 12, 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                gap: 6 
-              }}
-            >
-              💬 WhatsApp ile Paylaş
-            </button>
-          </div>
-        ))}
-        {cekler.length === 0 && <p className="bos-mesaj">Henüz çek kaydı yok.</p>}
-      </div>
-
-      <div className="ekleme-kutusu">
+      {/* YENİ ÇEK EKLEME ALANI (EN ÜSTTE) */}
+      <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
         <input type="text" placeholder="Ödeme konusu..." value={odemeKonusu} onChange={(e) => setOdemeKonusu(e.target.value)} />
 
         <select value={santiyeId} onChange={(e) => setSantiyeId(e.target.value)}>
@@ -294,6 +230,72 @@ export default function Cekler() {
         <button className="ekle-buton-genis" onClick={cekEkle} disabled={yukleniyor}>
           {yukleniyor ? 'Ekleniyor...' : 'Çek kaydını kaydet'}
         </button>
+      </div>
+
+      {/* LİSTE / AKIŞ ALANI (ALTTA) */}
+      <div className="liste">
+        {cekler.map((c) => (
+          <div key={c.id} className="kart">
+            <div className="kart-ust">
+              <span className="kart-baslik">{c.odeme_konusu}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span className="kart-tutar">{paraFormatla(c.tutar)} ₺</span>
+                <button className="sil-buton" onClick={() => cekSil(c.id)} aria-label="Sil">🗑</button>
+              </div>
+            </div>
+            <div className="etiket-satiri">
+              <span className="etiket etiket-vurgu">{c.santiyeler?.ad || 'Genel'}</span>
+              <span className="etiket">{c.banka}</span>
+              <span className="etiket">Seri: {c.cek_seri_no || '—'}</span>
+            </div>
+            <div className="kart-alt-tarih">
+              <span>Veriliş: {new Date(c.verilis_tarihi).toLocaleDateString('tr-TR')}</span>
+              <span>Vade: {c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : '—'}</span>
+            </div>
+            <div className="kart-alt-tarih" style={{ marginTop: 2 }}>
+              <span>Ödeyen: {c.odeyen || '—'}</span>
+              <span>Ödenen: {c.odenen || '—'}</span>
+            </div>
+            {c.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{c.aciklama}</p>}
+
+            {/* Belge / Fotoğraf Önizlemesi */}
+            {c.belge_url && (
+              <div style={{ marginTop: 8 }}>
+                <a href={c.belge_url} target="_blank" rel="noopener noreferrer">
+                  <img 
+                    src={c.belge_url} 
+                    alt="Çek Belgesi" 
+                    style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, border: '1px solid #d3d1c7' }} 
+                  />
+                </a>
+              </div>
+            )}
+
+            {/* WhatsApp ile Görsel ve Metin Gönderme Butonu */}
+            <button 
+              onClick={() => cekPaylas(c)}
+              style={{ 
+                marginTop: 8, 
+                width: '100%', 
+                padding: '8px 12px', 
+                background: '#25D366', 
+                color: '#fff', 
+                border: 'none', 
+                borderRadius: 6, 
+                cursor: 'pointer', 
+                fontWeight: 600, 
+                fontSize: 12, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: 6 
+              }}
+            >
+              💬 WhatsApp ile Paylaş
+            </button>
+          </div>
+        ))}
+        {cekler.length === 0 && <p className="bos-mesaj">Henüz çek kaydı yok.</p>}
       </div>
     </div>
   )
