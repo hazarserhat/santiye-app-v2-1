@@ -196,7 +196,9 @@ export default function Gorevler() {
   const [filtreDurum, setFiltreDurum] = useState('hepsi')
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreKisi, setFiltreKisi] = useState('hepsi')
-  const [filtreEkleyen, setFiltreEkleyen] = useState('hepsi') // YENİ: Ekleyen kullanıcı filtresi
+  const [filtreEkleyen, setFiltreEkleyen] = useState('hepsi')
+  const [filtrelerAcik, setFiltrelerAcik] = useState(false) // Açılır-kapanır kontrol state'i
+  
   const yonetici = profile?.rol === 'yonetici'
 
   const [yeniBaslik, setYeniBaslik] = useState('')
@@ -214,7 +216,7 @@ export default function Gorevler() {
   const [seciliGorevler, setSeciliGorevler] = useState([])
   const [oncelikSeciciAcikId, setOncelikSeciciAcikId] = useState(null)
   const [kisiSeciciAcikId, setKisiSeciciAcikId] = useState(null)
-  const [siralamaYonu, setSiralamaYonu] = useState('yeni') // 'yeni' | 'eski'
+  const [siralamaYonu, setSiralamaYonu] = useState('yeni')
   const [gosterilenSayisi, setGosterilenSayisi] = useState(10)
 
   useEffect(() => {
@@ -422,18 +424,12 @@ export default function Gorevler() {
 
   // Filtreleme Zinciri
   const santiyeyeGoreFiltreli = filtreSantiye === 'hepsi' ? gorevler : gorevler.filter((g) => g.santiye_id === filtreSantiye)
-  
-  // Etiketlenen kişiye göre filtre
   const kisiyeGoreFiltreli = filtreKisi === 'hepsi'
     ? santiyeyeGoreFiltreli
     : santiyeyeGoreFiltreli.filter((g) => g.gorev_etiketleri?.some((e) => e.etiket_turu === 'kisi' && e.deger === filtreKisi))
-  
-  // Görevi Ekleyen kullanıcıya göre filtre
   const ekleyeneGoreFiltreli = filtreEkleyen === 'hepsi'
     ? kisiyeGoreFiltreli
     : kisiyeGoreFiltreli.filter((g) => g.olusturan === filtreEkleyen)
-
-  // Duruma göre filtre
   const durumaGoreFiltreli = filtreDurum === 'hepsi' ? ekleyeneGoreFiltreli : ekleyeneGoreFiltreli.filter((g) => g.durum === filtreDurum)
 
   const kokGorevler = durumaGoreFiltreli
@@ -452,6 +448,14 @@ export default function Gorevler() {
     seciliGorevler, setSeciliGorevler, kisiSeciciAcikId, setKisiSeciciAcikId,
     oncelikSeciciAcikId, setOncelikSeciciAcikId, oncelikDegistir, kisiEtiketiDegistir,
   }
+
+  // Aktif filtre sayısı (buton üzerinde rozet göstermek için)
+  const aktifFiltreSayisi = [
+    filtreSantiye !== 'hepsi',
+    filtreDurum !== 'hepsi',
+    filtreKisi !== 'hepsi',
+    filtreEkleyen !== 'hepsi'
+  ].filter(Boolean).length
 
   return (
     <div className="sayfa">
@@ -534,39 +538,85 @@ export default function Gorevler() {
         <button className="ekle-buton-genis" onClick={gorevEkle}>Görevi kaydet</button>
       </div>
 
-      {/* Şantiye Filtresi */}
-      <div className="filtre-satiri">
-        <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
-        {santiyeler.map((s) => (
-          <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
-        ))}
-      </div>
+      {/* AÇILIR - KAPANIR FİLTRE PANELİ BUTONU */}
+      <div style={{ marginBottom: 12 }}>
+        <button
+          onClick={() => setFiltrelerAcik(!filtrelerAcik)}
+          style={{
+            width: '100%',
+            padding: '10px 14px',
+            background: filtrelerAcik ? '#0F6E56' : '#f0f0ed',
+            color: filtrelerAcik ? '#fff' : '#333',
+            border: '1px solid #d3d1c7',
+            borderRadius: 8,
+            fontWeight: 600,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            cursor: 'pointer',
+            fontSize: 13
+          }}
+        >
+          <span>🔍 Filtreler {aktifFiltreSayisi > 0 ? `(${aktifFiltreSayisi} aktif)` : ''}</span>
+          <span>{filtrelerAcik ? '▲ Gizle' : '▼ Göster'}</span>
+        </button>
 
-      {/* Durum Filtresi */}
-      <div className="filtre-satiri">
-        {DURUMLAR.map((d) => (
-          <button key={d.deger} className={`filtre-chip ${filtreDurum === d.deger ? 'secili' : ''}`} onClick={() => setFiltreDurum(d.deger)}>{d.etiket}</button>
-        ))}
-      </div>
+        {/* FİLTRE PANELİ İÇERİĞİ */}
+        {filtrelerAcik && (
+          <div style={{ background: '#faf9f5', padding: '12px', borderRadius: 8, border: '1px solid #d3d1c7', marginTop: 6 }}>
+            
+            {/* Şantiye Filtresi */}
+            <p style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px', color: '#555' }}>Şantiye</p>
+            <div className="filtre-satiri" style={{ marginBottom: 8 }}>
+              <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tümü</button>
+              {santiyeler.map((s) => (
+                <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
+              ))}
+            </div>
 
-      {/* Etiketlenen Kişi Filtresi */}
-      {yonetici && (
-        <div className="filtre-satiri">
-          <button className={`filtre-chip ${filtreKisi === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreKisi('hepsi')}>Tüm etiketlenenler</button>
-          {kullanicilar.map((k) => (
-            <button key={k.id} className={`filtre-chip ${filtreKisi === k.id ? 'secili' : ''}`} onClick={() => setFiltreKisi(k.id)}>{k.ad_soyad}</button>
-          ))}
-        </div>
-      )}
+            {/* Durum Filtresi */}
+            <p style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px', color: '#555' }}>Durum</p>
+            <div className="filtre-satiri" style={{ marginBottom: 8 }}>
+              {DURUMLAR.map((d) => (
+                <button key={d.deger} className={`filtre-chip ${filtreDurum === d.deger ? 'secili' : ''}`} onClick={() => setFiltreDurum(d.deger)}>{d.etiket}</button>
+              ))}
+            </div>
 
-      {/* YENİ: Görevi Ekleyen Kullanıcı Filtresi */}
-      <div className="filtre-satiri">
-        <button className={`filtre-chip ${filtreEkleyen === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreEkleyen('hepsi')}>Tüm ekleyenler</button>
-        {kullanicilar.map((k) => (
-          <button key={k.id} className={`filtre-chip ${filtreEkleyen === k.id ? 'secili' : ''}`} onClick={() => setFiltreEkleyen(k.id)}>
-            Ekleyen: {k.ad_soyad}
-          </button>
-        ))}
+            {/* Etiketlenen Kişi Filtresi */}
+            {yonetici && (
+              <>
+                <p style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px', color: '#555' }}>Etiketlenen Kişi</p>
+                <div className="filtre-satiri" style={{ marginBottom: 8 }}>
+                  <button className={`filtre-chip ${filtreKisi === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreKisi('hepsi')}>Tümü</button>
+                  {kullanicilar.map((k) => (
+                    <button key={k.id} className={`filtre-chip ${filtreKisi === k.id ? 'secili' : ''}`} onClick={() => setFiltreKisi(k.id)}>{k.ad_soyad}</button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Ekleyen Kişi Filtresi */}
+            <p style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px', color: '#555' }}>Görevi Ekleyen</p>
+            <div className="filtre-satiri" style={{ marginBottom: 4 }}>
+              <button className={`filtre-chip ${filtreEkleyen === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreEkleyen('hepsi')}>Tümü</button>
+              {kullanicilar.map((k) => (
+                <button key={k.id} className={`filtre-chip ${filtreEkleyen === k.id ? 'secili' : ''}`} onClick={() => setFiltreEkleyen(k.id)}>
+                  {k.ad_soyad}
+                </button>
+              ))}
+            </div>
+
+            {/* Filtreleri Sıfırlama Butonu */}
+            {aktifFiltreSayisi > 0 && (
+              <button
+                onClick={() => { setFiltreSantiye('hepsi'); setFiltreDurum('hepsi'); setFiltreKisi('hepsi'); setFiltreEkleyen('hepsi') }}
+                style={{ fontSize: 11, marginTop: 8, background: 'none', border: 'none', color: '#D64545', cursor: 'pointer', padding: 0, fontWeight: 600 }}
+              >
+                ✕ Filtreleri Temizle
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="gorunum-secici" style={{ marginBottom: 12 }}>
