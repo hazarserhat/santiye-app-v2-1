@@ -2,543 +2,524 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
-import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
 
-export default function CariKartlar() {
-  const { santiyeler } = useSite()
+const DURUMLAR = [
+  { deger: 'hepsi', etiket: 'Tümü' },
+  { deger: 'bekliyor', etiket: 'Bekliyor' },
+  { deger: 'devam_ediyor', etiket: 'Devam ediyor' },
+  { deger: 'tamamlandi', etiket: 'Tamamlandı' },
+  { deger: 'gecikti', etiket: 'Geciken' },
+]
+
+const ONCELIKLER = [
+  { deger: 'kirmizi', etiket: 'Kritik', renk: '#D64545' },
+  { deger: 'turuncu', etiket: 'Yüksek', renk: '#E08A2E' },
+  { deger: 'sari', etiket: 'Orta', renk: '#D9B429' },
+  { deger: 'yesil', etiket: 'Düşük', renk: '#3F9E5C' },
+]
+
+function oncelikBul(deger) {
+  return ONCELIKLER.find((o) => o.deger === deger)
+}
+
+function GorevKarti({ gorev, seviye, ctx }) {
+  const {
+    filtreSantiye, kullanicilar, numaraHaritasi, altGorevleriBul,
+    genisletilmis, setGenisletilmis,
+    duzenlenenId, setDuzenlenenId, duzenlenenBaslik, setDuzenlenenBaslik, basligiKaydet,
+    gorevSil, durumGuncelle,
+    altGorevAcikId, setAltGorevAcikId, altGorevMetni, setAltGorevMetni, altGorevEkle,
+    seciliGorevler, setSeciliGorevler, kisiSeciciAcikId, setKisiSeciciAcikId,
+    oncelikSeciciAcikId, setOncelikSeciciAcikId, oncelikDegistir, kisiEtiketiDegistir,
+  } = ctx
+
+  const oncelikEtiketi = gorev.gorev_etiketleri?.find((e) => e.etiket_turu === 'oncelik')
+  const oncelik = oncelikEtiketi ? oncelikBul(oncelikEtiketi.deger) : null
+  const kisiEtiketleri = gorev.gorev_etiketleri?.filter((e) => e.etiket_turu === 'kisi') || []
+  const altlar = altGorevleriBul(gorev.id)
+  const genisletildi = genisletilmis[gorev.id]
+  const gosterilecekAltlar = genisletildi ? altlar : altlar.slice(0, 2)
+
+  return (
+    <div style={{ marginLeft: seviye * 16 }}>
+      <div className="kart" style={{ borderLeft: oncelik ? `4px solid ${oncelik.renk}` : undefined }}>
+        <div className="kart-ust">
+          <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, gap: 8 }}>
+            <input
+              type="checkbox"
+              checked={seciliGorevler.includes(gorev.id)}
+              onChange={() => setSeciliGorevler((onceki) =>
+                onceki.includes(gorev.id) ? onceki.filter((x) => x !== gorev.id) : [...onceki, gorev.id]
+              )}
+              style={{ flexShrink: 0, width: 16, height: 16 }}
+            />
+            {numaraHaritasi[gorev.id] && <span className="gorev-numara-rozet">{numaraHaritasi[gorev.id]}</span>}
+            {duzenlenenId === gorev.id ? (
+              <input
+                type="text"
+                value={duzenlenenBaslik}
+                onChange={(e) => setDuzenlenenBaslik(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && basligiKaydet(gorev.id)}
+                autoFocus
+                style={{ flex: 1 }}
+              />
+            ) : (
+              <span className="kart-baslik" style={{ textAlign: 'left' }}>{gorev.baslik}</span>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+            {duzenlenenId === gorev.id ? (
+              <button className="sil-buton" onClick={() => basligiKaydet(gorev.id)} aria-label="Kaydet">✓</button>
+            ) : (
+              <button className="sil-buton" onClick={() => { setDuzenlenenId(gorev.id); setDuzenlenenBaslik(gorev.baslik) }} aria-label="Düzenle">✎</button>
+            )}
+            <button className="sil-buton" onClick={() => gorevSil(gorev.id)} aria-label="Görevi sil">🗑</button>
+          </div>
+        </div>
+
+        <div className="etiket-satiri">
+          {seviye === 0 && filtreSantiye === 'hepsi' && <span className="etiket etiket-vurgu">{gorev.santiyeler?.ad}</span>}
+          {oncelik ? (
+            <span
+              className="etiket"
+              style={{ background: oncelik.renk, color: 'white', cursor: 'pointer' }}
+              onClick={() => setOncelikSeciciAcikId(oncelikSeciciAcikId === gorev.id ? null : gorev.id)}
+            >
+              {oncelik.etiket} ✎
+            </span>
+          ) : (
+            <span
+              className="etiket"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setOncelikSeciciAcikId(oncelikSeciciAcikId === gorev.id ? null : gorev.id)}
+            >
+              Öncelik ata
+            </span>
+          )}
+          {kisiEtiketleri.map((e) => {
+            const kisi = kullanicilar.find((k) => k.id === e.deger)
+            return <span key={e.id} className="etiket">@{kisi?.ad_soyad || '—'}</span>
+          })}
+          <span
+            className="etiket"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setKisiSeciciAcikId(kisiSeciciAcikId === gorev.id ? null : gorev.id)}
+          >
+            👤 Kişi ata/kaldır
+          </span>
+        </div>
+
+        {kisiSeciciAcikId === gorev.id && (
+          <div className="kisi-etiket-secici" style={{ marginBottom: 8 }}>
+            {kullanicilar.map((k) => {
+              const atanmis = kisiEtiketleri.some((e) => e.deger === k.id)
+              return (
+                <button
+                  key={k.id}
+                  className={`filtre-chip ${atanmis ? 'secili' : ''}`}
+                  onClick={() => kisiEtiketiDegistir(gorev, k.id)}
+                >
+                  {atanmis ? '✓ ' : ''}{k.ad_soyad}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {oncelikSeciciAcikId === gorev.id && (
+          <div className="oncelik-secici-satiri" style={{ marginBottom: 8 }}>
+            {ONCELIKLER.map((o) => (
+              <button
+                key={o.deger}
+                className={`oncelik-nokta ${oncelik?.deger === o.deger ? 'secili' : ''}`}
+                style={{ background: o.renk }}
+                onClick={() => oncelikDegistir(gorev, o.deger)}
+                aria-label={o.etiket}
+                title={o.etiket}
+              />
+            ))}
+          </div>
+        )}
+
+        <select value={gorev.durum} onChange={(ev) => durumGuncelle(gorev.id, ev.target.value)} className="durum-secici">
+          {DURUMLAR.filter((d) => d.deger !== 'hepsi').map((d) => (
+            <option key={d.deger} value={d.deger}>{d.etiket}</option>
+          ))}
+        </select>
+
+        <div className="gorev-alt-bilgi">
+          {gorev.profiles?.ad_soyad || 'Bilinmiyor'} · {new Date(gorev.created_at).toLocaleDateString('tr-TR')}
+        </div>
+
+        {seviye < 2 && (
+          <button className="alt-gorev-ekle-buton" onClick={() => { setAltGorevAcikId(altGorevAcikId === gorev.id ? null : gorev.id); setAltGorevMetni('') }}>
+            + Alt görev ekle
+          </button>
+        )}
+
+        {altGorevAcikId === gorev.id && (
+          <div className="ekleme-satiri-2" style={{ marginTop: 8 }}>
+            <input
+              type="text"
+              placeholder="Alt görev yaz..."
+              value={altGorevMetni}
+              onChange={(e) => setAltGorevMetni(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && altGorevEkle(gorev.id, gorev.santiye_id)}
+              autoFocus
+            />
+            <button onClick={() => altGorevEkle(gorev.id, gorev.santiye_id)}>Ekle</button>
+          </div>
+        )}
+      </div>
+
+      {gosterilecekAltlar.map((alt) => <GorevKarti key={alt.id} gorev={alt} seviye={seviye + 1} ctx={ctx} />)}
+
+      {altlar.length > 2 && (
+        <button
+          className="daha-fazla-buton"
+          style={{ marginLeft: (seviye + 1) * 16 }}
+          onClick={() => setGenisletilmis((onceki) => ({ ...onceki, [gorev.id]: !onceki[gorev.id] }))}
+        >
+          {genisletildi ? '▲ Daralt' : `▼ ${altlar.length - 2} tane daha göster`}
+        </button>
+      )}
+    </div>
+  )
+}
+
+export default function Gorevler() {
+  const { aktifSantiye, santiyeler } = useSite()
   const { profile } = useAuth()
+  
+  const [gorevler, setGorevler] = useState([])
+  const [kullanicilar, setKullanicilar] = useState([])
+  const [filtreDurum, setFiltreDurum] = useState('hepsi')
+  const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
+  const [filtreKisi, setFiltreKisi] = useState('hepsi')
   const yonetici = profile?.rol === 'yonetici'
 
-  const [taseronlar, setTaseronlar] = useState([])
-  const [taseronSantiyeHaritasi, setTaseronSantiyeHaritasi] = useState({})
-  const [siralama, setSiralama] = useState('alfabetik')
-  const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
-  const [seciliId, setSeciliId] = useState(null)
-  const [arama, setArama] = useState('')
+  const [yeniBaslik, setYeniBaslik] = useState('')
+  const [yeniSantiyeId, setYeniSantiyeId] = useState('')
+  const [yeniOncelik, setYeniOncelik] = useState('sari')
+  const [yeniEtiketliler, setYeniEtiketliler] = useState([])
+  const [dinliyor, setDinliyor] = useState(false)
 
-  const [notlar, setNotlar] = useState([])
-  const [iliskiliSantiyeler, setIliskiliSantiyeler] = useState([])
-  const [hakedisler, setHakedisler] = useState([])
-  const [masraflar, setMasraflar] = useState([])
-  const [cekler, setCekler] = useState([])
+  const [duzenlenenId, setDuzenlenenId] = useState(null)
+  const [duzenlenenBaslik, setDuzenlenenBaslik] = useState('')
 
-  const [duzenleModu, setDuzenleModu] = useState(false)
-  const [duzAd, setDuzAd] = useState('')
-  const [duzSifat, setDuzSifat] = useState('')
-  const [duzFirma, setDuzFirma] = useState('')
-  const [duzTelefon, setDuzTelefon] = useState('')
-  const [duzAdres, setDuzAdres] = useState('')
-
-  const [yeniNot, setYeniNot] = useState('')
-  const [duzenlenenNotId, setDuzenlenenNotId] = useState(null)
-  const [duzenlenenNotMetni, setDuzenlenenNotMetni] = useState('')
-  const [yeniTaseronAcik, setYeniTaseronAcik] = useState(false)
-  const [yeniAd, setYeniAd] = useState('')
-  const [yeniSifat, setYeniSifat] = useState('')
-  const [yeniFirma, setYeniFirma] = useState('')
-  const [yeniTelefon, setYeniTelefon] = useState('')
-  const [yeniAdres, setYeniAdres] = useState('')
-
-  const [eklenecekSantiyeId, setEklenecekSantiyeId] = useState('')
-
-  // --- BİLGİ KARTI FORM STATE'LERİ ---
-  const [hkDonem, setHkDonem] = useState('')
-  const [hkTutar, setHkTutar] = useState('')
-  const [hkKesinti, setHkKesinti] = useState('')
-  const [hkAciklama, setHkAciklama] = useState('')
-
-  // --- DÜZENLEME STATE'LERİ ---
-  const [duzenlenenHakedisId, setDuzenlenenHakedisId] = useState(null)
-  const [duzHkDonem, setDuzHkDonem] = useState('')
-  const [duzHkTutar, setDuzHkTutar] = useState('')
-  const [duzHkKesinti, setDuzHkKesinti] = useState('')
-  const [duzHkAciklama, setDuzHkAciklama] = useState('')
+  const [genisletilmis, setGenisletilmis] = useState({})
+  const [altGorevAcikId, setAltGorevAcikId] = useState(null)
+  const [altGorevMetni, setAltGorevMetni] = useState('')
+  const [seciliGorevler, setSeciliGorevler] = useState([])
+  const [oncelikSeciciAcikId, setOncelikSeciciAcikId] = useState(null)
+  const [kisiSeciciAcikId, setKisiSeciciAcikId] = useState(null)
+  const [siralamaYonu, setSiralamaYonu] = useState('yeni') // 'yeni' | 'eski'
+  const [gosterilenSayisi, setGosterilenSayisi] = useState(10)
 
   useEffect(() => {
-    taseronlariYukle()
+    if (aktifSantiye) setYeniSantiyeId(aktifSantiye.id)
+  }, [aktifSantiye])
+
+  useEffect(() => {
+    gorevleriYukle()
+    supabase.from('profiles').select('*').order('ad_soyad').then(({ data }) => setKullanicilar(data || []))
   }, [])
 
-  const taseronlariYukle = async () => {
-    let query = supabase.from('taseronlar').select('*')
-    if (!yonetici) {
-      query = query.eq('sef_gorunur', true)
-    }
-    const { data, error: taseronHata } = await query
-    if (taseronHata) { alert('Taşeronlar yüklenemedi: ' + taseronHata.message); return }
-    setTaseronlar(data || [])
-
-    const { data: iliskiler, error: iliskiHata } = await supabase.from('taseron_santiyeler').select('taseron_id, santiye_id')
-    if (iliskiHata) { alert('Şantiye ilişkileri yüklenemedi: ' + iliskiHata.message); return }
-    const harita = {}
-    ;(iliskiler || []).forEach((r) => {
-      if (!harita[r.taseron_id]) harita[r.taseron_id] = []
-      harita[r.taseron_id].push(r.santiye_id)
-    })
-    setTaseronSantiyeHaritasi(harita)
-  }
-
-  const gorunurlukDegistir = async (id, mevcutDurum, e) => {
-    e.stopPropagation()
-    if (!yonetici) return
-    const { error } = await supabase
-      .from('taseronlar')
-      .update({ sef_gorunur: !mevcutDurum })
-      .eq('id', id)
-    
-    if (error) {
-      alert('Hata oluştu: ' + error.message)
-    } else {
-      taseronlariYukle()
-    }
-  }
-
-  const taseronSil = async (id, e) => {
-    e.stopPropagation()
-    if (!window.confirm('Bu cari hesap kaydını ve tüm ilişkili verilerini silmek istediğinize emin misiniz?')) return
-
-    const { error } = await supabase.from('taseronlar').delete().eq('id', id)
-    if (error) {
-      alert('Silme başarısız: ' + error.message)
-    } else {
-      taseronlariYukle()
-      if (seciliId === id) setSeciliId(null)
-    }
-  }
-
-  const detayYukle = async (id) => {
-    setSeciliId(id)
-    setEklenecekSantiyeId('')
-    setDuzenleModu(false)
-    setDuzenlenenHakedisId(null)
-
-    const taseron = taseronlar.find((t) => t.id === id)
-    if (taseron) {
-      setDuzAd(taseron.ad); setDuzSifat(taseron.sifat || ''); setDuzFirma(taseron.firma || '')
-      setDuzTelefon(taseron.telefon || ''); setDuzAdres(taseron.adres || '')
-    }
-
-    const { data: notData, error: notHata } = await supabase
-      .from('taseron_notlari').select('*, profiles(ad_soyad)').eq('taseron_id', id).order('created_at', { ascending: false })
-    if (notHata) console.error('Notlar yüklenemedi:', notHata.message)
-    setNotlar(notData || [])
-
-    const { data: santiyeData, error: santiyeHata } = await supabase.from('taseron_santiyeler').select('id, santiye_id').eq('taseron_id', id)
-    if (santiyeHata) { alert('Şantiye ilişkileri yüklenemedi: ' + santiyeHata.message); return }
-    setIliskiliSantiyeler(santiyeData || [])
-
-    const { data: masrafData } = await supabase
-      .from('masraflar')
-      .select('*, santiyeler(ad), masraf_kategorileri(ad)')
-      .eq('cari_id', id)
-      .order('harcama_tarihi', { ascending: false })
-    setMasraflar(masrafData || [])
-
-    const { data: cekData } = await supabase
-      .from('cekler')
-      .select('*, santiyeler(ad)')
-      .eq('cari_id', id)
-    setCekler(cekData || [])
-
-    const { data: hkData } = await supabase
-      .from('hakedisler')
-      .select('*')
-      .eq('taseron_id', id)
-      .order('created_at', { ascending: false })
-    setHakedisler(hkData || [])
-  }
-
-  const taseronEkle = async () => {
-    if (!yeniAd.trim()) return
+  const gorevleriYukle = async () => {
     const { data, error } = await supabase
-      .from('taseronlar')
-      .insert({ ad: yeniAd, sifat: yeniSifat, firma: yeniFirma, telefon: yeniTelefon, adres: yeniAdres, sef_gorunur: true })
-      .select().single()
-    if (error) { alert('Taşeron eklenemedi: ' + error.message); return }
+      .from('gorevler')
+      .select('*, gorev_etiketleri(*), santiyeler(ad), profiles!olusturan(ad_soyad)')
+      .order('created_at', { ascending: false })
+    if (error) {
+      alert('Görevler yüklenemedi: ' + error.message)
+      return
+    }
+    setGorevler(data || [])
+  }
+
+  const gorevEkle = async () => {
+    if (!yeniBaslik.trim()) return
+    if (!yeniSantiyeId) { alert('Lütfen önce bir şantiye seçin.'); return }
+
+    const { data, error } = await supabase.from('gorevler').insert({
+      santiye_id: yeniSantiyeId,
+      baslik: yeniBaslik,
+      olusturan: profile?.id,
+    }).select().single()
+
+    if (error) {
+      alert('Görev eklenemedi: ' + error.message)
+      return
+    }
+
     if (data) {
-      setYeniAd(''); setYeniSifat(''); setYeniFirma(''); setYeniTelefon(''); setYeniAdres('')
-      setYeniTaseronAcik(false)
-      taseronlariYukle()
+      const { error: etiketHatasi } = await supabase.from('gorev_etiketleri').insert({ gorev_id: data.id, etiket_turu: 'oncelik', deger: yeniOncelik })
+      if (etiketHatasi) console.error('Öncelik etiketi eklenemedi:', etiketHatasi.message)
+
+      for (const kullaniciId of yeniEtiketliler) {
+        const { error: kisiEtiketHata } = await supabase.from('gorev_etiketleri').insert({ gorev_id: data.id, etiket_turu: 'kisi', deger: kullaniciId })
+        if (kisiEtiketHata) console.error('Kişi etiketi eklenemedi:', kisiEtiketHata.message)
+
+        const kendiniEtiketledi = kullaniciId === profile?.id
+        const { error: bildirimHata } = await supabase.from('bildirimler').insert({
+          kullanici_id: kullaniciId,
+          mesaj: kendiniEtiketledi
+            ? `Kendinizi bir görevde etiketlediniz: "${yeniBaslik}"`
+            : `${profile?.ad_soyad || 'Bir kullanıcı'} sizi bir görevde etiketledi: "${yeniBaslik}"`,
+          gorev_id: data.id,
+          olusturan: profile?.id,
+        })
+        if (bildirimHata) { alert('Bildirim gönderilemedi: ' + bildirimHata.message) }
+      }
+    }
+
+    setYeniBaslik('')
+    setYeniOncelik('sari')
+    const etiketlenenSayisi = yeniEtiketliler.length
+    setYeniEtiketliler([])
+    gorevleriYukle()
+    if (etiketlenenSayisi > 0) {
+      alert(`Görev kaydedildi. ${etiketlenenSayisi} kişiye Uyarı sayfasında bildirim gönderildi.`)
     }
   }
 
-  const taseronGuncelle = async () => {
-    if (!duzAd.trim()) return
-    const { error } = await supabase.from('taseronlar').update({
-      ad: duzAd, sifat: duzSifat, firma: duzFirma, telefon: duzTelefon, adres: duzAdres,
-    }).eq('id', seciliId)
-    if (error) { alert('Güncellenemedi: ' + error.message); return }
-    setDuzenleModu(false)
-    taseronlariYukle()
-  }
-
-  const santiyeIliskisiEkle = async () => {
-    if (!eklenecekSantiyeId) return
-    const { error } = await supabase.from('taseron_santiyeler').insert({ taseron_id: seciliId, santiye_id: eklenecekSantiyeId })
-    if (error) { alert('Şantiye eklenemedi: ' + error.message); return }
-    setEklenecekSantiyeId('')
-    detayYukle(seciliId)
-    taseronlariYukle()
-  }
-
-  const santiyeIliskisiSil = async (iliskiId) => {
-    await supabase.from('taseron_santiyeler').delete().eq('id', iliskiId)
-    detayYukle(seciliId)
-    taseronlariYukle()
-  }
-
-  const notEkle = async () => {
-    if (!yeniNot.trim()) return
-    await supabase.from('taseron_notlari').insert({ taseron_id: seciliId, icerik: yeniNot, ekleyen: profile?.id })
-    setYeniNot('')
-    detayYukle(seciliId)
-  }
-
-  const notGuncelle = async (notId) => {
-    if (!duzenlenenNotMetni.trim()) return
-    const { error } = await supabase.from('taseron_notlari').update({ icerik: duzenlenenNotMetni }).eq('id', notId)
-    if (error) { alert('Not güncellenemedi: ' + error.message); return }
-    setDuzenlenenNotId(null)
-    detayYukle(seciliId)
-  }
-
-  const notSil = async (notId) => {
-    if (!window.confirm('Bu notu silmek istediğinize emin misiniz?')) return
-    const { error } = await supabase.from('taseron_notlari').delete().eq('id', notId)
-    if (error) { alert('Not silinemedi: ' + error.message); return }
-    detayYukle(seciliId)
-  }
-
-  const hakedisEkle = async () => {
-    if (!hkDonem.trim() || !hkTutar) return
-    const { error } = await supabase.from('hakedisler').insert({
-      taseron_id: seciliId,
-      donem: hkDonem,
-      tutar: Number(hkTutar),
-      kesinti_avans: Number(hkKesinti) || 0,
-      aciklama: hkAciklama,
-      ekleyen: profile?.id,
+  const altGorevEkle = async (ustId, santiyeId) => {
+    if (!altGorevMetni.trim()) return
+    const { error } = await supabase.from('gorevler').insert({
+      santiye_id: santiyeId,
+      baslik: altGorevMetni,
+      olusturan: profile?.id,
+      ust_gorev_id: ustId,
     })
-    if (error) { alert('Bilgi kartı eklenemedi: ' + error.message); return }
-    setHkDonem(''); setHkTutar(''); setHkKesinti(''); setHkAciklama('')
-    detayYukle(seciliId)
+    if (error) { alert('Alt görev eklenemedi: ' + error.message); return }
+    setAltGorevMetni('')
+    setAltGorevAcikId(null)
+    gorevleriYukle()
   }
 
-  const hakedisGuncelle = async (hakedisId) => {
-    if (!duzHkDonem.trim() || !duzHkTutar) return
-    const { error } = await supabase.from('hakedisler').update({
-      donem: duzHkDonem,
-      tutar: Number(duzHkTutar),
-      kesinti_avans: Number(duzHkKesinti) || 0,
-      aciklama: duzHkAciklama,
-    }).eq('id', hakedisId)
-
-    if (error) { alert('Güncellenemedi: ' + error.message); return }
-    setDuzenlenenHakedisId(null)
-    detayYukle(seciliId)
+  const durumGuncelle = async (id, yeniDurum) => {
+    await supabase.from('gorevler').update({ durum: yeniDurum }).eq('id', id)
+    
+    if (yeniDurum === 'tamamlandi') {
+      await supabase.from('bildirimler').update({ okundu: true }).eq('gorev_id', id)
+    } else {
+      await supabase.from('bildirimler').update({ okundu: false }).eq('gorev_id', id)
+    }
+    
+    gorevleriYukle()
   }
 
-  const hakedisSil = async (hakedisId) => {
-    if (!window.confirm('Bu kaydı silmek istediğinize emin misiniz?')) return
-    const { error } = await supabase.from('hakedisler').delete().eq('id', hakedisId)
-    if (error) { alert('Silinemedi: ' + error.message); return }
-    detayYukle(seciliId)
+  const oncelikDegistir = async (gorev, yeniDeger) => {
+    const mevcutEtiket = gorev.gorev_etiketleri?.find((e) => e.etiket_turu === 'oncelik')
+    if (mevcutEtiket) {
+      await supabase.from('gorev_etiketleri').update({ deger: yeniDeger }).eq('id', mevcutEtiket.id)
+    } else {
+      await supabase.from('gorev_etiketleri').insert({ gorev_id: gorev.id, etiket_turu: 'oncelik', deger: yeniDeger })
+    }
+    setOncelikSeciciAcikId(null)
+    gorevleriYukle()
   }
 
-  const hakedisPaylas = (h) => {
-    const netTutar = Number(h.tutar) - Number(h.kesinti_avans || 0)
-    const metin =
-      `📋 *BİLGİ KARTI: ${h.donem}*\n` +
-      `*Taşeron/Cari* : ${seciliTaseron?.ad || '—'}\n` +
-      `*Tutar* : ${paraFormatla(h.tutar)} ₺\n` +
-      `*Kesinti/Avans* : -${paraFormatla(h.kesinti_avans || 0)} ₺\n` +
-      `*Net Tutar* : ${paraFormatla(netTutar)} ₺\n` +
-      `*Açıklama* : ${h.aciklama || '—'}`
+  const kisiEtiketiDegistir = async (gorev, kullaniciId) => {
+    const mevcutEtiket = gorev.gorev_etiketleri?.find((e) => e.etiket_turu === 'kisi' && e.deger === kullaniciId)
+    if (mevcutEtiket) {
+      await supabase.from('gorev_etiketleri').delete().eq('id', mevcutEtiket.id)
+    } else {
+      await supabase.from('gorev_etiketleri').insert({ gorev_id: gorev.id, etiket_turu: 'kisi', deger: kullaniciId })
+      if (kullaniciId !== profile?.id) {
+        await supabase.from('bildirimler').insert({
+          kullanici_id: kullaniciId,
+          mesaj: `${profile?.ad_soyad || 'Bir kullanıcı'} sizi bir görevde etiketledi: "${gorev.baslik}"`,
+          gorev_id: gorev.id,
+          olusturan: profile?.id,
+        })
+      }
+    }
+    gorevleriYukle()
+  }
 
+  const basligiKaydet = async (id) => {
+    if (!duzenlenenBaslik.trim()) return
+    await supabase.from('gorevler').update({ baslik: duzenlenenBaslik }).eq('id', id)
+    setDuzenlenenId(null)
+    gorevleriYukle()
+  }
+
+  const gorevSil = async (id) => {
+    if (!window.confirm('Bu görevi (ve varsa alt görevlerini) silmek istediğinize emin misiniz?')) return
+    await supabase.from('gorevler').delete().eq('id', id)
+    gorevleriYukle()
+  }
+
+  const sesleYaz = () => {
+    const Tanima = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!Tanima) { alert('Tarayıcınız sesli girişi desteklemiyor.'); return }
+    const tanima = new Tanima()
+    tanima.lang = 'tr-TR'
+    tanima.onresult = (e) => setYeniBaslik((onceki) => onceki + e.results[0][0].transcript)
+    tanima.onstart = () => setDinliyor(true)
+    tanima.onend = () => setDinliyor(false)
+    tanima.start()
+  }
+
+  const etiketliKisiToggle = (id) => {
+    setYeniEtiketliler((onceki) => onceki.includes(id) ? onceki.filter((x) => x !== id) : [...onceki, id])
+  }
+
+  if (!aktifSantiye) return <p className="bos-mesaj">Şantiye yükleniyor...</p>
+
+  const numaraHaritasi = {}
+  const kokTumTarihSirali = gorevler.filter((g) => !g.ust_gorev_id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  const numarala = (gorev, prefix) => {
+    numaraHaritasi[gorev.id] = prefix
+    const altlar = gorevler.filter((g) => g.ust_gorev_id === gorev.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    altlar.forEach((alt, i) => numarala(alt, `${prefix}.${i + 1}`))
+  }
+  kokTumTarihSirali.forEach((kok, i) => numarala(kok, String(i + 1)))
+
+  const kisiListesiMetni = (gorev) => {
+    const kisiler = (gorev.gorev_etiketleri || [])
+      .filter((e) => e.etiket_turu === 'kisi')
+      .map((e) => kullanicilar.find((k) => k.id === e.deger)?.ad_soyad)
+      .filter(Boolean)
+    return kisiler.length ? kisiler.join(', ') : 'Atanmamış'
+  }
+
+  const paylasMetniOlustur = (hepsi) => {
+    const bolumler = [
+      { durum: 'bekliyor', baslik: '🟡 BEKLEYEN GÖREVLER' },
+      { durum: 'devam_ediyor', baslik: '🔵 DEVAM EDEN GÖREVLER' },
+      { durum: 'gecikti', baslik: '🔴 GECİKEN GÖREVLER' },
+      { durum: 'tamamlandi', baslik: '🟢 TAMAMLANAN GÖREVLER' },
+    ]
+    let metin = `📋 GÖREV RAPORU — ${new Date().toLocaleDateString('tr-TR')}\n\n`
+    const kaynakListe = (!hepsi && seciliGorevler.length > 0) ? gorevler.filter((g) => seciliGorevler.includes(g.id)) : gorevler
+    bolumler.forEach((b) => {
+      const liste = kaynakListe
+        .filter((g) => g.durum === b.durum)
+        .sort((a, c) => (numaraHaritasi[a.id] || '').localeCompare(numaraHaritasi[c.id] || '', undefined, { numeric: true }))
+      if (liste.length === 0) return
+      metin += `${b.baslik}\n`
+      liste.forEach((g) => {
+        metin += `${numaraHaritasi[g.id] || '?'}. ${g.baslik}\n`
+        metin += `   Şantiye: ${g.santiyeler?.ad || '—'}\n`
+        metin += `   Kişi: ${kisiListesiMetni(g)}\n`
+        metin += `   Ekleyen: ${g.profiles?.ad_soyad || 'Bilinmiyor'}, ${new Date(g.created_at).toLocaleDateString('tr-TR')}\n\n`
+      })
+    })
+    return metin
+  }
+
+  const paylas = async (hepsi) => {
+    const metin = paylasMetniOlustur(hepsi)
     if (navigator.share) {
-      try { navigator.share({ text: metin }) } catch { /* kullanıcı iptal etti */ }
+      try { await navigator.share({ text: metin, title: 'Görev Raporu' }) } catch { /* kullanıcı iptal etti */ }
     } else {
       window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
     }
   }
 
-  const seciliTaseron = taseronlar.find((t) => t.id === seciliId)
+  const santiyeyeGoreFiltreli = filtreSantiye === 'hepsi' ? gorevler : gorevler.filter((g) => g.santiye_id === filtreSantiye)
+  const kisiyeGoreFiltreli = filtreKisi === 'hepsi'
+    ? santiyeyeGoreFiltreli
+    : santiyeyeGoreFiltreli.filter((g) => g.gorev_etiketleri?.some((e) => e.etiket_turu === 'kisi' && e.deger === filtreKisi))
+  const durumaGoreFiltreli = filtreDurum === 'hepsi' ? kisiyeGoreFiltreli : kisiyeGoreFiltreli.filter((g) => g.durum === filtreDurum)
+  const kokGorevler = durumaGoreFiltreli
+    .filter((g) => !g.ust_gorev_id)
+    .sort((a, b) => siralamaYonu === 'yeni' ? new Date(b.created_at) - new Date(a.created_at) : new Date(a.created_at) - new Date(b.created_at))
+  const gosterilenKokGorevler = kokGorevler.slice(0, gosterilenSayisi)
 
-  const filtreliListe = taseronlar
-    .filter((t) => {
-      const aramaMetni = arama.toLowerCase()
-      const eslesiyorMu = t.ad.toLowerCase().includes(aramaMetni) || (t.sifat || '').toLowerCase().includes(aramaMetni)
-      const santiyeyeUyuyorMu = filtreSantiye === 'hepsi' || (taseronSantiyeHaritasi[t.id] || []).includes(filtreSantiye)
-      return eslesiyorMu && santiyeyeUyuyorMu
-    })
-    .sort((a, b) => siralama === 'alfabetik' ? a.ad.localeCompare(b.ad) : new Date(b.created_at) - new Date(a.created_at))
+  const altGorevleriBul = (ustId) => durumaGoreFiltreli.filter((g) => g.ust_gorev_id === ustId)
 
-  const eklenebilirSantiyeler = santiyeler.filter((s) => !iliskiliSantiyeler.find((r) => r.santiye_id === s.id))
-
-  // ---- KRONOLOJİK TİMELİNE SIRALAMASI ----
-  const timelineOlaylari = [
-    ...hakedisler.map((h) => ({
-      tip: 'hakedis',
-      sortKey: new Date(h.created_at || Date.now()).getTime(),
-      veri: h,
-    })),
-    ...masraflar.map((m) => ({
-      tip: 'masraf',
-      sortKey: new Date(m.kayit_tarihi || m.harcama_tarihi || Date.now()).getTime(),
-      veri: m,
-    })),
-    ...cekler.map((c) => ({
-      tip: 'cek',
-      sortKey: new Date(c.created_at || c.vade_tarihi || Date.now()).getTime(),
-      veri: c,
-    })),
-  ].sort((a, b) => b.sortKey - a.sortKey)
-
-  // ---- DETAY GÖRÜNÜMÜ ----
-  if (seciliId && seciliTaseron) {
-    return (
-      <div className="sayfa">
-        <button className="geri-buton" onClick={() => setSeciliId(null)}>← Listeye dön</button>
-
-        <div className="taseron-baslik-satiri">
-          <div className="avatar-daire">{seciliTaseron.ad.slice(0, 2).toUpperCase()}</div>
-          <div style={{ flex: 1 }}>
-            <p className="taseron-ad">{seciliTaseron.ad}</p>
-            <p className="taseron-firma">{seciliTaseron.sifat}{seciliTaseron.sifat && seciliTaseron.firma ? ' · ' : ''}{seciliTaseron.firma}</p>
-          </div>
-          {yonetici && !duzenleModu && (
-            <button className="sil-buton" onClick={() => setDuzenleModu(true)} aria-label="Düzenle">✎</button>
-          )}
-        </div>
-
-        {duzenleModu ? (
-          <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
-            <input type="text" placeholder="Ad soyad" value={duzAd} onChange={(e) => setDuzAd(e.target.value)} />
-            <input type="text" placeholder="Sıfat / unvan" value={duzSifat} onChange={(e) => setDuzSifat(e.target.value)} />
-            <input type="text" placeholder="Firma" value={duzFirma} onChange={(e) => setDuzFirma(e.target.value)} />
-            <input type="text" placeholder="Telefon" value={duzTelefon} onChange={(e) => setDuzTelefon(e.target.value)} />
-            <input type="text" placeholder="Adres" value={duzAdres} onChange={(e) => setDuzAdres(e.target.value)} />
-            <div className="ekleme-satiri-2">
-              <button onClick={() => setDuzenleModu(false)}>Vazgeç</button>
-              <button className="ekle-buton-genis" onClick={taseronGuncelle}>Kaydet</button>
-            </div>
-          </div>
-        ) : (
-          <div className="bilgi-kutusu">
-            <div className="bilgi-satiri">
-              <span>Telefon</span>
-              {seciliTaseron.telefon ? (
-                <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <a href={`tel:${seciliTaseron.telefon}`} style={{ color: '#0F6E56', fontWeight: 500 }}>{seciliTaseron.telefon}</a>
-                  <button
-                    className="sil-buton"
-                    onClick={() => { navigator.clipboard.writeText(seciliTaseron.telefon); alert('Telefon numarası kopyalandı.') }}
-                    aria-label="Telefonu kopyala"
-                  >📋</button>
-                </span>
-              ) : <span>—</span>}
-            </div>
-            <div className="bilgi-satiri"><span>Adres</span><span>{seciliTaseron.adres || '—'}</span></div>
-          </div>
-        )}
-
-        <p className="alt-baslik">Çalıştığı şantiyeler</p>
-        <div className="etiket-satiri" style={{ marginBottom: 10 }}>
-          {iliskiliSantiyeler.map((r) => (
-            <span key={r.id} className="etiket etiket-vurgu" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              {santiyeler.find((s) => s.id === r.santiye_id)?.ad || '—'}
-              <button className="etiket-sil-x" onClick={() => santiyeIliskisiSil(r.id)} aria-label="Şantiye ilişkisini kaldır">×</button>
-            </span>
-          ))}
-          {iliskiliSantiyeler.length === 0 && <span className="bos-mesaj" style={{ padding: 0 }}>Henüz şantiye eklenmemiş.</span>}
-        </div>
-        {eklenebilirSantiyeler.length > 0 && (
-          <div className="ekleme-satiri-2" style={{ marginBottom: 16 }}>
-            <select value={eklenecekSantiyeId} onChange={(e) => setEklenecekSantiyeId(e.target.value)}>
-              <option value="">Şantiye seç...</option>
-              {eklenebilirSantiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
-            </select>
-            <button onClick={santiyeIliskisiEkle}>Ekle</button>
-          </div>
-        )}
-
-        <p className="alt-baslik">Notlar</p>
-        <div className="liste">
-          {notlar.map((n) => (
-            <div key={n.id} className="kart">
-              {duzenlenenNotId === n.id ? (
-                <>
-                  <input
-                    type="text"
-                    value={duzenlenenNotMetni}
-                    onChange={(e) => setDuzenlenenNotMetni(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && notGuncelle(n.id)}
-                    autoFocus
-                    style={{ width: '100%', marginBottom: 6 }}
-                  />
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={() => setDuzenlenenNotId(null)} style={{ fontSize: 12 }}>Vazgeç</button>
-                    <button onClick={() => notGuncelle(n.id)} style={{ fontSize: 12 }}>Kaydet</button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 8 }}>
-                    <p className="not-icerik" style={{ flex: 1 }}>{n.icerik}</p>
-                    {yonetici && (
-                      <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                        <button className="sil-buton" onClick={() => { setDuzenlenenNotId(n.id); setDuzenlenenNotMetni(n.icerik) }} aria-label="Notu düzenle">✎</button>
-                        <button className="sil-buton" onClick={() => notSil(n.id)} aria-label="Notu sil">🗑</button>
-                      </div>
-                    )}
-                  </div>
-                  <span className="not-alt">{n.profiles?.ad_soyad || 'Bilinmiyor'} · {new Date(n.created_at).toLocaleDateString('tr-TR')} {new Date(n.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
-                </>
-              )}
-            </div>
-          ))}
-          {notlar.length === 0 && <p className="bos-mesaj">Henüz not yok.</p>}
-        </div>
-        <div className="ekleme-kutusu">
-          <input type="text" placeholder="Not yaz..." value={yeniNot} onChange={(e) => setYeniNot(e.target.value)} />
-          <button className="ekle-buton-genis" onClick={notEkle}>Notu ekle</button>
-        </div>
-
-        {/* --- ORTAK TİMELİNE --- */}
-        <p className="alt-baslik" style={{ marginTop: 20 }}>Anlaşma / Avans / İskonto / Hakediş Bilgi Kartları & Finansal Akış</p>
-
-        {!yonetici && (
-          <div className="kilit-kutusu">
-            <span className="kilit-ikon">🔒</span>
-            <p>Finansal bilgiler sadece yöneticiler tarafından görülebilir.</p>
-          </div>
-        )}
-
-        {yonetici && (
-          <>
-            <div className="liste">
-              {timelineOlaylari.map((olay, index) => {
-                if (olay.tip === 'hakedis') {
-                  const h = olay.veri
-                  const duzenlekte = duzenlenenHakedisId === h.id
-
-                  return (
-                    <div key={`hk-${h.id || index}`} className="kart" style={{ borderLeft: '4px solid #1D9596' }}>
-                      {duzenlekte ? (
-                        <div className="ekleme-kutusu" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
-                          <input type="text" placeholder="Başlık" value={duzHkDonem} onChange={(e) => setDuzHkDonem(e.target.value)} style={{ marginBottom: 6 }} />
-                          <div className="ekleme-satiri-2" style={{ marginBottom: 6 }}>
-                            <input type="number" placeholder="Tutar (₺)" value={duzHkTutar} onChange={(e) => setDuzHkTutar(e.target.value)} onKeyDown={sadeceSayiTuslari} />
-                            <input type="number" placeholder="Kesinti/Avans (₺)" value={duzHkKesinti} onChange={(e) => setDuzHkKesinti(e.target.value)} onKeyDown={sadeceSayiTuslari} />
-                          </div>
-                          <input type="text" placeholder="Açıklama" value={duzHkAciklama} onChange={(e) => setDuzHkAciklama(e.target.value)} style={{ marginBottom: 8 }} />
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            <button onClick={() => setDuzenlenenHakedisId(null)} style={{ fontSize: 12 }}>Vazgeç</button>
-                            <button onClick={() => hakedisGuncelle(h.id)} style={{ fontSize: 12 }}>Güncelle</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="kart-ust">
-                            <span className="kart-baslik">{h.donem}</span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <button className="sil-buton" onClick={() => hakedisPaylas(h)} aria-label="Paylaş">📤</button>
-                              <button className="sil-buton" onClick={() => {
-                                setDuzenlenenHakedisId(h.id)
-                                setDuzHkDonem(h.donem)
-                                setDuzHkTutar(h.tutar)
-                                setDuzHkKesinti(h.kesinti_avans || '')
-                                setDuzHkAciklama(h.aciklama || '')
-                              }} aria-label="Düzenle">✎</button>
-                              <button className="sil-buton" onClick={() => hakedisSil(h.id)} aria-label="Sil">🗑</button>
-                            </div>
-                          </div>
-                          <div className="hakedis-hesap" style={{ marginTop: 4 }}>
-                            <span>Tutar</span><span>{paraFormatla(h.tutar)} ₺</span>
-                            <span>Kesinti/Avans</span><span>-{paraFormatla(h.kesinti_avans)} ₺</span>
-                            <span className="hakedis-net-etiket">Net</span>
-                            <span className="hakedis-net-tutar">{paraFormatla(Number(h.tutar) - Number(h.kesinti_avans))} ₺</span>
-                          </div>
-                          {h.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{h.aciklama}</p>}
-                          <span className="not-alt" style={{ display: 'block', marginTop: 4 }}>Eklenme Zamanı: {new Date(h.created_at).toLocaleDateString('tr-TR')} {new Date(h.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                        </>
-                      )}
-                    </div>
-                  )
-                } else if (olay.tip === 'masraf') {
-                  const m = olay.veri
-                  return (
-                    <div key={`msf-${m.id || index}`} className="kart" style={{ borderLeft: '4px solid #E08A2E' }}>
-                      <div className="kart-ust">
-                        <span className="kart-baslik">Ödeme / Masraf: {m.baslik}</span>
-                        <span style={{ fontWeight: 700, color: '#D64545' }}>-{paraFormatla(m.tutar)} ₺</span>
-                      </div>
-                      <div className="etiket-satiri">
-                        <span className="etiket etiket-vurgu">{m.santiyeler?.ad || 'Genel Gider'}</span>
-                        <span className="etiket">{m.masraf_kategorileri?.ad || 'Ödeme'}</span>
-                      </div>
-                      {m.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{m.aciklama}</p>}
-                      <span className="not-alt">Ödeme Tarihi: {m.harcama_tarihi ? new Date(m.harcama_tarihi).toLocaleDateString('tr-TR') : '—'}</span>
-                      <span className="not-alt" style={{ display: 'block', marginTop: 2 }}>Kayıt Zamanı: {m.kayit_tarihi ? `${new Date(m.kayit_tarihi).toLocaleDateString('tr-TR')} ${new Date(m.kayit_tarihi).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : '—'}</span>
-                    </div>
-                  )
-                } else {
-                  const c = olay.veri
-                  return (
-                    <div key={`cek-${c.id || index}`} className="kart" style={{ borderLeft: '4px solid #6366F1' }}>
-                      <div className="kart-ust">
-                        <span className="kart-baslik">{c.odeme_konusu || 'Çek Girdisi'}</span>
-                        <span className="kart-tutar">{paraFormatla(c.tutar)} ₺</span>
-                      </div>
-                      <div className="etiket-satiri">
-                        <span className="etiket etiket-vurgu">{c.odenen || seciliTaseron?.ad || 'Cari'}</span>
-                        <span className="etiket">{c.banka || 'Banka'}</span>
-                        <span className="etiket">Seri: {c.cek_seri_no || '—'}</span>
-                        {c.belge_url && <a className="etiket" href={c.belge_url} target="_blank" rel="noreferrer">Belge</a>}
-                      </div>
-                      <div className="kart-alt-tarih">
-                        <span>Veriliş: {c.verilis_tarihi ? new Date(c.verilis_tarihi).toLocaleDateString('tr-TR') : '—'}</span>
-                        <span>Vade: {c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : '—'}</span>
-                      </div>
-                      <div className="kart-alt-tarih" style={{ marginTop: 2 }}>
-                        <span>Ödeyen: {c.odeyen || '—'}</span>
-                        <span>Ödenen: {c.odenen || seciliTaseron?.ad || '—'}</span>
-                      </div>
-                      {c.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{c.aciklama}</p>}
-                    </div>
-                  )
-                }
-              })}
-              {timelineOlaylari.length === 0 && <p className="bos-mesaj">Henüz finansal hareket kaydı yok.</p>}
-            </div>
-
-            <div className="ekleme-kutusu">
-              <p style={{ fontSize: 13, fontWeight: 700, margin: '0 0 8px' }}>Yeni Bilgi Kartı Ekle (Anlaşma / Avans / İskonto / Hakediş)</p>
-              <input type="text" placeholder="Başlık (örn. Temel İşçiliği Anlaşması)" value={hkDonem} onChange={(e) => setHkDonem(e.target.value)} style={{ marginBottom: 6 }} />
-              <div className="ekleme-satiri-2" style={{ marginBottom: 6 }}>
-                <input type="number" placeholder="Tutar (₺)" value={hkTutar} onChange={(e) => setHkTutar(e.target.value)} onKeyDown={sadeceSayiTuslari} />
-                <input type="number" placeholder="Kesinti/Avans (₺)" value={hkKesinti} onChange={(e) => setHkKesinti(e.target.value)} onKeyDown={sadeceSayiTuslari} />
-              </div>
-              <input type="text" placeholder="Açıklama (opsiyonel)" value={hkAciklama} onChange={(e) => setHkAciklama(e.target.value)} style={{ marginBottom: 8 }} />
-              <button className="ekle-buton-genis" onClick={hakedisEkle}>Bilgi kartı kaydı ekle</button>
-            </div>
-          </>
-        )}
-      </div>
-    )
+  const ctx = {
+    filtreSantiye, kullanicilar, numaraHaritasi, altGorevleriBul,
+    genisletilmis, setGenisletilmis,
+    duzenlenenId, setDuzenlenenId, duzenlenenBaslik, setDuzenlenenBaslik, basligiKaydet,
+    gorevSil, durumGuncelle,
+    altGorevAcikId, setAltGorevAcikId, altGorevMetni, setAltGorevMetni, altGorevEkle,
+    seciliGorevler, setSeciliGorevler, kisiSeciciAcikId, setKisiSeciciAcikId,
+    oncelikSeciciAcikId, setOncelikSeciciAcikId, oncelikDegistir, kisiEtiketiDegistir,
   }
 
-  // ---- LİSTE GÖRÜNÜMÜ ----
   return (
     <div className="sayfa">
-      <h2>Cari Hesaplar</h2>
-
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
-        <input type="text" placeholder="Taşeron ara..." value={arama} onChange={(e) => setArama(e.target.value)} style={{ flex: 1, margin: 0 }} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, gap: 8, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0 }}>Görevler</h2>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={() => paylas(true)} style={{ fontSize: 12, padding: '6px 10px' }}>📤 Tümünü paylaş</button>
+          {seciliGorevler.length > 0 && (
+            <button onClick={() => paylas(false)} style={{ fontSize: 12, padding: '6px 10px' }}>
+              📤 Seçilenleri paylaş ({seciliGorevler.length})
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="gorunum-secici" style={{ marginBottom: 12 }}>
-        <button className={siralama === 'alfabetik' ? 'secili-tab' : ''} onClick={() => setSiralama('alfabetik')}>Alfabetik</button>
-        <button className={siralama === 'tarih' ? 'secili-tab' : ''} onClick={() => setSiralama('tarih')}>Eklenme tarihi</button>
+      {seciliGorevler.length > 0 && (
+        <button
+          onClick={() => setSeciliGorevler([])}
+          style={{ fontSize: 11, padding: '4px 8px', marginBottom: 12, background: 'none', border: 'none', color: '#0F6E56' }}
+        >
+          Seçimi temizle ({seciliGorevler.length} görev seçili)
+        </button>
+      )}
+
+      <div className="ekleme-kutusu" style={{ marginTop: 0, marginBottom: 16 }}>
+        <select value={yeniSantiyeId} onChange={(e) => setYeniSantiyeId(e.target.value)}>
+          {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+        </select>
+
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="Görev ekle..."
+            value={yeniBaslik}
+            onChange={(e) => setYeniBaslik(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && gorevEkle()}
+            style={{ flex: 1 }}
+          />
+          <button className="mikrofon-buton" onClick={sesleYaz} aria-label="Sesle yaz">{dinliyor ? '●' : '🎤'}</button>
+        </div>
+
+        <div className="oncelik-secici-satiri">
+          {ONCELIKLER.map((o) => (
+            <button
+              key={o.deger}
+              className={`oncelik-nokta ${yeniOncelik === o.deger ? 'secili' : ''}`}
+              style={{ background: o.renk }}
+              onClick={() => setYeniOncelik(o.deger)}
+              aria-label={o.etiket}
+              title={o.etiket}
+            />
+          ))}
+        </div>
+
+        <div className="renk-anlam-tablosu">
+          {ONCELIKLER.map((o) => (
+            <div key={o.deger} className="renk-anlam-satiri">
+              <span className="renk-anlam-nokta" style={{ background: o.renk }} />
+              <span>{o.etiket}</span>
+            </div>
+          ))}
+        </div>
+
+        <p style={{ fontSize: 12, color: '#5F5E5A', margin: '4px 0 2px' }}>Etiketlenecek kişiler:</p>
+        <p style={{ fontSize: 11, color: '#888780', margin: '0 0 6px' }}>
+          🔔 Etiketlenen kişiye Uyarı sayfasında bildirim düşer, tıklayınca doğrudan bu göreve yönlendirilir.
+        </p>
+        <div className="kisi-etiket-secici">
+          {kullanicilar.map((k) => (
+            <button
+              key={k.id}
+              className={`filtre-chip ${yeniEtiketliler.includes(k.id) ? 'secili' : ''}`}
+              onClick={() => etiketliKisiToggle(k.id)}
+            >
+              {k.ad_soyad}
+            </button>
+          ))}
+        </div>
+
+        <button className="ekle-buton-genis" onClick={gorevEkle}>Görevi kaydet</button>
       </div>
 
       <div className="filtre-satiri">
@@ -548,59 +529,35 @@ export default function CariKartlar() {
         ))}
       </div>
 
-      <div className="liste">
-        {filtreliListe.map((t) => (
-          <div key={t.id} className="kart taseron-satir" onClick={() => detayYukle(t.id)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-              <div className="avatar-daire">{t.ad.slice(0, 2).toUpperCase()}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p className="taseron-ad">{t.ad}{t.sifat ? <span className="taseron-sifat"> · {t.sifat}</span> : ''}</p>
-                <p className="taseron-firma">
-                  {(taseronSantiyeHaritasi[t.id] || []).map((sid) => santiyeler.find((s) => s.id === sid)?.ad).filter(Boolean).join(', ') || 'Şantiye ataması yok'}
-                </p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, flexShrink: 0 }}>
-              {yonetici && (
-                <>
-                  <label onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <input 
-                      type="checkbox" 
-                      checked={t.sef_gorunur || false} 
-                      onChange={(e) => gorunurlukDegistir(t.id, t.sef_gorunur, e)}
-                    /> Şef Görsün
-                  </label>
-                  
-                  <button 
-                    onClick={(e) => taseronSil(t.id, e)} 
-                    style={{ background: '#ffe6e6', color: '#d9534f', border: 'none', padding: '4px 8px', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}
-                  >
-                    🗑 Sil
-                  </button>
-                </>
-              )}
-              <span className="chevron-buyuk">›</span>
-            </div>
-          </div>
+      <div className="filtre-satiri">
+        {DURUMLAR.map((d) => (
+          <button key={d.deger} className={`filtre-chip ${filtreDurum === d.deger ? 'secili' : ''}`} onClick={() => setFiltreDurum(d.deger)}>{d.etiket}</button>
         ))}
-        {filtreliListe.length === 0 && <p className="bos-mesaj">Taşeron bulunamadı.</p>}
       </div>
 
-      {!yeniTaseronAcik ? (
-        <button className="ekle-buton-genis" style={{ marginTop: 14 }} onClick={() => setYeniTaseronAcik(true)}>
-          + Yeni taşeron ekle
-        </button>
-      ) : (
-        <div className="ekleme-kutusu">
-          <input type="text" placeholder="Ad soyad" value={yeniAd} onChange={(e) => setYeniAd(e.target.value)} />
-          <input type="text" placeholder="Sıfat / unvan (örn. Elektrik ustası)" value={yeniSifat} onChange={(e) => setYeniSifat(e.target.value)} />
-          <input type="text" placeholder="Firma" value={yeniFirma} onChange={(e) => setYeniFirma(e.target.value)} />
-          <input type="text" placeholder="Telefon" value={yeniTelefon} onChange={(e) => setYeniTelefon(e.target.value)} />
-          <input type="text" placeholder="Adres" value={yeniAdres} onChange={(e) => setYeniAdres(e.target.value)} />
-          <p style={{ fontSize: 11, color: '#888780', margin: 0 }}>Şantiye ataması kaydettikten sonra detay ekranından yapılabilir.</p>
-          <button className="ekle-buton-genis" onClick={taseronEkle}>Taşeronu kaydet</button>
+      {yonetici && (
+        <div className="filtre-satiri">
+          <button className={`filtre-chip ${filtreKisi === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreKisi('hepsi')}>Tüm kişiler</button>
+          {kullanicilar.map((k) => (
+            <button key={k.id} className={`filtre-chip ${filtreKisi === k.id ? 'secili' : ''}`} onClick={() => setFiltreKisi(k.id)}>{k.ad_soyad}</button>
+          ))}
         </div>
+      )}
+
+      <div className="gorunum-secici" style={{ marginBottom: 12 }}>
+        <button className={siralamaYonu === 'yeni' ? 'secili-tab' : ''} onClick={() => setSiralamaYonu('yeni')}>Yeniden eskiye</button>
+        <button className={siralamaYonu === 'eski' ? 'secili-tab' : ''} onClick={() => setSiralamaYonu('eski')}>Eskiden yeniye</button>
+      </div>
+
+      <div className="liste">
+        {gosterilenKokGorevler.map((g) => <GorevKarti key={g.id} gorev={g} seviye={0} ctx={ctx} />)}
+        {kokGorevler.length === 0 && <p className="bos-mesaj">Bu filtrede görev yok.</p>}
+      </div>
+
+      {kokGorevler.length > gosterilenSayisi && (
+        <button className="daha-fazla-buton" style={{ marginTop: 8 }} onClick={() => setGosterilenSayisi((n) => n + 10)}>
+          ▼ Daha fazla göster ({kokGorevler.length - gosterilenSayisi} tane daha)
+        </button>
       )}
     </div>
   )
