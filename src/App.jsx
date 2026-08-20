@@ -31,6 +31,15 @@ function YonetimKoruma({ children }) {
   return children
 }
 
+// Şantiye şeflerinin Gelirler sayfasına erişimini engelleyen koruma
+function GelirKoruma({ children }) {
+  const { profile } = useAuth()
+  if (profile?.rol === 'santiye_sefi') {
+    return <div className="sayfa"><p className="bos-mesaj">Bu sayfaya erişim yetkiniz yok.</p></div>
+  }
+  return children
+}
+
 function IcerikAlani() {
   const { session, profile, yukleniyor, cikisYap } = useAuth()
 
@@ -52,7 +61,7 @@ function IcerikAlani() {
             <Route path="/" element={<Navigate to="/gorevler" replace />} />
             <Route path="/gorevler" element={<Gorevler />} />
             <Route path="/masraflar" element={<Masraflar />} />
-            <Route path="/gelirler" element={<Gelirler />} />
+            <Route path="/gelirler" element={<GelirKoruma><Gelirler /></GelirKoruma>} />
             <Route path="/cari-kartlar" element={<CariKartlar />} />
             <Route path="/puantaj" element={<Puantaj />} />
             <Route path="/gunluk-rapor" element={<GunlukRapor />} />
