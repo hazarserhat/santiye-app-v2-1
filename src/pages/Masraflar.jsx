@@ -92,12 +92,20 @@ export default function Masraflar() {
     }
 
     let fotografUrl = null
-    if (fotograf && aktifSantiye) {
-      const dosyaAdi = `${aktifSantiye.id}/${Date.now()}_${fotograf.name}`
+    if (fotograf) {
+      const hedefSantiyeKlasoru = secilenSantiyeId && secilenSantiyeId !== 'genel' ? secilenSantiyeId : 'genel'
+      const dosyaAdi = `${hedefSantiyeKlasoru}/${Date.now()}_${fotograf.name}`
       const { data, error } = await supabase.storage.from('masraf-fotograflari').upload(dosyaAdi, fotograf)
-      if (!error) {
-        const { data: url } = supabase.storage.from('masraf-fotograflari').getPublicUrl(data.path)
-        fotografUrl = url.publicUrl
+      
+      if (error) {
+        alert('Fotoğraf yüklenemedi: ' + error.message)
+        setYukleniyor(false)
+        return
+      }
+
+      if (data) {
+        const { data: urlData } = supabase.storage.from('masraf-fotograflari').getPublicUrl(data.path)
+        fotografUrl = urlData.publicUrl
       }
     }
 
@@ -208,6 +216,19 @@ export default function Masraflar() {
               </div>
               {m.odenen_kisi && <div className="kart-alt-tarih"><span>Ödenen: {m.odenen_kisi}</span></div>}
               {m.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{m.aciklama}</p>}
+              
+              {/* Fotoğraf/Belge Gösterimi */}
+              {m.fotograf_url && (
+                <div style={{ marginTop: 8 }}>
+                  <a href={m.fotograf_url} target="_blank" rel="noopener noreferrer">
+                    <img 
+                      src={m.fotograf_url} 
+                      alt="Masraf Belgesi" 
+                      style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, border: '1px solid #d3d1c7' }} 
+                    />
+                  </a>
+                </div>
+              )}
             </div>
           ))}
           {islenecekListe.length === 0 && <p className="bos-mesaj">Kayıt yok.</p>}
@@ -248,6 +269,18 @@ export default function Masraflar() {
               {odemeYontemleri.map((o) => <option key={o.id} value={o.id}>{o.ad}</option>)}
             </select>
           </div>
+
+          {/* Dosya / Fotoğraf / Fatura Ekleme Inputu */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+            <label style={{ fontSize: 12, color: '#5F5E5A', fontWeight: 600 }}>Fiş / Fatura / Görsel Ekle (Opsiyonel):</label>
+            <input 
+              type="file" 
+              accept="image/*,application/pdf" 
+              onChange={(e) => setFotograf(e.target.files[0])}
+              style={{ fontSize: 12, padding: '6px 0' }}
+            />
+          </div>
+
           <button className="ekle-buton-genis" onClick={masrafEkle} disabled={yukleniyor}>
             {yukleniyor ? 'Ekleniyor...' : 'Masrafı kaydet'}
           </button>
