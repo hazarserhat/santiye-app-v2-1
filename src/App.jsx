@@ -6,7 +6,6 @@ import Login from './pages/Login'
 import Gorevler from './pages/Gorevler'
 import Masraflar from './pages/Masraflar'
 import Gelirler from './pages/Gelirler'
-import Rehber from './pages/Rehber'
 import CariKartlar from './pages/CariKartlar'
 import Puantaj from './pages/Puantaj'
 import GunlukRapor from './pages/GunlukRapor'
@@ -32,7 +31,6 @@ function YonetimKoruma({ children }) {
   return children
 }
 
-// Şantiye şeflerinin Gelirler sayfasına erişimini engeller ve doğrudan görevlere yönlendirir
 function GelirKoruma({ children }) {
   const { profile } = useAuth()
   if (profile?.rol === 'santiye_sefi') {
@@ -63,7 +61,6 @@ function IcerikAlani() {
             <Route path="/gorevler" element={<Gorevler />} />
             <Route path="/masraflar" element={<Masraflar />} />
             <Route path="/gelirler" element={<GelirKoruma><Gelirler /></GelirKoruma>} />
-            <Route path="/rehber" element={<Rehber />} />
             <Route path="/cari-kartlar" element={<CariKartlar />} />
             <Route path="/puantaj" element={<Puantaj />} />
             <Route path="/gunluk-rapor" element={<GunlukRapor />} />
