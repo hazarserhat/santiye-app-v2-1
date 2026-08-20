@@ -20,7 +20,7 @@ export default function CariKartlar() {
   const [iliskiliSantiyeler, setIliskiliSantiyeler] = useState([])
   const [hakedisler, setHakedisler] = useState([])
   const [masraflar, setMasraflar] = useState([])
-  const [cekler, setCekler] = useState([]) // <--- ÇEK GİRDİLERİ İÇİN STATE
+  const [cekler, setCekler] = useState([])
 
   const [duzenleModu, setDuzenleModu] = useState(false)
   const [duzAd, setDuzAd] = useState('')
@@ -60,7 +60,6 @@ export default function CariKartlar() {
 
   const taseronlariYukle = async () => {
     let query = supabase.from('taseronlar').select('*')
-    // Şantiye şefi sadece izin verilenleri görür
     if (!yonetici) {
       query = query.eq('sef_gorunur', true)
     }
@@ -78,7 +77,6 @@ export default function CariKartlar() {
     setTaseronSantiyeHaritasi(harita)
   }
 
-  // Şantiye şefi görünürlük ayarını güncelle
   const gorunurlukDegistir = async (id, mevcutDurum, e) => {
     e.stopPropagation()
     if (!yonetici) return
@@ -94,7 +92,6 @@ export default function CariKartlar() {
     }
   }
 
-  // Cari hesap silme (Yönetici)
   const taseronSil = async (id, e) => {
     e.stopPropagation()
     if (!window.confirm('Bu cari hesap kaydını ve tüm ilişkili verilerini silmek istediğinize emin misiniz?')) return
@@ -129,7 +126,6 @@ export default function CariKartlar() {
     if (santiyeHata) { alert('Şantiye ilişkileri yüklenemedi: ' + santiyeHata.message); return }
     setIliskiliSantiyeler(santiyeData || [])
 
-    // Masrafları çek (cari_id eşleşmesine göre)
     const { data: masrafData } = await supabase
       .from('masraflar')
       .select('*, santiyeler(ad), masraf_kategorileri(ad)')
@@ -137,14 +133,12 @@ export default function CariKartlar() {
       .order('harcama_tarihi', { ascending: false })
     setMasraflar(masrafData || [])
 
-    // Çekleri çek (cari_id eşleşmesine göre)
     const { data: cekData } = await supabase
       .from('cekler')
-      .select('*')
+      .select('*, santiyeler(ad)')
       .eq('cari_id', id)
     setCekler(cekData || [])
 
-    // Bilgi kartlarını çek
     const { data: hkData } = await supabase
       .from('hakedisler')
       .select('*')
@@ -280,7 +274,7 @@ export default function CariKartlar() {
 
   const eklenebilirSantiyeler = santiyeler.filter((s) => !iliskiliSantiyeler.find((r) => r.santiye_id === s.id))
 
-  // ---- KRONOLOJİK TİMELİNE SIRALAMASI (HAKEDİŞLER + MASRAFLAR + ÇEKLER - GÜN, SAAT, SANİYE BAZINDA) ----
+  // ---- KRONOLOJİK TİMELİNE SIRALAMASI ----
   const timelineOlaylari = [
     ...hakedisler.map((h) => ({
       tip: 'hakedis',
@@ -409,7 +403,7 @@ export default function CariKartlar() {
           <button className="ekle-buton-genis" onClick={notEkle}>Notu ekle</button>
         </div>
 
-        {/* --- ORTAK TİMELİNE (BİLGİ KARTLARI, ÖDEMELER & ÇEKLER) --- */}
+        {/* --- ORTAK TİMELİNE --- */}
         <p className="alt-baslik" style={{ marginTop: 20 }}>Anlaşma / Avans / İskonto / Hakediş Bilgi Kartları & Finansal Akış</p>
 
         {!yonetici && (
@@ -492,14 +486,24 @@ export default function CariKartlar() {
                   return (
                     <div key={`cek-${c.id || index}`} className="kart" style={{ borderLeft: '4px solid #6366F1' }}>
                       <div className="kart-ust">
-                        <span className="kart-baslik">Çek Girdisi: No: {c.cek_no || '—'} ({c.banka || 'Banka'})</span>
-                        <span style={{ fontWeight: 700, color: '#6366F1' }}>{paraFormatla(c.tutar)} ₺</span>
+                        <span className="kart-baslik">{c.odeme_konusu || 'Çek Girdisi'}</span>
+                        <span className="kart-tutar">{paraFormatla(c.tutar)} ₺</span>
                       </div>
                       <div className="etiket-satiri">
-                        <span className="etiket">Vade: {c.vade_tarihi ? new Date(c.vade_tarihi).toLocaleDateString('tr-TR') : '—'}</span>
+                        <span className="etiket etiket-vurgu">{c.odenen || seciliTaseron?.ad || 'Cari'}</span>
+                        <span className="etiket">{c.banka || 'Banka'}</span>
+                        <span className="etiket">Seri: {c.cek_seri_no || '—'}</span>
+                        {c.belge_url && <a className="etiket" href={c.belge_url} target="_blank" rel="noreferrer">Belge</a>}
+                      </div>
+                      <div className="kart-alt-tarih">
+                        <span>Veriliş: {c.verilis_tarihi ? new Date(c.verilis_tarihi).toLocaleDateString('tr-TR') : '—'}</span>
+                        <span>Vade: {c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : '—'}</span>
+                      </div>
+                      <div className="kart-alt-tarih" style={{ marginTop: 2 }}>
+                        <span>Ödeyen: {c.odeyen || '—'}</span>
+                        <span>Ödenen: {c.odenen || seciliTaseron?.ad || '—'}</span>
                       </div>
                       {c.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{c.aciklama}</p>}
-                      <span className="not-alt" style={{ display: 'block', marginTop: 4 }}>Kayıt Zamanı: {c.created_at ? `${new Date(c.created_at).toLocaleDateString('tr-TR')} ${new Date(c.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : '—'}</span>
                     </div>
                   )
                 }
