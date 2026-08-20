@@ -12,14 +12,14 @@ export default function Cekler() {
   const { profile } = useAuth()
   const [cekler, setCekler] = useState([])
   const [bankalar, setBankalar] = useState([])
-  const [taseronlar, setTaseronlar] = useState([]) // <--- Otomatik ID eşlemesi için taşeron listesi
+  const [taseronlar, setTaseronlar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(false)
 
   const [odemeKonusu, setOdemeKonusu] = useState('')
   const [santiyeId, setSantiyeId] = useState('')
   const [odeyen, setOdeyen] = useState('')
   const [odenen, setOdenen] = useState('')
-  const [secilenCariId, setSecilenCariId] = useState(null) // <--- Veritabanına gidecek cari_id
+  const [secilenCariId, setSecilenCariId] = useState(null)
   const [cekSeriNo, setCekSeriNo] = useState('')
   const [banka, setBanka] = useState('')
   const [yeniBankaAcik, setYeniBankaAcik] = useState(false)
@@ -34,7 +34,6 @@ export default function Cekler() {
     cekleriYukle()
     bankalariYukle()
     
-    // Yazarak arama yaparken isimden ID'yi bulabilmek için taşeronları çekiyoruz
     supabase.from('taseronlar').select('*').then(({ data }) => {
       setTaseronlar(data || [])
     })
@@ -66,7 +65,6 @@ export default function Cekler() {
     if (!odemeKonusu.trim() || !tutar) { alert('Ödeme konusu ve tutar zorunludur.'); return }
     setYukleniyor(true)
 
-    // OTOMATİK EŞLEŞTİRME: Eğer cariId seçilmediyse ama 'odenen' alanına yazı yazıldıysa listeden bulur
     let finalCariId = secilenCariId
     if (!finalCariId && odenen.trim()) {
       const bulunan = taseronlar.find(t => t.ad.toLowerCase() === odenen.trim().toLowerCase() || (t.firma && t.firma.toLowerCase() === odenen.trim().toLowerCase()))
@@ -90,7 +88,7 @@ export default function Cekler() {
       santiye_id: santiyeId || null,
       odeyen,
       odenen,
-      cari_id: finalCariId || null, // <--- CARİ KARTLA %100 BAĞLANTIYI SAĞLAYAN ALAN
+      cari_id: finalCariId || null,
       cek_seri_no: cekSeriNo,
       banka,
       verilis_tarihi: verilisTarihi,
@@ -115,23 +113,51 @@ export default function Cekler() {
     cekleriYukle()
   }
 
+  // WhatsApp ile Görsel ve Metin Paylaşım Fonksiyonu
   const cekPaylas = async (c) => {
-    const metin =
-      `*Ödeme Konusu* : ${c.odeme_konusu}\n` +
-      `*Şantiye* : ${c.santiyeler?.ad || '—'}\n` +
-      `*Ödeyen* : ${c.odeyen || '—'}\n` +
-      `*Ödenen* : ${c.odenen || '—'}\n` +
-      `*Çek Seri No* : ${c.cek_seri_no || '—'}\n` +
-      `*Banka* : ${c.banka || '—'}\n` +
-      `*Veriliş Tarihi* : ${new Date(c.verilis_tarihi).toLocaleDateString('tr-TR')}\n` +
-      `*Çek Vadesi* : ${c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : '—'}\n` +
-      `*Tutar* : ${paraFormatla(c.tutar)}₺\n` +
-      `*Açıklama / Not* : ${c.aciklama || '—'}`
+    try {
+      let dosyalar = []
+      
+      if (c.belge_url) {
+        const response = await fetch(c.belge_url)
+        const blob = await response.blob()
+        const dosyaAdi = c.odeme_konusu ? `${c.odeme_konusu.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.jpg` : 'cek_belgesi.jpg'
+        const file = new File([blob], dosyaAdi, { type: blob.type })
+        dosyalar.push(file)
+      }
 
-    if (navigator.share) {
-      try { await navigator.share({ text: metin }) } catch { /* iptal */ }
-    } else {
-      window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
+      const metin =
+        `💳 ÇEK / ÖDEME BİLDİRİMİ\n` +
+        `📌 Konu: ${c.odeme_konusu}\n` +
+        `🏗 Şantiye: ${c.santiyeler?.ad || 'Genel'}\n` +
+        `💵 Tutar: ${paraFormatla(c.tutar)} ₺\n` +
+        `🏦 Banka: ${c.banka || '—'}\n` +
+        `🔢 Seri No: ${c.cek_seri_no || '—'}\n` +
+        `👤 Ödeyen: ${c.odeyen || '—'}\n` +
+        `👤 Ödenen: ${c.odenen || '—'}\n` +
+        `📅 Veriliş: ${new Date(c.verilis_tarihi).toLocaleDateString('tr-TR')}\n` +
+        `⏳ Vade: ${c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : '—'}\n` +
+        (c.aciklama ? `📝 Not: ${c.aciklama}` : '')
+
+      if (navigator.canShare && navigator.canShare({ files: dosyalar })) {
+        await navigator.share({
+          title: 'Çek Belgesi',
+          text: metin,
+          files: dosyalar,
+        })
+      } else if (navigator.share) {
+        await navigator.share({
+          title: 'Çek Belgesi',
+          text: metin + (c.belge_url ? `\n🔗 Belge Linki: ${c.belge_url}` : ''),
+        })
+      } else {
+        window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('Paylaşım hatası:', err)
+        alert('Paylaşım sırasında bir hata oluştu.')
+      }
     }
   }
 
@@ -144,7 +170,6 @@ export default function Cekler() {
               <span className="kart-baslik">{c.odeme_konusu}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span className="kart-tutar">{paraFormatla(c.tutar)} ₺</span>
-                <button className="sil-buton" onClick={() => cekPaylas(c)} aria-label="Paylaş">📤</button>
                 <button className="sil-buton" onClick={() => cekSil(c.id)} aria-label="Sil">🗑</button>
               </div>
             </div>
@@ -152,7 +177,6 @@ export default function Cekler() {
               <span className="etiket etiket-vurgu">{c.santiyeler?.ad || 'Genel'}</span>
               <span className="etiket">{c.banka}</span>
               <span className="etiket">Seri: {c.cek_seri_no || '—'}</span>
-              {c.belge_url && <a className="etiket" href={c.belge_url} target="_blank" rel="noreferrer">Belge</a>}
             </div>
             <div className="kart-alt-tarih">
               <span>Veriliş: {new Date(c.verilis_tarihi).toLocaleDateString('tr-TR')}</span>
@@ -163,6 +187,42 @@ export default function Cekler() {
               <span>Ödenen: {c.odenen || '—'}</span>
             </div>
             {c.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{c.aciklama}</p>}
+
+            {/* Belge / Fotoğraf Önizlemesi */}
+            {c.belge_url && (
+              <div style={{ marginTop: 8 }}>
+                <a href={c.belge_url} target="_blank" rel="noopener noreferrer">
+                  <img 
+                    src={c.belge_url} 
+                    alt="Çek Belgesi" 
+                    style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, border: '1px solid #d3d1c7' }} 
+                  />
+                </a>
+              </div>
+            )}
+
+            {/* WhatsApp ile Görsel ve Metin Gönderme Butonu */}
+            <button 
+              onClick={() => cekPaylas(c)}
+              style={{ 
+                marginTop: 8, 
+                width: '100%', 
+                padding: '8px 12px', 
+                background: '#25D366', 
+                color: '#fff', 
+                border: 'none', 
+                borderRadius: 6, 
+                cursor: 'pointer', 
+                fontWeight: 600, 
+                fontSize: 12, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: 6 
+              }}
+            >
+              💬 WhatsApp ile Görsel Gönder
+            </button>
           </div>
         ))}
         {cekler.length === 0 && <p className="bos-mesaj">Henüz çek kaydı yok.</p>}
@@ -179,7 +239,6 @@ export default function Cekler() {
         <div className="ekleme-satiri-2">
           <input type="text" placeholder="Ödeyen" value={odeyen} onChange={(e) => setOdeyen(e.target.value)} />
           
-          {/* CARİ ARAMA SEÇİCİ (Yazarak arama ve otomatik cari_id yakalama) */}
           <CariAramaSecici 
             deger={odenen} 
             onDegisti={(isim, cariId) => { 
