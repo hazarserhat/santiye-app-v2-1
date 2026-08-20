@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
+import CariAramaSecici from '../components/CariAramaSecici'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -11,12 +12,14 @@ export default function Cekler() {
   const { profile } = useAuth()
   const [cekler, setCekler] = useState([])
   const [bankalar, setBankalar] = useState([])
+  const [taseronlar, setTaseronlar] = useState([]) // <--- Otomatik ID eşlemesi için taşeron listesi
   const [yukleniyor, setYukleniyor] = useState(false)
 
   const [odemeKonusu, setOdemeKonusu] = useState('')
   const [santiyeId, setSantiyeId] = useState('')
   const [odeyen, setOdeyen] = useState('')
   const [odenen, setOdenen] = useState('')
+  const [secilenCariId, setSecilenCariId] = useState(null) // <--- Veritabanına gidecek cari_id
   const [cekSeriNo, setCekSeriNo] = useState('')
   const [banka, setBanka] = useState('')
   const [yeniBankaAcik, setYeniBankaAcik] = useState(false)
@@ -30,6 +33,11 @@ export default function Cekler() {
   useEffect(() => {
     cekleriYukle()
     bankalariYukle()
+    
+    // Yazarak arama yaparken isimden ID'yi bulabilmek için taşeronları çekiyoruz
+    supabase.from('taseronlar').select('*').then(({ data }) => {
+      setTaseronlar(data || [])
+    })
   }, [])
 
   const cekleriYukle = async () => {
@@ -58,6 +66,15 @@ export default function Cekler() {
     if (!odemeKonusu.trim() || !tutar) { alert('Ödeme konusu ve tutar zorunludur.'); return }
     setYukleniyor(true)
 
+    // OTOMATİK EŞLEŞTİRME: Eğer cariId seçilmediyse ama 'odenen' alanına yazı yazıldıysa listeden bulur
+    let finalCariId = secilenCariId
+    if (!finalCariId && odenen.trim()) {
+      const bulunan = taseronlar.find(t => t.ad.toLowerCase() === odenen.trim().toLowerCase() || (t.firma && t.firma.toLowerCase() === odenen.trim().toLowerCase()))
+      if (bulunan) {
+        finalCariId = bulunan.id
+      }
+    }
+
     let belgeUrl = null
     if (belge) {
       const dosyaAdi = `${Date.now()}_${belge.name}`
@@ -73,6 +90,7 @@ export default function Cekler() {
       santiye_id: santiyeId || null,
       odeyen,
       odenen,
+      cari_id: finalCariId || null, // <--- CARİ KARTLA %100 BAĞLANTIYI SAĞLAYAN ALAN
       cek_seri_no: cekSeriNo,
       banka,
       verilis_tarihi: verilisTarihi,
@@ -85,7 +103,7 @@ export default function Cekler() {
 
     if (error) { alert('Çek eklenemedi: ' + error.message); setYukleniyor(false); return }
 
-    setOdemeKonusu(''); setSantiyeId(''); setOdeyen(''); setOdenen(''); setCekSeriNo('')
+    setOdemeKonusu(''); setSantiyeId(''); setOdeyen(''); setOdenen(''); setSecilenCariId(null); setCekSeriNo('')
     setCekVadesi(''); setTutar(''); setAciklama(''); setBelge(null); setVerilisTarihi(bugun())
     setYukleniyor(false)
     cekleriYukle()
@@ -160,7 +178,16 @@ export default function Cekler() {
 
         <div className="ekleme-satiri-2">
           <input type="text" placeholder="Ödeyen" value={odeyen} onChange={(e) => setOdeyen(e.target.value)} />
-          <input type="text" placeholder="Ödenen" value={odenen} onChange={(e) => setOdenen(e.target.value)} />
+          
+          {/* CARİ ARAMA SEÇİCİ (Yazarak arama ve otomatik cari_id yakalama) */}
+          <CariAramaSecici 
+            deger={odenen} 
+            onDegisti={(isim, cariId) => { 
+              setOdenen(isim)
+              setSecilenCariId(cariId || null) 
+            }} 
+            placeholder="Ödenen kişi/firma..." 
+          />
         </div>
 
         <input type="text" placeholder="Çek seri no..." value={cekSeriNo} onChange={(e) => setCekSeriNo(e.target.value)} />
