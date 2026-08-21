@@ -17,6 +17,7 @@ export default function ProjeGelirleri() {
 
   const [yeniAcik, setYeniAcik] = useState(false)
   const [yeniAd, setYeniAd] = useState('')
+  const [yeniTelefon, setYeniTelefon] = useState('')
   const [yeniSantiyeId, setYeniSantiyeId] = useState('')
 
   // Dinamik olarak tablodaki maksimum aşama sayısını buluyoruz (en az 4 olsun ki daralmasın)
@@ -46,12 +47,16 @@ export default function ProjeGelirleri() {
 
   const malikEkle = async () => {
     if (!yeniAd.trim() || !yeniSantiyeId) { alert('Ad ve şantiye zorunludur.'); return }
-    const { data, error } = await supabase.from('malikler').insert({ ad_soyad: yeniAd, santiye_id: yeniSantiyeId }).select().single()
+    const { data, error } = await supabase.from('malikler').insert({ 
+      ad_soyad: yeniAd, 
+      telefon: yeniTelefon, 
+      santiye_id: yeniSantiyeId 
+    }).select().single()
+    
     if (error) { alert('Eklenemedi: ' + error.message); return }
-    // Yeni malik eklendiğinde varsayılan 4 boş aşama ile başlatalım
     const bosAsamalar = Array.from({ length: 4 }).map((_, i) => ({ malik_id: data.id, ad: '', tutar: 0, tamamlandi: false, sira: i + 1 }))
     await supabase.from('malik_asamalari').insert(bosAsamalar)
-    setYeniAd(''); setYeniAcik(false)
+    setYeniAd(''); setYeniTelefon(''); setYeniAcik(false)
     yenile()
   }
 
@@ -63,9 +68,12 @@ export default function ProjeGelirleri() {
 
   const duzenlemeyiAc = (m) => {
     setDuzenlenenId(m.id)
-    setTaslak({ toplam_alacak: m.toplam_alacak || 0, devlet_destegi: m.devlet_destegi || 0 })
+    setTaslak({ 
+      toplam_alacak: m.toplam_alacak || 0, 
+      devlet_destegi: m.devlet_destegi || 0,
+      telefon: m.telefon || '' 
+    })
     const mevcut = asamalar[m.id] || []
-    // Mevcut aşamaları taslağa atıyoruz, yoksa en az 1 boş aşama açıyoruz
     setTaslakAsamalar(mevcut.length ? [...mevcut] : [{ ad: '', tutar: 0, sira: 1 }])
   }
 
@@ -73,9 +81,9 @@ export default function ProjeGelirleri() {
     await supabase.from('malikler').update({
       toplam_alacak: Number(taslak.toplam_alacak) || 0,
       devlet_destegi: Number(taslak.devlet_destegi) || 0,
+      telefon: taslak.telefon || '',
     }).eq('id', malikId)
 
-    // Aşamaları güncellerken esnek yapıyı korumak için ilgili malikin eski aşamalarını silip yenilerini sırayla ekliyoruz
     await supabase.from('malik_asamalari').delete().eq('malik_id', malikId)
     const yeniAsamalarListesi = taslakAsamalar.map((a, i) => ({
       malik_id: malikId,
@@ -150,6 +158,7 @@ export default function ProjeGelirleri() {
           <thead>
             <tr>
               <th style={{ ...baslikStil, position: 'sticky', left: 0, background: 'white' }}>Malik</th>
+              <th style={baslikStil}>İletişim Bilgileri</th>
               <th style={baslikStil}>Şantiye</th>
               <th style={baslikStil}>Toplam Alacak</th>
               <th style={baslikStil}>Devlet Desteği</th>
@@ -170,6 +179,7 @@ export default function ProjeGelirleri() {
               return (
                 <tr key={m.id}>
                   <td style={{ ...hucreStil, position: 'sticky', left: 0, background: 'white', fontWeight: 700 }}>{m.ad_soyad}</td>
+                  <td style={hucreStil}>{m.telefon || '—'}</td>
                   <td style={hucreStil}>{m.santiyeler?.ad}</td>
                   <td style={hucreStil}>{paraFormatla(m.toplam_alacak)} ₺</td>
                   <td style={hucreStil}>{paraFormatla(m.devlet_destegi)} ₺</td>
@@ -199,12 +209,13 @@ export default function ProjeGelirleri() {
                 </tr>
               )
             })}
-            {gorunenler.length === 0 && <tr><td colSpan={10 + maxStageCount} style={hucreStil}>Henüz malik eklenmemiş.</td></tr>}
+            {gorunenler.length === 0 && <tr><td colSpan={11 + maxStageCount} style={hucreStil}>Henüz malik eklenmemiş.</td></tr>}
           </tbody>
           {gorunenler.length > 0 && (
             <tfoot>
               <tr style={{ background: '#F8F7F2', fontWeight: 700 }}>
                 <td style={{ ...hucreStil, position: 'sticky', left: 0, background: '#F8F7F2' }}>TOPLAM</td>
+                <td style={hucreStil}></td>
                 <td style={hucreStil}></td>
                 <td style={hucreStil}>{paraFormatla(toplamAlacakGenel)} ₺</td>
                 <td style={hucreStil}>{paraFormatla(toplamDevletGenel)} ₺</td>
@@ -222,6 +233,17 @@ export default function ProjeGelirleri() {
       {duzenlenenId && (
         <div className="ekleme-kutusu">
           <p className="alt-baslik">Düzenle: {malikler.find((m) => m.id === duzenlenenId)?.ad_soyad}</p>
+          
+          <div style={{ marginBottom: 8 }}>
+            <label style={{ fontSize: 11, color: '#5F5E5A' }}>İletişim Bilgileri (Telefon)</label>
+            <input 
+              type="text" 
+              value={taslak.telefon || ''} 
+              placeholder="05xx xxx xx xx"
+              onChange={(e) => setTaslak((o) => ({ ...o, telefon: e.target.value }))} 
+            />
+          </div>
+
           <div className="ekleme-satiri-2">
             <div>
               <label style={{ fontSize: 11, color: '#5F5E5A' }}>Toplam Alacak</label>
@@ -274,6 +296,7 @@ export default function ProjeGelirleri() {
             {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
           </select>
           <input type="text" placeholder="Malik ad soyad" value={yeniAd} onChange={(e) => setYeniAd(e.target.value)} />
+          <input type="text" placeholder="İletişim bilgileri (Telefon)" value={yeniTelefon} onChange={(e) => setYeniTelefon(e.target.value)} />
           <div className="ekleme-satiri-2">
             <button onClick={() => setYeniAcik(false)}>Vazgeç</button>
             <button className="ekle-buton-genis" onClick={malikEkle}>Kaydet</button>
