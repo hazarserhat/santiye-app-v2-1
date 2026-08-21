@@ -421,7 +421,7 @@ export default function CariKartlar() {
                   const h = olay.veri
                   const duzenlekte = duzenlenenHakedisId === h.id
                   const netTutar = Number(h.tutar) - Number(h.kesinti_avans || 0)
-                  // Eğer netTutar artı (+) çıkarsa Kırmızı, eksi (-) çıkarsa Yeşil kenarlık
+                  // NET artı (+) çıkarsa Kırmızı, eksi (-) çıkarsa Yeşil kenarlık
                   const hakedisKenarRengi = netTutar > 0 ? '#EF4444' : '#10B981'
 
                   return (
@@ -473,7 +473,7 @@ export default function CariKartlar() {
                     <div key={`msf-${m.id || index}`} className="kart" style={{ borderLeft: '4px solid #10B981' }}>
                       <div className="kart-ust">
                         <span className="kart-baslik">Ödeme / Masraf: {m.baslik}</span>
-                        <span style={{ fontWeight: 700, color: '#10B981' }}>+{paraFormatla(m.tutar)} ₺</span>
+                        <span style={{ fontWeight: 700, color: '#10B981' }}>+{paraFormatla(Math.abs(m.tutar))} ₺</span>
                       </div>
                       <div className="etiket-satiri">
                         <span className="etiket etiket-vurgu">{m.santiyeler?.ad || 'Genel Gider'}</span>
@@ -490,7 +490,7 @@ export default function CariKartlar() {
                     <div key={`cek-${c.id || index}`} className="kart" style={{ borderLeft: '4px solid #10B981' }}>
                       <div className="kart-ust">
                         <span className="kart-baslik">{c.odeme_konusu || 'Çek Girdisi'}</span>
-                        <span className="kart-tutar" style={{ color: '#10B981' }}>+{paraFormatla(c.tutar)} ₺</span>
+                        <span className="kart-tutar" style={{ color: '#10B981' }}>+{paraFormatla(Math.abs(c.tutar))} ₺</span>
                       </div>
                       <div className="etiket-satiri">
                         <span className="etiket etiket-vurgu">{c.odenen || seciliTaseron?.ad || 'Cari'}</span>
