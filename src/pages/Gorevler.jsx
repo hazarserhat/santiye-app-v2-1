@@ -197,7 +197,8 @@ export default function Gorevler() {
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreKisi, setFiltreKisi] = useState('hepsi')
   const [filtreEkleyen, setFiltreEkleyen] = useState('hepsi')
-  const [filtrelerAcik, setFiltrelerAcik] = useState(false) // Açılır-kapanır kontrol state'i
+  const [filtrelerAcik, setFiltrelerAcik] = useState(false)
+  const [arsivAcik, setArsivAcik] = useState(false)
   
   const yonetici = profile?.rol === 'yonetici'
 
@@ -216,7 +217,7 @@ export default function Gorevler() {
   const [seciliGorevler, setSeciliGorevler] = useState([])
   const [oncelikSeciciAcikId, setOncelikSeciciAcikId] = useState(null)
   const [kisiSeciciAcikId, setKisiSeciciAcikId] = useState(null)
-  const [siralamaYonu, setSiralamaYonu] = useState('yeni')
+  const [siralamaYonu, setSiralamaYonu] = useState('yeni') // 'yeni' | 'eski'
   const [gosterilenSayisi, setGosterilenSayisi] = useState(10)
 
   useEffect(() => {
@@ -393,10 +394,9 @@ export default function Gorevler() {
       { durum: 'bekliyor', baslik: '🟡 BEKLEYEN GÖREVLER' },
       { durum: 'devam_ediyor', baslik: '🔵 DEVAM EDEN GÖREVLER' },
       { durum: 'gecikti', baslik: '🔴 GECİKEN GÖREVLER' },
-      { durum: 'tamamlandi', baslik: '🟢 TAMAMLANAN GÖREVLER' },
     ]
     let metin = `📋 GÖREV RAPORU — ${new Date().toLocaleDateString('tr-TR')}\n\n`
-    const kaynakListe = (!hepsi && seciliGorevler.length > 0) ? gorevler.filter((g) => seciliGorevler.includes(g.id)) : gorevler
+    const kaynakListe = (!hepsi && seciliGorevler.length > 0) ? gorevler.filter((g) => seciliGorevler.includes(g.id)) : gorevler.filter(g => g.durum !== 'tamamlandi')
     bolumler.forEach((b) => {
       const liste = kaynakListe
         .filter((g) => g.durum === b.durum)
@@ -422,8 +422,12 @@ export default function Gorevler() {
     }
   }
 
-  // Filtreleme Zinciri
-  const santiyeyeGoreFiltreli = filtreSantiye === 'hepsi' ? gorevler : gorevler.filter((g) => g.santiye_id === filtreSantiye)
+  // Timeline aktif görevler (Tamamlananlar hariç)
+  const aktifGorevler = gorevler.filter((g) => g.durum !== 'tamamlandi')
+  const tamamlananGorevler = gorevler.filter((g) => g.durum === 'tamamlandi')
+
+  // Filtreleme Zinciri (Timeline için)
+  const santiyeyeGoreFiltreli = filtreSantiye === 'hepsi' ? aktifGorevler : aktifGorevler.filter((g) => g.santiye_id === filtreSantiye)
   const kisiyeGoreFiltreli = filtreKisi === 'hepsi'
     ? santiyeyeGoreFiltreli
     : santiyeyeGoreFiltreli.filter((g) => g.gorev_etiketleri?.some((e) => e.etiket_turu === 'kisi' && e.deger === filtreKisi))
@@ -449,7 +453,6 @@ export default function Gorevler() {
     oncelikSeciciAcikId, setOncelikSeciciAcikId, oncelikDegistir, kisiEtiketiDegistir,
   }
 
-  // Aktif filtre sayısı (buton üzerinde rozet göstermek için)
   const aktifFiltreSayisi = [
     filtreSantiye !== 'hepsi',
     filtreDurum !== 'hepsi',
@@ -520,9 +523,6 @@ export default function Gorevler() {
         </div>
 
         <p style={{ fontSize: 12, color: '#5F5E5A', margin: '4px 0 2px' }}>Etiketlenecek kişiler:</p>
-        <p style={{ fontSize: 11, color: '#888780', margin: '0 0 6px' }}>
-          🔔 Etiketlenen kişiye Uyarı sayfasında bildirim düşer, tıklayınca doğrudan bu göreve yönlendirilir.
-        </p>
         <div className="kisi-etiket-secici">
           {kullanicilar.map((k) => (
             <button
@@ -538,7 +538,7 @@ export default function Gorevler() {
         <button className="ekle-buton-genis" onClick={gorevEkle}>Görevi kaydet</button>
       </div>
 
-      {/* AÇILIR - KAPANIR FİLTRE PANELİ BUTONU */}
+      {/* FİLTRE PANELİ */}
       <div style={{ marginBottom: 12 }}>
         <button
           onClick={() => setFiltrelerAcik(!filtrelerAcik)}
@@ -561,11 +561,8 @@ export default function Gorevler() {
           <span>{filtrelerAcik ? '▲ Gizle' : '▼ Göster'}</span>
         </button>
 
-        {/* FİLTRE PANELİ İÇERİĞİ */}
         {filtrelerAcik && (
           <div style={{ background: '#faf9f5', padding: '12px', borderRadius: 8, border: '1px solid #d3d1c7', marginTop: 6 }}>
-            
-            {/* Şantiye Filtresi */}
             <p style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px', color: '#555' }}>Şantiye</p>
             <div className="filtre-satiri" style={{ marginBottom: 8 }}>
               <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tümü</button>
@@ -574,15 +571,13 @@ export default function Gorevler() {
               ))}
             </div>
 
-            {/* Durum Filtresi */}
             <p style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px', color: '#555' }}>Durum</p>
             <div className="filtre-satiri" style={{ marginBottom: 8 }}>
-              {DURUMLAR.map((d) => (
+              {DURUMLAR.filter(d => d.deger !== 'tamamlandi').map((d) => (
                 <button key={d.deger} className={`filtre-chip ${filtreDurum === d.deger ? 'secili' : ''}`} onClick={() => setFiltreDurum(d.deger)}>{d.etiket}</button>
               ))}
             </div>
 
-            {/* Etiketlenen Kişi Filtresi */}
             {yonetici && (
               <>
                 <p style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px', color: '#555' }}>Etiketlenen Kişi</p>
@@ -595,7 +590,6 @@ export default function Gorevler() {
               </>
             )}
 
-            {/* Ekleyen Kişi Filtresi */}
             <p style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px', color: '#555' }}>Görevi Ekleyen</p>
             <div className="filtre-satiri" style={{ marginBottom: 4 }}>
               <button className={`filtre-chip ${filtreEkleyen === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreEkleyen('hepsi')}>Tümü</button>
@@ -606,7 +600,6 @@ export default function Gorevler() {
               ))}
             </div>
 
-            {/* Filtreleri Sıfırlama Butonu */}
             {aktifFiltreSayisi > 0 && (
               <button
                 onClick={() => { setFiltreSantiye('hepsi'); setFiltreDurum('hepsi'); setFiltreKisi('hepsi'); setFiltreEkleyen('hepsi') }}
@@ -619,20 +612,94 @@ export default function Gorevler() {
         )}
       </div>
 
-      <div className="gorunum-secici" style={{ marginBottom: 12 }}>
-        <button className={siralamaYonu === 'yeni' ? 'secili-tab' : ''} onClick={() => setSiralamaYonu('yeni')}>Yeniden eskiye</button>
-        <button className={siralamaYonu === 'eski' ? 'secili-tab' : ''} onClick={() => setSiralamaYonu('eski')}>Eskiden yeniye</button>
+      {/* TEK BİRLEŞTİRİLMİŞ SIRALAMA BUTONU VE ARŞİV */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <button
+          onClick={() => setSiralamaYonu((onceki) => (onceki === 'yeni' ? 'eski' : 'yeni'))}
+          style={{
+            flex: 1,
+            padding: '8px 12px',
+            background: '#fff',
+            border: '1px solid #d3d1c7',
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+            textAlign: 'center'
+          }}
+        >
+          {siralamaYonu === 'yeni' ? 'Sıralama (Y - E)' : 'Sıralama (E - Y)'}
+        </button>
+
+        <button
+          onClick={() => setArsivAcik(true)}
+          style={{
+            padding: '8px 14px',
+            background: '#0F6E56',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer'
+          }}
+        >
+          📦 Arşiv ({tamamlananGorevler.length})
+        </button>
       </div>
 
       <div className="liste">
         {gosterilenKokGorevler.map((g) => <GorevKarti key={g.id} gorev={g} seviye={0} ctx={ctx} />)}
-        {kokGorevler.length === 0 && <p className="bos-mesaj">Bu filtrede görev yok.</p>}
+        {kokGorevler.length === 0 && <p className="bos-mesaj">Bu filtrede aktif görev yok.</p>}
       </div>
 
       {kokGorevler.length > gosterilenSayisi && (
         <button className="daha-fazla-buton" style={{ marginTop: 8 }} onClick={() => setGosterilenSayisi((n) => n + 10)}>
           ▼ Daha fazla göster ({kokGorevler.length - gosterilenSayisi} tane daha)
         </button>
+      )}
+
+      {/* ARŞİV MODALI / EKRANI */}
+      {arsivAcik && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 16
+        }}>
+          <div style={{
+            background: '#fff', width: '100%', maxWidth: 500, maxHeight: '80vh', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h3 style={{ margin: 0 }}>Tamamlanan Görevler (Arşiv)</h3>
+              <button onClick={() => setArsivAcik(false)} style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {tamamlananGorevler.map((g) => (
+                <div key={g.id} style={{ padding: 10, background: '#f9f9f8', borderRadius: 8, border: '1px solid #e2e0d8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: 13 }}>{g.baslik}</p>
+                    <span style={{ fontSize: 11, color: '#666' }}>{g.santiyeler?.ad || 'Genel'} · {new Date(g.created_at).toLocaleDateString('tr-TR')}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      onClick={() => durumGuncelle(g.id, 'bekliyor')}
+                      style={{ padding: '4px 8px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 4, fontSize: 11, cursor: 'pointer' }}
+                    >
+                      Aktife Al
+                    </button>
+                    <button
+                      onClick={() => gorevSil(g.id)}
+                      style={{ padding: '4px 8px', background: '#D64545', color: '#fff', border: 'none', borderRadius: 4, fontSize: 11, cursor: 'pointer' }}
+                    >
+                      Sil
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {tamamlananGorevler.length === 0 && <p className="bos-mesaj">Arşivde tamamlanan görev bulunmuyor.</p>}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
