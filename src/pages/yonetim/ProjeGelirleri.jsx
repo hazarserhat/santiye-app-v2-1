@@ -18,6 +18,8 @@ export default function ProjeGelirleri() {
   const [yeniAcik, setYeniAcik] = useState(false)
   const [yeniAd, setYeniAd] = useState('')
   const [yeniTelefon, setYeniTelefon] = useState('')
+  const [yeniMeskenTuru, setYeniMeskenTuru] = useState('')
+  const [yeniDaireNo, setYeniDaireNo] = useState('')
   const [yeniSantiyeId, setYeniSantiyeId] = useState('')
 
   // Dinamik olarak tablodaki maksimum aşama sayısını buluyoruz (en az 4 olsun ki daralmasın)
@@ -50,13 +52,15 @@ export default function ProjeGelirleri() {
     const { data, error } = await supabase.from('malikler').insert({ 
       ad_soyad: yeniAd, 
       telefon: yeniTelefon, 
+      mesken_turu: yeniMeskenTuru,
+      daire_no: yeniDaireNo,
       santiye_id: yeniSantiyeId 
     }).select().single()
     
     if (error) { alert('Eklenemedi: ' + error.message); return }
     const bosAsamalar = Array.from({ length: 4 }).map((_, i) => ({ malik_id: data.id, ad: '', tutar: 0, tamamlandi: false, sira: i + 1 }))
     await supabase.from('malik_asamalari').insert(bosAsamalar)
-    setYeniAd(''); setYeniTelefon(''); setYeniAcik(false)
+    setYeniAd(''); setYeniTelefon(''); setYeniMeskenTuru(''); setYeniDaireNo(''); setYeniAcik(false)
     yenile()
   }
 
@@ -71,7 +75,9 @@ export default function ProjeGelirleri() {
     setTaslak({ 
       toplam_alacak: m.toplam_alacak || 0, 
       devlet_destegi: m.devlet_destegi || 0,
-      telefon: m.telefon || '' 
+      telefon: m.telefon || '',
+      mesken_turu: m.mesken_turu || '',
+      daire_no: m.daire_no || ''
     })
     const mevcut = asamalar[m.id] || []
     setTaslakAsamalar(mevcut.length ? [...mevcut] : [{ ad: '', tutar: 0, sira: 1 }])
@@ -82,6 +88,8 @@ export default function ProjeGelirleri() {
       toplam_alacak: Number(taslak.toplam_alacak) || 0,
       devlet_destegi: Number(taslak.devlet_destegi) || 0,
       telefon: taslak.telefon || '',
+      mesken_turu: taslak.mesken_turu || '',
+      daire_no: taslak.daire_no || '',
     }).eq('id', malikId)
 
     await supabase.from('malik_asamalari').delete().eq('malik_id', malikId)
@@ -160,6 +168,8 @@ export default function ProjeGelirleri() {
               <th style={{ ...baslikStil, position: 'sticky', left: 0, background: 'white' }}>Malik</th>
               <th style={baslikStil}>İletişim Bilgileri</th>
               <th style={baslikStil}>Şantiye</th>
+              <th style={baslikStil}>Mesken Türü</th>
+              <th style={baslikStil}>Daire No</th>
               <th style={baslikStil}>Toplam Alacak</th>
               <th style={baslikStil}>Devlet Desteği</th>
               <th style={baslikStil}>Kalan Bakiye</th>
@@ -181,6 +191,8 @@ export default function ProjeGelirleri() {
                   <td style={{ ...hucreStil, position: 'sticky', left: 0, background: 'white', fontWeight: 700 }}>{m.ad_soyad}</td>
                   <td style={hucreStil}>{m.telefon || '—'}</td>
                   <td style={hucreStil}>{m.santiyeler?.ad}</td>
+                  <td style={hucreStil}>{m.mesken_turu || '—'}</td>
+                  <td style={hucreStil}>{m.daire_no || '—'}</td>
                   <td style={hucreStil}>{paraFormatla(m.toplam_alacak)} ₺</td>
                   <td style={hucreStil}>{paraFormatla(m.devlet_destegi)} ₺</td>
                   <td style={hucreStil}>{paraFormatla(kalanBakiye)} ₺</td>
@@ -209,12 +221,14 @@ export default function ProjeGelirleri() {
                 </tr>
               )
             })}
-            {gorunenler.length === 0 && <tr><td colSpan={11 + maxStageCount} style={hucreStil}>Henüz malik eklenmemiş.</td></tr>}
+            {gorunenler.length === 0 && <tr><td colSpan={13 + maxStageCount} style={hucreStil}>Henüz malik eklenmemiş.</td></tr>}
           </tbody>
           {gorunenler.length > 0 && (
             <tfoot>
               <tr style={{ background: '#F8F7F2', fontWeight: 700 }}>
                 <td style={{ ...hucreStil, position: 'sticky', left: 0, background: '#F8F7F2' }}>TOPLAM</td>
+                <td style={hucreStil}></td>
+                <td style={hucreStil}></td>
                 <td style={hucreStil}></td>
                 <td style={hucreStil}></td>
                 <td style={hucreStil}>{paraFormatla(toplamAlacakGenel)} ₺</td>
@@ -234,13 +248,34 @@ export default function ProjeGelirleri() {
         <div className="ekleme-kutusu">
           <p className="alt-baslik">Düzenle: {malikler.find((m) => m.id === duzenlenenId)?.ad_soyad}</p>
           
+          <div className="ekleme-satiri-2" style={{ marginBottom: 8 }}>
+            <div>
+              <label style={{ fontSize: 11, color: '#5F5E5A' }}>İletişim Bilgileri (Telefon)</label>
+              <input 
+                type="text" 
+                value={taslak.telefon || ''} 
+                placeholder="05xx xxx xx xx"
+                onChange={(e) => setTaslak((o) => ({ ...o, telefon: e.target.value }))} 
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: '#5F5E5A' }}>Mesken Türü</label>
+              <input 
+                type="text" 
+                value={taslak.mesken_turu || ''} 
+                placeholder="Daire / Dükkan vb."
+                onChange={(e) => setTaslak((o) => ({ ...o, mesken_turu: e.target.value }))} 
+              />
+            </div>
+          </div>
+
           <div style={{ marginBottom: 8 }}>
-            <label style={{ fontSize: 11, color: '#5F5E5A' }}>İletişim Bilgileri (Telefon)</label>
+            <label style={{ fontSize: 11, color: '#5F5E5A' }}>Daire No</label>
             <input 
               type="text" 
-              value={taslak.telefon || ''} 
-              placeholder="05xx xxx xx xx"
-              onChange={(e) => setTaslak((o) => ({ ...o, telefon: e.target.value }))} 
+              value={taslak.daire_no || ''} 
+              placeholder="Örn: 5"
+              onChange={(e) => setTaslak((o) => ({ ...o, daire_no: e.target.value }))} 
             />
           </div>
 
@@ -297,6 +332,10 @@ export default function ProjeGelirleri() {
           </select>
           <input type="text" placeholder="Malik ad soyad" value={yeniAd} onChange={(e) => setYeniAd(e.target.value)} />
           <input type="text" placeholder="İletişim bilgileri (Telefon)" value={yeniTelefon} onChange={(e) => setYeniTelefon(e.target.value)} />
+          <div className="ekleme-satiri-2">
+            <input type="text" placeholder="Mesken Türü (Daire, Dükkan vb.)" value={yeniMeskenTuru} onChange={(e) => setYeniMeskenTuru(e.target.value)} />
+            <input type="text" placeholder="Daire No" value={yeniDaireNo} onChange={(e) => setYeniDaireNo(e.target.value)} />
+          </div>
           <div className="ekleme-satiri-2">
             <button onClick={() => setYeniAcik(false)}>Vazgeç</button>
             <button className="ekle-buton-genis" onClick={malikEkle}>Kaydet</button>
