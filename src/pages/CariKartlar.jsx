@@ -420,9 +420,12 @@ export default function CariKartlar() {
                 if (olay.tip === 'hakedis') {
                   const h = olay.veri
                   const duzenlekte = duzenlenenHakedisId === h.id
+                  const netTutar = Number(h.tutar) - Number(h.kesinti_avans || 0)
+                  // Eğer netTutar artı (+) çıkarsa Kırmızı, eksi (-) çıkarsa Yeşil kenarlık
+                  const hakedisKenarRengi = netTutar > 0 ? '#EF4444' : '#10B981'
 
                   return (
-                    <div key={`hk-${h.id || index}`} className="kart" style={{ borderLeft: '4px solid #1D9596' }}>
+                    <div key={`hk-${h.id || index}`} className="kart" style={{ borderLeft: `4px solid ${hakedisKenarRengi}` }}>
                       {duzenlekte ? (
                         <div className="ekleme-kutusu" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
                           <input type="text" placeholder="Başlık" value={duzHkDonem} onChange={(e) => setDuzHkDonem(e.target.value)} style={{ marginBottom: 6 }} />
@@ -456,7 +459,7 @@ export default function CariKartlar() {
                             <span>Tutar</span><span>{paraFormatla(h.tutar)} ₺</span>
                             <span>Kesinti/Avans</span><span>-{paraFormatla(h.kesinti_avans)} ₺</span>
                             <span className="hakedis-net-etiket">Net</span>
-                            <span className="hakedis-net-tutar">{paraFormatla(Number(h.tutar) - Number(h.kesinti_avans))} ₺</span>
+                            <span className="hakedis-net-tutar">{paraFormatla(netTutar)} ₺</span>
                           </div>
                           {h.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{h.aciklama}</p>}
                           <span className="not-alt" style={{ display: 'block', marginTop: 4 }}>Eklenme Zamanı: {new Date(h.created_at).toLocaleDateString('tr-TR')} {new Date(h.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
@@ -467,10 +470,10 @@ export default function CariKartlar() {
                 } else if (olay.tip === 'masraf') {
                   const m = olay.veri
                   return (
-                    <div key={`msf-${m.id || index}`} className="kart" style={{ borderLeft: '4px solid #E08A2E' }}>
+                    <div key={`msf-${m.id || index}`} className="kart" style={{ borderLeft: '4px solid #10B981' }}>
                       <div className="kart-ust">
                         <span className="kart-baslik">Ödeme / Masraf: {m.baslik}</span>
-                        <span style={{ fontWeight: 700, color: '#D64545' }}>-{paraFormatla(m.tutar)} ₺</span>
+                        <span style={{ fontWeight: 700, color: '#10B981' }}>+{paraFormatla(m.tutar)} ₺</span>
                       </div>
                       <div className="etiket-satiri">
                         <span className="etiket etiket-vurgu">{m.santiyeler?.ad || 'Genel Gider'}</span>
@@ -484,10 +487,10 @@ export default function CariKartlar() {
                 } else {
                   const c = olay.veri
                   return (
-                    <div key={`cek-${c.id || index}`} className="kart" style={{ borderLeft: '4px solid #6366F1' }}>
+                    <div key={`cek-${c.id || index}`} className="kart" style={{ borderLeft: '4px solid #10B981' }}>
                       <div className="kart-ust">
                         <span className="kart-baslik">{c.odeme_konusu || 'Çek Girdisi'}</span>
-                        <span className="kart-tutar">{paraFormatla(c.tutar)} ₺</span>
+                        <span className="kart-tutar" style={{ color: '#10B981' }}>+{paraFormatla(c.tutar)} ₺</span>
                       </div>
                       <div className="etiket-satiri">
                         <span className="etiket etiket-vurgu">{c.odenen || seciliTaseron?.ad || 'Cari'}</span>
