@@ -15,6 +15,15 @@ export default function Cekler() {
   const [taseronlar, setTaseronlar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(false)
 
+  // Düzenleme State'leri
+  const [duzenlenenId, setDuzenlenenId] = useState(null)
+
+  // Filtre ve Sıralama State'leri
+  const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
+  const [filtreBanka, setFiltreBanka] = useState('hepsi')
+  const [filtrelerAcik, setFiltrelerAcik] = useState(false)
+  const [siralamaYonu, setSiralamaYonu] = useState('eklenme_yeni') // 'eklenme_yeni' | 'vade_yakin' | 'vade_uzak'
+
   const [odemeKonusu, setOdemeKonusu] = useState('')
   const [santiyeId, setSantiyeId] = useState('')
   const [odeyen, setOdeyen] = useState('')
@@ -40,7 +49,7 @@ export default function Cekler() {
   }, [])
 
   const cekleriYukle = async () => {
-    const { data, error } = await supabase.from('cekler').select('*, santiyeler(ad), profiles(ad_soyad)').order('cek_vadesi', { ascending: true })
+    const { data, error } = await supabase.from('cekler').select('*, santiyeler(ad), profiles(ad_soyad)').order('created_at', { ascending: false })
     if (error) { alert('Çekler yüklenemedi: ' + error.message); return }
     setCekler(data || [])
   }
@@ -61,7 +70,39 @@ export default function Cekler() {
     setYeniBankaAcik(false)
   }
 
-  const cekEkle = async () => {
+  const formuSifirla = () => {
+    setOdemeKonusu('')
+    setSantiyeId('')
+    setOdeyen('')
+    setOdenen('')
+    setSecilenCariId(null)
+    setCekSeriNo('')
+    setCekVadesi('')
+    setTutar('')
+    setAciklama('')
+    setBelge(null)
+    setVerilisTarihi(bugun())
+    setDuzenlenenId(null)
+  }
+
+  const duzenlemeyiBaslat = (c) => {
+    setDuzenlenenId(c.id)
+    setOdemeKonusu(c.odeme_konusu || '')
+    setSantiyeId(c.santiye_id || '')
+    setOdeyen(c.odeyen || '')
+    setOdenen(c.odenen || '')
+    setSecilenCariId(c.cari_id || null)
+    setCekSeriNo(c.cek_seri_no || '')
+    setBanka(c.banka || (bankalar[0]?.ad ?? ''))
+    setVerilisTarihi(c.verilis_tarihi ? c.verilis_tarihi.slice(0, 10) : bugun())
+    setCekVadesi(c.cek_vadesi ? c.cek_vadesi.slice(0, 10) : '')
+    setTutar(c.tutar ? String(c.tutar) : '')
+    setAciklama(c.aciklama || '')
+    setBelge(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const cekKaydetVeyaGuncelle = async () => {
     if (!odemeKonusu.trim() || !tutar) { alert('Ödeme konusu ve tutar zorunludur.'); return }
     setYukleniyor(true)
 
@@ -74,6 +115,7 @@ export default function Cekler() {
     }
 
     let belgeUrl = null
+    // Mevcut kaydı güncelliyorsak ve yeni belge seçilmediyse eski belgeyi koruyabiliriz
     if (belge) {
       const dosyaAdi = `${Date.now()}_${belge.name}`
       const { data, error } = await supabase.storage.from('cek-belgeleri').upload(dosyaAdi, belge)
@@ -83,7 +125,7 @@ export default function Cekler() {
       }
     }
 
-    const { error } = await supabase.from('cekler').insert({
+    const veri = {
       odeme_konusu: odemeKonusu,
       santiye_id: santiyeId || null,
       odeyen,
@@ -95,14 +137,19 @@ export default function Cekler() {
       cek_vadesi: cekVadesi || null,
       tutar: Number(tutar),
       aciklama,
-      belge_url: belgeUrl,
-      ekleyen: profile?.id,
-    })
+      ...(belgeUrl ? { belge_url: belgeUrl } : {}),
+      ...(!duzenlenenId ? { ekleyen: profile?.id } : {})
+    }
 
-    if (error) { alert('Çek eklenemedi: ' + error.message); setYukleniyor(false); return }
+    if (duzenlenenId) {
+      const { error } = await supabase.from('cekler').update(veri).eq('id', duzenlenenId)
+      if (error) { alert('Çek güncellenemedi: ' + error.message); setYukleniyor(false); return }
+    } else {
+      const { error } = await supabase.from('cekler').insert(veri)
+      if (error) { alert('Çek eklenemedi: ' + error.message); setYukleniyor(false); return }
+    }
 
-    setOdemeKonusu(''); setSantiyeId(''); setOdeyen(''); setOdenen(''); setSecilenCariId(null); setCekSeriNo('')
-    setCekVadesi(''); setTutar(''); setAciklama(''); setBelge(null); setVerilisTarihi(bugun())
+    formuSifirla()
     setYukleniyor(false)
     cekleriYukle()
   }
@@ -161,10 +208,51 @@ export default function Cekler() {
     }
   }
 
+  // Filtreleme ve Sıralama Mantığı
+  const filtrelenmisCekler = cekler.filter((c) => {
+    const santiyeUyar = filtreSantiye === 'hepsi' || c.santiye_id === filtreSantiye
+    const bankaUyar = filtreBanka === 'hepsi' || c.banka === filtreBanka
+    return santiyeUyar && bankaUyar
+  })
+
+  const siraliCekler = [...filtrelenmisCekler].sort((a, b) => {
+    if (siralamaYonu === 'eklenme_yeni') {
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0)
+    } else if (siralamaYonu === 'vade_yakin') {
+      const tarihA = a.cek_vadesi ? new Date(a.cek_vadesi) : new Date(8640000000000000)
+      const tarihB = b.cek_vadesi ? new Date(b.cek_vadesi) : new Date(8640000000000000)
+      return tarihA - tarihB
+    } else {
+      const tarihA = a.cek_vadesi ? new Date(a.cek_vadesi) : new Date(0)
+      const tarihB = b.cek_vadesi ? new Date(b.cek_vadesi) : new Date(0)
+      return tarihB - tarihA
+    }
+  })
+
+  const aktifFiltreSayisi = [
+    filtreSantiye !== 'hepsi',
+    filtreBanka !== 'hepsi'
+  ].filter(Boolean).length
+
+  const siralamaMetni = 
+    siralamaYonu === 'eklenme_yeni' ? 'Sıralama: Eklenme Tarihi (Yeni → Eski)' :
+    siralamaYonu === 'vade_yakin' ? 'Sıralama: Vade (Yakından Uzağa)' : 'Sıralama: Vade (Uzaktan Yakına)'
+
   return (
     <div>
-      {/* YENİ ÇEK EKLEME ALANI (EN ÜSTTE) */}
-      <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
+      {/* YENİ ÇEK EKLEME VEYA DÜZENLEME ALANI (EN ÜSTTE) */}
+      <div className="ekleme-kutusu" style={{ marginBottom: 16, border: duzenlenenId ? '2px solid #0F6E56' : '1px solid #d3d1c7' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <h3 style={{ fontSize: 14, margin: 0, color: duzenlenenId ? '#0F6E56' : '#333' }}>
+            {duzenlenenId ? '✏️ Çek Kaydını Düzenliyorsunuz' : '➕ Yeni Çek Ekle'}
+          </h3>
+          {duzenlenenId && (
+            <button onClick={formuSifirla} style={{ background: '#D64545', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 8px', fontSize: 11, cursor: 'pointer' }}>
+              Düzenlemeden Çık
+            </button>
+          )}
+        </div>
+
         <input type="text" placeholder="Ödeme konusu..." value={odemeKonusu} onChange={(e) => setOdemeKonusu(e.target.value)} />
 
         <select value={santiyeId} onChange={(e) => setSantiyeId(e.target.value)}>
@@ -223,23 +311,103 @@ export default function Cekler() {
         />
 
         <label className="dosya-buton">
-          📎 {belge ? belge.name.slice(0, 22) : 'Fotoğraf / Galeri / Belge Tara'}
+          📎 {belge ? belge.name.slice(0, 22) : 'Fotoğraf / Galeri / Belge Değiştir (opsiyonel)'}
           <input type="file" accept="image/*,application/pdf" hidden onChange={(e) => setBelge(e.target.files[0])} />
         </label>
 
-        <button className="ekle-buton-genis" onClick={cekEkle} disabled={yukleniyor}>
-          {yukleniyor ? 'Ekleniyor...' : 'Çek kaydını kaydet'}
+        <button className="ekle-buton-genis" onClick={cekKaydetVeyaGuncelle} disabled={yukleniyor} style={{ background: duzenlenenId ? '#0F6E56' : undefined }}>
+          {yukleniyor ? 'Kaydediliyor...' : (duzenlenenId ? 'Çek Güncellemesini Kaydet' : 'Çek kaydını kaydet')}
+        </button>
+      </div>
+
+      {/* AÇILIR - KAPANIR FİLTRE PANELİ */}
+      <div style={{ marginBottom: 12 }}>
+        <button
+          onClick={() => setFiltrelerAcik(!filtrelerAcik)}
+          style={{
+            width: '100%',
+            padding: '10px 14px',
+            background: filtrelerAcik ? '#0F6E56' : '#f0f0ed',
+            color: filtrelerAcik ? '#fff' : '#333',
+            border: '1px solid #d3d1c7',
+            borderRadius: 8,
+            fontWeight: 600,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            cursor: 'pointer',
+            fontSize: 13
+          }}
+        >
+          <span>🔍 Filtreler {aktifFiltreSayisi > 0 ? `(${aktifFiltreSayisi} aktif)` : ''}</span>
+          <span>{filtrelerAcik ? '▲ Gizle' : '▼ Göster'}</span>
+        </button>
+
+        {filtrelerAcik && (
+          <div style={{ background: '#faf9f5', padding: '12px', borderRadius: 8, border: '1px solid #d3d1c7', marginTop: 6 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px', color: '#555' }}>Şantiye</p>
+            <div className="filtre-satiri" style={{ marginBottom: 8 }}>
+              <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tümü</button>
+              {santiyeler.map((s) => (
+                <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
+              ))}
+            </div>
+
+            <p style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px', color: '#555' }}>Banka</p>
+            <div className="filtre-satiri" style={{ marginBottom: 4 }}>
+              <button className={`filtre-chip ${filtreBanka === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreBanka('hepsi')}>Tümü</button>
+              {bankalar.map((b) => (
+                <button key={b.id} className={`filtre-chip ${filtreBanka === b.ad ? 'secili' : ''}`} onClick={() => setFiltreBanka(b.ad)}>{b.ad}</button>
+              ))}
+            </div>
+
+            {aktifFiltreSayisi > 0 && (
+              <button
+                onClick={() => { setFiltreSantiye('hepsi'); setFiltreBanka('hepsi') }}
+                style={{ fontSize: 11, marginTop: 8, background: 'none', border: 'none', color: '#D64545', cursor: 'pointer', padding: 0, fontWeight: 600 }}
+              >
+                ✕ Filtreleri Temizle
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* DÖNGÜSEL SIRALAMA BUTONU */}
+      <div style={{ marginBottom: 12 }}>
+        <button
+          onClick={() => {
+            setSiralamaYonu((onceki) => {
+              if (onceki === 'eklenme_yeni') return 'vade_yakin'
+              if (onceki === 'vade_yakin') return 'vade_uzak'
+              return 'eklenme_yeni'
+            })
+          }}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            background: '#fff',
+            border: '1px solid #d3d1c7',
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+            textAlign: 'center'
+          }}
+        >
+          {siralamaMetni}
         </button>
       </div>
 
       {/* LİSTE / AKIŞ ALANI (ALTTA) */}
       <div className="liste">
-        {cekler.map((c) => (
-          <div key={c.id} className="kart">
+        {siraliCekler.map((c) => (
+          <div key={c.id} className="kart" style={{ border: duzenlenenId === c.id ? '2px solid #0F6E56' : undefined }}>
             <div className="kart-ust">
               <span className="kart-baslik">{c.odeme_konusu}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span className="kart-tutar">{paraFormatla(c.tutar)} ₺</span>
+                <button className="sil-buton" onClick={() => duzenlemeyiBaslat(c)} aria-label="Düzenle">✎</button>
                 <button className="sil-buton" onClick={() => cekSil(c.id)} aria-label="Sil">🗑</button>
               </div>
             </div>
@@ -295,7 +463,7 @@ export default function Cekler() {
             </button>
           </div>
         ))}
-        {cekler.length === 0 && <p className="bos-mesaj">Henüz çek kaydı yok.</p>}
+        {siraliCekler.length === 0 && <p className="bos-mesaj">Bu filtrede çek kaydı yok.</p>}
       </div>
     </div>
   )
