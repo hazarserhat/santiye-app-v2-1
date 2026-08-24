@@ -160,19 +160,12 @@ export default function Cekler() {
     cekleriYukle()
   }
 
+  // Mobil mi masaüstü mü tespiti
+  const mobilCihaz = () => navigator.maxTouchPoints > 0
+
   // WhatsApp ile Görsel ve Metin Paylaşım Fonksiyonu
   const cekPaylas = async (c) => {
     try {
-      let dosyalar = []
-      
-      if (c.belge_url) {
-        const response = await fetch(c.belge_url)
-        const blob = await response.blob()
-        const dosyaAdi = c.odeme_konusu ? `${c.odeme_konusu.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.jpg` : 'cek_belgesi.jpg'
-        const file = new File([blob], dosyaAdi, { type: blob.type })
-        dosyalar.push(file)
-      }
-
       const metin =
         `💳 *ÇEK / ÖDEME BİLDİRİMİ*\n` +
         `📌 *Konu:* ${c.odeme_konusu}\n` +
@@ -186,19 +179,25 @@ export default function Cekler() {
         `⏳ *Vade:* ${c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : '—'}\n` +
         (c.aciklama ? `📝 *Not:* ${c.aciklama}` : '')
 
-      if (navigator.canShare && navigator.canShare({ files: dosyalar })) {
-        await navigator.share({
-          title: 'Çek Belgesi',
-          text: metin,
-          files: dosyalar,
-        })
-      } else if (navigator.share) {
-        await navigator.share({
-          title: 'Çek Belgesi',
-          text: metin + (c.belge_url ? `\n🔗 Belge Linki: ${c.belge_url}` : ''),
-        })
+      // Mobilse: belge varsa dosya + metin birlikte paylaş
+      if (mobilCihaz() && c.belge_url && navigator.canShare) {
+        const response = await fetch(c.belge_url)
+        const blob = await response.blob()
+        const uzanti = blob.type.includes('pdf') ? 'pdf' : 'jpg'
+        const dosyaAdi = c.odeme_konusu ? `${c.odeme_konusu.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${uzanti}` : `cek_belgesi.${uzanti}`
+        const file = new File([blob], dosyaAdi, { type: blob.type })
+        if (navigator.canShare({ files: [file], text: metin })) {
+          await navigator.share({ title: 'Çek Belgesi', text: metin, files: [file] })
+          return
+        }
+      }
+
+      // Masaüstü veya belge yoksa: metin + link olarak paylaş
+      const metinVeLink = metin + (c.belge_url ? `\n🔗 Belge: ${c.belge_url}` : '')
+      if (navigator.share) {
+        await navigator.share({ title: 'Çek Belgesi', text: metinVeLink })
       } else {
-        window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
+        window.open('https://wa.me/?text=' + encodeURIComponent(metinVeLink), '_blank')
       }
     } catch (err) {
       if (err.name !== 'AbortError') {
@@ -206,6 +205,11 @@ export default function Cekler() {
         alert('Paylaşım sırasında bir hata oluştu.')
       }
     }
+  }
+
+  const muhasebePaylasimGuncelle = async (id, deger) => {
+    await supabase.from('cekler').update({ muhasebe_paylasim: deger }).eq('id', id)
+    setCekler((onceki) => onceki.map((c) => c.id === id ? { ...c, muhasebe_paylasim: deger } : c))
   }
 
   // Filtreleme ve Sıralama Mantığı
@@ -439,11 +443,36 @@ export default function Cekler() {
               </div>
             )}
 
+            {/* Muhasebe Paylaşım Kutucuğu */}
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              marginTop: 10,
+              padding: '7px 10px',
+              borderRadius: 6,
+              background: c.muhasebe_paylasim ? '#E6F9F0' : '#FFF8E1',
+              border: `1px solid ${c.muhasebe_paylasim ? '#4CAF50' : '#FFD54F'}`,
+              cursor: 'pointer',
+              userSelect: 'none',
+              fontSize: 12,
+              fontWeight: 600,
+              color: c.muhasebe_paylasim ? '#2E7D32' : '#F57F17',
+            }}>
+              <input
+                type="checkbox"
+                checked={!!c.muhasebe_paylasim}
+                onChange={(e) => muhasebePaylasimGuncelle(c.id, e.target.checked)}
+                style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#4CAF50' }}
+              />
+              {c.muhasebe_paylasim ? '✅ Muhasebeye gönderildi' : '⏳ Muhasebeye gönderilmedi'}
+            </label>
+
             {/* WhatsApp ile Görsel ve Metin Gönderme Butonu */}
             <button 
               onClick={() => cekPaylas(c)}
               style={{ 
-                marginTop: 8, 
+                marginTop: 6, 
                 width: '100%', 
                 padding: '8px 12px', 
                 background: '#25D366', 
