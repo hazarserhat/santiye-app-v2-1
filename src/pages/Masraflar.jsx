@@ -21,9 +21,11 @@ export default function Masraflar() {
   const [taseronlar, setTaseronlar] = useState([])
 
   // Filtre ve Sıralama State'leri
-  const [filtreKategori, setFiltreKategori] = useState('hepsi')
+  const [filtreCari, setFiltreCari] = useState('hepsi')
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreKullanici, setFiltreKullanici] = useState('hepsi')
+  const [filtreBaslangic, setFiltreBaslangic] = useState('')
+  const [filtreBitis, setFiltreBitis] = useState('')
   const [filtreAcik, setFiltreAcik] = useState(false)
   const [siralama, setSiralama] = useState('kayit_yeni')
 
@@ -69,9 +71,16 @@ export default function Masraflar() {
 
   // Filtreleme ve Sıralama İşlemi
   let islenecekListe = [...masraflar]
-    .filter(m => filtreKategori === 'hepsi' || m.kategori_id === filtreKategori)
+    .filter(m => filtreCari === 'hepsi' || (filtreCari === 'yok' ? !m.cari_id : m.cari_id === filtreCari))
     .filter(m => filtreSantiye === 'hepsi' || (filtreSantiye === 'genel' ? !m.santiye_id : m.santiye_id === filtreSantiye))
     .filter(m => filtreKullanici === 'hepsi' || m.ekleyen === filtreKullanici)
+    .filter(m => {
+      if (!filtreBaslangic && !filtreBitis) return true
+      if (!m.harcama_tarihi) return false
+      if (filtreBaslangic && m.harcama_tarihi < filtreBaslangic) return false
+      if (filtreBitis && m.harcama_tarihi > filtreBitis) return false
+      return true
+    })
 
   islenecekListe.sort((a, b) => {
     if (siralama === 'kayit_yeni') return new Date(b.kayit_tarihi || 0) - new Date(a.kayit_tarihi || 0)
@@ -138,10 +147,33 @@ export default function Masraflar() {
 
     let finalCariId = secilenCariId
     if (!finalCariId && odenenKisi.trim()) {
-      const bulunan = taseronlar.find(t => t.ad.toLowerCase() === odenenKisi.trim().toLowerCase())
-      if (bulunan) finalCariId = bulunan.id
-    }
+      const isim = odenenKisi.trim()
 
+      // Bayat local state yerine veritabanında canlı arama yap
+      const { data: eslesenler } = await supabase
+        .from('taseronlar')
+        .select('*')
+        .ilike('ad', isim)
+        .limit(1)
+
+      if (eslesenler && eslesenler.length > 0) {
+        finalCariId = eslesenler[0].id
+      } else {
+        // Cari hesap hiç yoksa, gider eklerken otomatik oluştur
+        const { data: yeniTaseron, error: yeniTaseronHata } = await supabase
+          .from('taseronlar')
+          .insert({ ad: isim, sef_gorunur: true })
+          .select()
+          .single()
+
+        if (yeniTaseronHata) {
+          console.error('Otomatik cari oluşturulamadı:', yeniTaseronHata.message)
+        } else if (yeniTaseron) {
+          finalCariId = yeniTaseron.id
+          setTaseronlar((onceki) => [...onceki, yeniTaseron])
+        }
+      }
+    }
     let fotografUrl = null
     if (fotograf) {
       const hedefSantiyeKlasoru = secilenSantiyeId && secilenSantiyeId !== 'genel' ? secilenSantiyeId : 'genel'
@@ -290,11 +322,28 @@ export default function Masraflar() {
                 <option value="genel">Genel Gider</option>
               </select>
 
-              <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Kategori Filtresi</p>
-              <select value={filtreKategori} onChange={(e) => setFiltreKategori(e.target.value)} style={{ width: '100%', padding: 8, borderRadius: 6 }}>
-                <option value="hepsi">Tüm Kategoriler</option>
-                {kategoriler.map(k => <option key={k.id} value={k.id}>{k.ad}</option>)}
+              <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Cari Hesap Filtresi</p>
+              <select value={filtreCari} onChange={(e) => setFiltreCari(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+                <option value="hepsi">Tüm Cari Hesaplar</option>
+                {[...taseronlar].sort((a, b) => a.ad.localeCompare(b.ad)).map(t => (
+                  <option key={t.id} value={t.id}>{t.ad}</option>
+                ))}
+                <option value="yok">Cari Hesabı Olmayanlar</option>
               </select>
+
+              <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Tarih Aralığı (Gerçekleşme Tarihi)</p>
+              <div className="ekleme-satiri-2">
+                <input type="date" value={filtreBaslangic} onChange={(e) => setFiltreBaslangic(e.target.value)} />
+                <input type="date" value={filtreBitis} onChange={(e) => setFiltreBitis(e.target.value)} />
+              </div>
+              {(filtreBaslangic || filtreBitis) && (
+                <button
+                  onClick={() => { setFiltreBaslangic(''); setFiltreBitis('') }}
+                  style={{ marginTop: 8, fontSize: 12, background: 'transparent', border: 'none', color: '#0F6E56', cursor: 'pointer', padding: 0 }}
+                >
+                  Tarih filtresini temizle
+                </button>
+              )}
             </div>
           )}
 
