@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import Cekler from './Cekler'
 import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
 import CariAramaSecici from '../components/CariAramaSecici'
+import { uploadToGoogleDrive, moveToSilinenler } from '../lib/googleDrive'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -231,20 +232,27 @@ export default function Masraflar() {
     }
     let fotografUrl = null
     if (fotograf) {
-      const hedefSantiyeKlasoru = secilenSantiyeId && secilenSantiyeId !== 'genel' ? secilenSantiyeId : 'genel'
-      const safeName = fotograf.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
-      const dosyaAdi = `${hedefSantiyeKlasoru}/${Date.now()}_${safeName}`
-      const { data, error } = await supabase.storage.from('masraf-fotograflari').upload(dosyaAdi, fotograf)
+      const seciliSantiye = santiyeler.find((s) => s.id === secilenSantiyeId)
+      const santiyeAdi = seciliSantiye ? seciliSantiye.ad : 'Genel'
+      
+      const seciliYontem = odemeYontemleri.find((o) => o.id === odemeYontemiId)
+      const yontemAdi = seciliYontem ? seciliYontem.ad : 'Diger'
+      
+      const folderName = `Masraflar/${santiyeAdi}/${yontemAdi}`
+      const adSoyad = `${baslik.substring(0, 30)}-${odenenKisi || 'Bilinmiyor'}`
 
-      if (error) {
-        alert('Fotoğraf yüklenemedi: ' + error.message)
+      try {
+        const driveSonuc = await uploadToGoogleDrive({
+          file: fotograf,
+          folderName,
+          adSoyad,
+          date: harcamaTarihi,
+        })
+        fotografUrl = driveSonuc.url
+      } catch (err) {
+        alert('Görsel Google Drive\'a yüklenemedi: ' + err.message)
         setYukleniyor(false)
         return
-      }
-
-      if (data) {
-        const { data: urlData } = supabase.storage.from('masraf-fotograflari').getPublicUrl(data.path)
-        fotografUrl = urlData.publicUrl
       }
     }
 
@@ -302,6 +310,17 @@ export default function Masraflar() {
 
   const masrafSil = async (id) => {
     if (!window.confirm('Bu masrafı silmek istediğinize emin misiniz?')) return
+    const silinecek = masraflar.find((m) => m.id === id)
+    if (silinecek?.fotograf_url) {
+      try {
+        const s = santiyeler.find(x => x.id === silinecek.santiye_id)
+        const y = odemeYontemleri.find(x => x.id === silinecek.odeme_yontemi_id)
+        const folderName = `Masraflar/${s ? s.ad : 'Genel'}/${y ? y.ad : 'Diger'}`
+        await moveToSilinenler(silinecek.fotograf_url, folderName)
+      } catch (e) {
+        console.warn('Silinenlere taşıma hatası:', e)
+      }
+    }
     await supabase.from('masraflar').delete().eq('id', id)
     masraflariYukle()
   }
@@ -309,19 +328,28 @@ export default function Masraflar() {
   const sonradanFotografEkle = async (id, file, mSantiyeId) => {
     if (!file) return
     setYukleniyor(true)
-    const hedefSantiyeKlasoru = mSantiyeId && mSantiyeId !== 'genel' ? mSantiyeId : 'genel'
-    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
-    const dosyaAdi = `${hedefSantiyeKlasoru}/${Date.now()}_${safeName}`
-    const { data, error } = await supabase.storage.from('masraf-fotograflari').upload(dosyaAdi, file)
+    
+    const m = masraflar.find(x => x.id === id)
+    const seciliSantiye = santiyeler.find((s) => s.id === (mSantiyeId || (m ? m.santiye_id : null)))
+    const santiyeAdi = seciliSantiye ? seciliSantiye.ad : 'Genel'
+    const seciliYontem = odemeYontemleri.find((o) => o.id === (m ? m.odeme_yontemi_id : null))
+    const yontemAdi = seciliYontem ? seciliYontem.ad : 'Diger'
+    
+    const folderName = `Masraflar/${santiyeAdi}/${yontemAdi}`
+    const adSoyad = m ? `${m.baslik.substring(0, 30)}-${m.odenen_kisi || 'Bilinmiyor'}` : 'Sonradan_Eklenen_Belge'
 
-    if (error) {
-      alert('Görsel yüklenemedi: ' + error.message)
-      setYukleniyor(false)
-      return
+    try {
+      const driveSonuc = await uploadToGoogleDrive({
+        file,
+        folderName,
+        adSoyad,
+        date: m ? m.harcama_tarihi : bugun(),
+      })
+      await supabase.from('masraflar').update({ fotograf_url: driveSonuc.url }).eq('id', id)
+      masraflariYukle()
+    } catch (err) {
+      alert('Görsel Google Drive\'a yüklenemedi: ' + err.message)
     }
-    const { data: urlData } = supabase.storage.from('masraf-fotograflari').getPublicUrl(data.path)
-    await supabase.from('masraflar').update({ fotograf_url: urlData.publicUrl }).eq('id', id)
-    masraflariYukle()
     setYukleniyor(false)
   }
 

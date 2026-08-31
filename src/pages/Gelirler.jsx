@@ -120,12 +120,19 @@ export default function Gelirler() {
 
     let belgeUrl = null
     if (belge) {
+      const seciliSantiye = santiyeler.find((s) => s.id === santiyeId)
+      const santiyeAdi = seciliSantiye ? seciliSantiye.ad : 'Genel'
+      const folderName = `Gelirler/${santiyeAdi}/${tahsilatNoktasi || 'Diger'}`
+      
       const seciliMalik = malikler.find((x) => x.id === malikId)
-      const adSoyad = odemeYapanAdi || seciliMalik?.ad_soyad || profile?.ad_soyad || 'ISIMSIZ'
+      const odenenAdi = odemeYapanAdi || seciliMalik?.ad_soyad || profile?.ad_soyad || 'ISIMSIZ'
+      const kisaNot = notMetni ? notMetni.substring(0, 20) : 'Tahsilat'
+      const adSoyad = `${kisaNot}-${odenenAdi}`
+
       try {
         const driveSonuc = await uploadToGoogleDrive({
           file: belge,
-          folderName: 'Gelirler',
+          folderName,
           adSoyad,
           date: tarih,
         })
@@ -164,7 +171,10 @@ export default function Gelirler() {
 
     if (silinecek?.belge_url) {
       try {
-        await moveToSilinenler(silinecek.belge_url, 'Gelirler')
+        const seciliSantiye = santiyeler.find((s) => s.id === silinecek.santiye_id)
+        const santiyeAdi = seciliSantiye ? seciliSantiye.ad : 'Genel'
+        const folderName = `Gelirler/${santiyeAdi}/${silinecek.tahsilat_noktasi || 'Diger'}`
+        await moveToSilinenler(silinecek.belge_url, folderName)
       } catch (err) {
         console.warn('Belge Silinenler klasörüne taşınırken hata oluştu:', err)
       }
@@ -178,19 +188,27 @@ export default function Gelirler() {
     gelirleriYukle()
   }
 
-  const sonradanBelgeEkle = async (id, file, malikId, odemeYapanAdi, tarih) => {
+  const sonradanBelgeEkle = async (g, file) => {
     if (!file) return
     setYukleniyor(true)
-    const seciliMalik = malikler.find((x) => x.id === malikId)
-    const adSoyad = odemeYapanAdi || seciliMalik?.ad_soyad || profile?.ad_soyad || 'ISIMSIZ'
+    
+    const seciliSantiye = santiyeler.find((s) => s.id === g.santiye_id)
+    const santiyeAdi = seciliSantiye ? seciliSantiye.ad : 'Genel'
+    const folderName = `Gelirler/${santiyeAdi}/${g.tahsilat_noktasi || 'Diger'}`
+    
+    const seciliMalik = malikler.find((x) => x.id === g.malik_id)
+    const odenenAdi = g.odeme_yapan_adi || seciliMalik?.ad_soyad || 'ISIMSIZ'
+    const kisaNot = g.not_metni ? g.not_metni.substring(0, 20) : 'Tahsilat'
+    const adSoyad = `${kisaNot}-${odenenAdi}`
+    
     try {
       const driveSonuc = await uploadToGoogleDrive({
         file,
-        folderName: 'Gelirler',
+        folderName,
         adSoyad,
-        date: tarih || bugun(),
+        date: g.tarih || bugun(),
       })
-      await supabase.from('gelirler').update({ belge_url: driveSonuc.url }).eq('id', id)
+      await supabase.from('gelirler').update({ belge_url: driveSonuc.url }).eq('id', g.id)
       gelirleriYukle()
     } catch (err) {
       alert('Belge Google Drive\'a yüklenemedi: ' + err.message)
@@ -388,7 +406,7 @@ export default function Gelirler() {
                           id={`gorsel-sec-glr-${g.id}`}
                           accept="image/*,application/pdf"
                           style={{ display: 'none' }}
-                          onChange={(e) => sonradanBelgeEkle(g.id, e.target.files[0], g.malik_id, g.odeme_yapan_adi, g.tarih)}
+                          onChange={(e) => sonradanBelgeEkle(g, e.target.files[0])}
                         />
                         <button className="sil-buton" onClick={() => document.getElementById(`gorsel-sec-glr-${g.id}`).click()} aria-label="Görsel Ekle/Değiştir" title="Görsel Ekle/Değiştir">🖼️</button>
                         <button className="sil-buton" onClick={() => gelirSil(g.id)} aria-label="Sil">🗑</button>

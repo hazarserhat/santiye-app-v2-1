@@ -55,9 +55,18 @@ function doPost(e) {
         return createJsonResponse({ success: false, error: "fileName ve base64Data zorunludur." });
       }
 
-      // Ana klasör altında hedef alt klasörü (ör. 'Gelirler') bul veya oluştur
-      var subFolders = rootFolder.getFoldersByName(folderName);
-      var targetFolder = subFolders.hasNext() ? subFolders.next() : rootFolder.createFolder(folderName);
+      // Ana klasör altında hedef alt klasörü (ör. 'Gelirler/Santiye Adi/Banka') bul veya oluştur
+      var pathParts = folderName.split('/');
+      var currentFolder = rootFolder;
+      
+      for (var i = 0; i < pathParts.length; i++) {
+        var partName = pathParts[i].trim();
+        if (partName) {
+          var subFolders = currentFolder.getFoldersByName(partName);
+          currentFolder = subFolders.hasNext() ? subFolders.next() : currentFolder.createFolder(partName);
+        }
+      }
+      var targetFolder = currentFolder;
 
       // Base64 verisinden Blob oluştur ve klasöre kaydet
       var decodedBytes = Utilities.base64Decode(base64Data);
@@ -120,15 +129,21 @@ function doPost(e) {
         folderName = "Gelirler"; // Varsayılan ayna klasör
       }
 
-      // 1. Ana klasör altında 'Silinenler' ana klasörünü bul veya oluştur
-      var silinenlerFolders = rootFolder.getFoldersByName("Silinenler");
-      var silinenlerRoot = silinenlerFolders.hasNext() ? silinenlerFolders.next() : rootFolder.createFolder("Silinenler");
+      // 1. Ana klasör altında 'Silinenler/folderName' yolunu oluştur
+      var targetPath = "Silinenler/" + (folderName || "Diger");
+      var pathParts = targetPath.split('/');
+      var currentFolder = rootFolder;
+      
+      for (var i = 0; i < pathParts.length; i++) {
+        var partName = pathParts[i].trim();
+        if (partName) {
+          var subFolders = currentFolder.getFoldersByName(partName);
+          currentFolder = subFolders.hasNext() ? subFolders.next() : currentFolder.createFolder(partName);
+        }
+      }
+      var mirrorTargetFolder = currentFolder;
 
-      // 2. 'Silinenler' altında ayna alt klasörü (ör. 'Silinenler/Gelirler', 'Silinenler/Masraflar') bul veya oluştur
-      var mirrorFolders = silinenlerRoot.getFoldersByName(folderName);
-      var mirrorTargetFolder = mirrorFolders.hasNext() ? mirrorFolders.next() : silinenlerRoot.createFolder(folderName);
-
-      // 3. Dosyayı ayna klasöre taşı
+      // 2. Dosyayı ayna klasöre taşı
       file.moveTo(mirrorTargetFolder);
 
       return createJsonResponse({

@@ -4,6 +4,7 @@ import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
 import CariAramaSecici from '../components/CariAramaSecici'
+import { uploadToGoogleDrive, moveToSilinenler } from '../lib/googleDrive'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -215,17 +216,27 @@ export default function Cekler({ yon = 'verilen' }) {
     let belgeUrl = null
     // Mevcut kaydı güncelliyorsak ve yeni belge seçilmediyse eski belgeyi koruyabiliriz
     if (belge) {
-      const safeName = belge.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
-      const dosyaAdi = `${Date.now()}_${safeName}`
-      const { data, error } = await supabase.storage.from('cek-belgeleri').upload(dosyaAdi, belge)
-      if (error) {
-        alert('Belge yüklenemedi: ' + error.message)
+      const seciliSantiye = santiyeler.find((s) => s.id === santiyeId)
+      const santiyeAdi = seciliSantiye ? seciliSantiye.ad : 'Genel'
+      const islem = islemTuru === 'ciro' ? 'Ciro Edilen Çek' : (yon === 'alinan' ? 'Alınan Çek' : 'Verilen Çek')
+      const folderName = `Cekler/${santiyeAdi}/${islem}`
+      
+      const kisaKonu = odemeKonusu ? odemeKonusu.substring(0, 20) : 'Cek'
+      const firmaKisi = odenen || odeyen || 'Bilinmiyor'
+      const adSoyad = `${kisaKonu}-${firmaKisi}`
+
+      try {
+        const driveSonuc = await uploadToGoogleDrive({
+          file: belge,
+          folderName,
+          adSoyad,
+          date: verilisTarihi,
+        })
+        belgeUrl = driveSonuc.url
+      } catch (err) {
+        alert('Görsel Google Drive\'a yüklenemedi: ' + err.message)
         setYukleniyor(false)
         return
-      }
-      if (data) {
-        const { data: url } = supabase.storage.from('cek-belgeleri').getPublicUrl(data.path)
-        belgeUrl = url.publicUrl
       }
     } else if (islemTuru === 'ciro' && secilenCiroBelgeUrl) {
       // Ciro ediliyorsa ve yeni belge yüklenmediyse, orijinal çekin belgesini kopyala
@@ -264,8 +275,50 @@ export default function Cekler({ yon = 'verilen' }) {
 
   const cekSil = async (id) => {
     if (!window.confirm('Bu çek kaydını silmek istediğinize emin misiniz?')) return
+    
+    const silinecek = cekler.find((c) => c.id === id)
+    if (silinecek?.belge_url) {
+      try {
+        const seciliSantiye = santiyeler.find((s) => s.id === silinecek.santiye_id)
+        const santiyeAdi = seciliSantiye ? seciliSantiye.ad : 'Genel'
+        const islem = yon === 'alinan' ? 'Alınan Çek' : 'Verilen Çek' // Silinen çek ciro edilmişse bile kökenine göre dosyalanabilir
+        const folderName = `Cekler/${santiyeAdi}/${islem}`
+        await moveToSilinenler(silinecek.belge_url, folderName)
+      } catch (e) {
+        console.warn('Silinenlere taşıma hatası:', e)
+      }
+    }
+
     await supabase.from('cekler').delete().eq('id', id)
     cekleriYukle()
+  }
+
+  const sonradanBelgeEkle = async (c, file) => {
+    if (!file) return
+    setYukleniyor(true)
+    
+    const seciliSantiye = santiyeler.find((s) => s.id === c.santiye_id)
+    const santiyeAdi = seciliSantiye ? seciliSantiye.ad : 'Genel'
+    const islem = yon === 'alinan' ? 'Alınan Çek' : 'Verilen Çek'
+    const folderName = `Cekler/${santiyeAdi}/${islem}`
+    
+    const kisaKonu = c.odeme_konusu ? c.odeme_konusu.substring(0, 20) : 'Cek'
+    const firmaKisi = c.odenen || c.odeyen || 'Bilinmiyor'
+    const adSoyad = `${kisaKonu}-${firmaKisi}`
+
+    try {
+      const driveSonuc = await uploadToGoogleDrive({
+        file,
+        folderName,
+        adSoyad,
+        date: c.verilis_tarihi || bugun(),
+      })
+      await supabase.from('cekler').update({ belge_url: driveSonuc.url }).eq('id', c.id)
+      cekleriYukle()
+    } catch (err) {
+      alert('Belge Google Drive\'a yüklenemedi: ' + err.message)
+    }
+    setYukleniyor(false)
   }
 
   // Mobil mi masaüstü mü tespiti
@@ -609,6 +662,14 @@ export default function Cekler({ yon = 'verilen' }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span className="kart-tutar">{paraFormatla(c.tutar)} ₺</span>
                 <button className="sil-buton" onClick={() => duzenlemeyiBaslat(c)} aria-label="Düzenle">✎</button>
+                <input
+                  type="file"
+                  id={`gorsel-sec-cek-${c.id}`}
+                  accept="image/*,application/pdf"
+                  style={{ display: 'none' }}
+                  onChange={(e) => sonradanBelgeEkle(c, e.target.files[0])}
+                />
+                <button className="sil-buton" onClick={() => document.getElementById(`gorsel-sec-cek-${c.id}`).click()} aria-label="Görsel Ekle/Değiştir" title="Görsel Ekle/Değiştir">🖼️</button>
                 <button className="sil-buton" onClick={() => cekSil(c.id)} aria-label="Sil">🗑</button>
               </div>
             </div>
