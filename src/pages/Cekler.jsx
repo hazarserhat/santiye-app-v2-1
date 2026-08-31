@@ -117,9 +117,15 @@ export default function Cekler() {
     let belgeUrl = null
     // Mevcut kaydı güncelliyorsak ve yeni belge seçilmediyse eski belgeyi koruyabiliriz
     if (belge) {
-      const dosyaAdi = `${Date.now()}_${belge.name}`
+      const safeName = belge.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+      const dosyaAdi = `${Date.now()}_${safeName}`
       const { data, error } = await supabase.storage.from('cek-belgeleri').upload(dosyaAdi, belge)
-      if (!error) {
+      if (error) {
+        alert('Belge yüklenemedi: ' + error.message)
+        setYukleniyor(false)
+        return
+      }
+      if (data) {
         const { data: url } = supabase.storage.from('cek-belgeleri').getPublicUrl(data.path)
         belgeUrl = url.publicUrl
       }

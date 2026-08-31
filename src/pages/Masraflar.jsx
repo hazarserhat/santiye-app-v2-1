@@ -177,7 +177,8 @@ export default function Masraflar() {
     let fotografUrl = null
     if (fotograf) {
       const hedefSantiyeKlasoru = secilenSantiyeId && secilenSantiyeId !== 'genel' ? secilenSantiyeId : 'genel'
-      const dosyaAdi = `${hedefSantiyeKlasoru}/${Date.now()}_${fotograf.name}`
+      const safeName = fotograf.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+      const dosyaAdi = `${hedefSantiyeKlasoru}/${Date.now()}_${safeName}`
       const { data, error } = await supabase.storage.from('masraf-fotograflari').upload(dosyaAdi, fotograf)
 
       if (error) {
