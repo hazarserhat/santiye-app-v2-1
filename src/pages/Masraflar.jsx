@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
@@ -37,10 +37,65 @@ export default function Masraflar() {
   const [tutar, setTutar] = useState('')
   const [kategoriId, setKategoriId] = useState('')
   const [odemeYontemiId, setOdemeYontemiId] = useState('')
+  const [taksitSayisi, setTaksitSayisi] = useState(1)
   const [harcamaTarihi, setHarcamaTarihi] = useState(bugun())
   const [fotograf, setFotograf] = useState(null)
   const [dinliyor, setDinliyor] = useState(false)
   const [secilenSantiyeId, setSecilenSantiyeId] = useState('')
+
+  const seciliYontem = odemeYontemleri.find(o => o.id === odemeYontemiId)
+  const isKrediKarti = seciliYontem && seciliYontem.ad.toLowerCase().includes('kart')
+
+  // Düzenleme State'leri
+  const [duzenlenenId, setDuzenlenenId] = useState(null)
+  const [duzBaslik, setDuzBaslik] = useState('')
+  const [duzTutar, setDuzTutar] = useState('')
+  const [duzHarcamaTarihi, setDuzHarcamaTarihi] = useState('')
+  const [duzAciklama, setDuzAciklama] = useState('')
+  const [duzOdenenKisi, setDuzOdenenKisi] = useState('')
+  const [duzKategoriId, setDuzKategoriId] = useState('')
+  const [duzOdemeYontemiId, setDuzOdemeYontemiId] = useState('')
+  const [duzCariId, setDuzCariId] = useState(null)
+
+  // Clipboard yapıştırma (Ctrl+V ile görüntü yükleme)
+  useEffect(() => {
+    const handlePaste = (e) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile()
+          if (file) {
+            const yeniDosya = new File([file], `pano_gorseli_${Date.now()}.png`, { type: file.type })
+            setFotograf(yeniDosya)
+          }
+          break
+        }
+      }
+    }
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [])
+
+  const panodanYapistir = async () => {
+    try {
+      const clipboardItems = await navigator.clipboard.read()
+      for (const clipboardItem of clipboardItems) {
+        for (const type of clipboardItem.types) {
+          if (type.startsWith('image/')) {
+            const blob = await clipboardItem.getType(type)
+            const file = new File([blob], `pano_gorseli_${Date.now()}.png`, { type: blob.type })
+            setFotograf(file)
+            return
+          }
+        }
+      }
+      alert('Panoda bir görsel bulunamadı.')
+    } catch (err) {
+      console.error(err)
+      alert('Panoya erişim sağlanamadı. (Cihazınız bu özelliği desteklemiyor veya izin reddedildi)')
+    }
+  }
 
   useEffect(() => {
     if (aktifSantiye) setSecilenSantiyeId(aktifSantiye.id)
@@ -193,19 +248,38 @@ export default function Masraflar() {
       }
     }
 
-    const { error } = await supabase.from('masraflar').insert({
-      santiye_id: secilenSantiyeId === 'genel' ? null : secilenSantiyeId,
-      kategori_id: kategoriId,
-      baslik,
-      odenen_kisi: odenenKisi,
-      cari_id: finalCariId || null,
-      aciklama,
-      tutar: Number(tutar),
-      odeme_yontemi_id: odemeYontemiId,
-      harcama_tarihi: harcamaTarihi,
-      fotograf_url: fotografUrl,
-      ekleyen: profile?.id,
-    })
+    const eklenecekler = []
+    const baseTutar = Number(tutar)
+    const adet = (isKrediKarti && taksitSayisi > 1) ? parseInt(taksitSayisi) : 1
+    const taksitTutari = adet > 1 ? baseTutar / adet : baseTutar
+
+    for (let i = 0; i < adet; i++) {
+      const islemTarihi = new Date(harcamaTarihi)
+      islemTarihi.setMonth(islemTarihi.getMonth() + i)
+      // Tarih ayarlarken ay geçişlerinde sorun olmaması için:
+      const formatliTarih = islemTarihi.toISOString().split('T')[0]
+      
+      let finalBaslik = baslik
+      if (adet > 1) {
+        finalBaslik = `${baslik} (${i + 1}/${adet} Taksit)`
+      }
+
+      eklenecekler.push({
+        santiye_id: secilenSantiyeId === 'genel' ? null : secilenSantiyeId,
+        kategori_id: kategoriId,
+        baslik: finalBaslik,
+        odenen_kisi: odenenKisi,
+        cari_id: finalCariId || null,
+        aciklama,
+        tutar: taksitTutari,
+        odeme_yontemi_id: odemeYontemiId,
+        harcama_tarihi: formatliTarih,
+        fotograf_url: fotografUrl,
+        ekleyen: profile?.id,
+      })
+    }
+
+    const { error } = await supabase.from('masraflar').insert(eklenecekler)
 
     if (error) {
       alert('Masraf eklenemedi: ' + error.message)
@@ -218,6 +292,7 @@ export default function Masraflar() {
     setSecilenCariId(null)
     setAciklama('')
     setTutar('')
+    setTaksitSayisi(1)
     setFotograf(null)
     setHarcamaTarihi(bugun())
     if (aktifSantiye) setSecilenSantiyeId(aktifSantiye.id)
@@ -228,6 +303,41 @@ export default function Masraflar() {
   const masrafSil = async (id) => {
     if (!window.confirm('Bu masrafı silmek istediğinize emin misiniz?')) return
     await supabase.from('masraflar').delete().eq('id', id)
+    masraflariYukle()
+  }
+
+  const sonradanFotografEkle = async (id, file, mSantiyeId) => {
+    if (!file) return
+    setYukleniyor(true)
+    const hedefSantiyeKlasoru = mSantiyeId && mSantiyeId !== 'genel' ? mSantiyeId : 'genel'
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+    const dosyaAdi = `${hedefSantiyeKlasoru}/${Date.now()}_${safeName}`
+    const { data, error } = await supabase.storage.from('masraf-fotograflari').upload(dosyaAdi, file)
+
+    if (error) {
+      alert('Görsel yüklenemedi: ' + error.message)
+      setYukleniyor(false)
+      return
+    }
+    const { data: urlData } = supabase.storage.from('masraf-fotograflari').getPublicUrl(data.path)
+    await supabase.from('masraflar').update({ fotograf_url: urlData.publicUrl }).eq('id', id)
+    masraflariYukle()
+    setYukleniyor(false)
+  }
+
+  const masrafDuzenle = async (id) => {
+    const { error } = await supabase.from('masraflar').update({
+      baslik: duzBaslik,
+      tutar: Number(duzTutar),
+      harcama_tarihi: duzHarcamaTarihi,
+      aciklama: duzAciklama,
+      odenen_kisi: duzOdenenKisi,
+      cari_id: duzCariId || null,
+      kategori_id: duzKategoriId,
+      odeme_yontemi_id: duzOdemeYontemiId
+    }).eq('id', id)
+    if (error) { alert('Güncellenemedi: ' + error.message); return }
+    setDuzenlenenId(null)
     masraflariYukle()
   }
 
@@ -283,15 +393,42 @@ export default function Masraflar() {
               </select>
             </div>
 
+            {isKrediKarti && (
+              <div style={{ marginTop: 8, marginBottom: 8, padding: 8, background: '#FFF3E0', borderRadius: 6, border: '1px solid #FFE0B2' }}>
+                <label style={{ fontSize: 12, fontWeight: 'bold', color: '#E65100', display: 'block', marginBottom: 4 }}>Taksit Sayısı (Kredi Kartı)</label>
+                <select value={taksitSayisi} onChange={(e) => setTaksitSayisi(e.target.value)} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #FFCC80' }}>
+                  <option value={1}>Peşin (Tek Çekim)</option>
+                  {[2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n} Taksit</option>)}
+                </select>
+                {taksitSayisi > 1 && tutar && (
+                  <p style={{ fontSize: 11, color: '#E65100', marginTop: 4 }}>
+                    Girdiğiniz {paraFormatla(tutar)} ₺, aylık {paraFormatla(tutar / taksitSayisi)} ₺ olarak {taksitSayisi} aya bölünerek işlenecektir.
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Dosya / Fotoğraf / Fatura Ekleme Inputu */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
               <label style={{ fontSize: 12, color: '#5F5E5A', fontWeight: 600 }}>Fiş / Fatura / Görsel Ekle (Opsiyonel):</label>
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={(e) => setFotograf(e.target.files[0])}
-                style={{ fontSize: 12, padding: '6px 0' }}
-              />
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={(e) => setFotograf(e.target.files[0])}
+                  style={{ fontSize: 12, padding: '6px 0', flex: 1 }}
+                />
+                <button type="button" onClick={panodanYapistir} style={{ padding: '6px 10px', background: '#e6f0ff', color: '#0056b3', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>
+                  📋 Yapıştır
+                </button>
+                {fotograf && (
+                  <button onClick={() => setFotograf(null)} style={{ padding: '6px 10px', background: '#ffe6e6', color: '#d9534f', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>
+                    ✕ Kaldır
+                  </button>
+                )}
+              </div>
+              <p style={{ fontSize: 11, color: '#888780', margin: 0 }}>💡 Görüntü kopyaladıktan sonra Ctrl+V ile de yapıştırabilirsiniz.</p>
+              {fotograf && <p style={{ fontSize: 11, color: '#0F6E56', margin: 0 }}>✓ Seçilen: {fotograf.name}</p>}
             </div>
 
             <button className="ekle-buton-genis" onClick={masrafEkle} disabled={yukleniyor}>
@@ -352,87 +489,129 @@ export default function Masraflar() {
           <div className="liste">
             {islenecekListe.map((m) => (
               <div key={m.id} className="kart">
-                <div className="kart-ust">
-                  <span className="kart-baslik">{m.baslik}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span className="kart-tutar">{paraFormatla(m.tutar)} ₺</span>
-                    <button className="sil-buton" onClick={() => masrafSil(m.id)} aria-label="Masrafı sil">🗑</button>
+                {duzenlenenId === m.id && yonetici ? (
+                  /* DÜZENLEME MODU */
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <input type="text" value={duzBaslik} onChange={(e) => setDuzBaslik(e.target.value)} placeholder="Masraf başlığı" />
+                    <CariAramaSecici
+                      deger={duzOdenenKisi}
+                      onDegisti={(isim, id) => {
+                        setDuzOdenenKisi(isim)
+                        setDuzCariId(id || null)
+                      }}
+                      placeholder="Ödenen Kişi / Cari (opsiyonel)..."
+                    />
+                    <div className="ekleme-satiri-2">
+                      <input type="number" value={duzTutar} onChange={(e) => setDuzTutar(e.target.value)} placeholder="Tutar" onKeyDown={sadeceSayiTuslari} />
+                      <input type="date" value={duzHarcamaTarihi} onChange={(e) => setDuzHarcamaTarihi(e.target.value)} />
+                    </div>
+                    <div className="ekleme-satiri-2">
+                      <select value={duzKategoriId} onChange={(e) => setDuzKategoriId(e.target.value)}>
+                        {kategoriler.map((k) => <option key={k.id} value={k.id}>{k.ad}</option>)}
+                      </select>
+                      <select value={duzOdemeYontemiId} onChange={(e) => setDuzOdemeYontemiId(e.target.value)}>
+                        {odemeYontemleri.map((o) => <option key={o.id} value={o.id}>{o.ad}</option>)}
+                      </select>
+                    </div>
+                    <textarea value={duzAciklama} onChange={(e) => setDuzAciklama(e.target.value)} placeholder="Açıklama" rows={2} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical' }} />
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => setDuzenlenenId(null)} style={{ flex: 1, padding: '8px', background: '#f0f0ed', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Vazgeç</button>
+                      <button onClick={() => masrafDuzenle(m.id)} style={{ flex: 1, padding: '8px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>Kaydet</button>
+                    </div>
                   </div>
-                </div>
-                <div className="etiket-satiri">
-                  <span className="etiket etiket-vurgu">
-                    {m.santiye_id ? (santiyeler.find((s) => s.id === m.santiye_id)?.ad || 'Şantiye') : 'Genel Gider'}
-                  </span>
-                  <span className="etiket">{m.masraf_kategorileri?.ad}</span>
-                  <span className="etiket">{m.odeme_yontemleri?.ad}</span>
-                </div>
-                <div className="kart-alt-tarih">
-                  <span>Harcama: {m.harcama_tarihi ? new Date(m.harcama_tarihi).toLocaleDateString('tr-TR') : '—'}</span>
-                  <span>Kayıt: {m.kayit_tarihi ? new Date(m.kayit_tarihi).toLocaleString('tr-TR') : '—'}</span>
-                </div>
-                {m.odenen_kisi && <div className="kart-alt-tarih"><span>Ödenen: {m.odenen_kisi}</span></div>}
-                {m.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{m.aciklama}</p>}
-
-                {/* Fotoğraf/Belge Gösterimi */}
-                {m.fotograf_url && (
-                  <div style={{ marginTop: 8 }}>
-                    <a href={m.fotograf_url} target="_blank" rel="noopener noreferrer">
-                      <img
-                        src={m.fotograf_url}
-                        alt="Masraf Belgesi"
-                        style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, border: '1px solid #d3d1c7' }}
+                ) : (
+                  /* NORMAL GÖRÜNÜM */
+                  <>
+                    <div className="kart-ust">
+                      <span className="kart-baslik">{m.baslik}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span className="kart-tutar">{paraFormatla(m.tutar)} ₺</span>
+                        {yonetici && (
+                          <button className="sil-buton" onClick={() => {
+                            setDuzenlenenId(m.id)
+                            setDuzBaslik(m.baslik)
+                            setDuzTutar(m.tutar)
+                            setDuzHarcamaTarihi(m.harcama_tarihi)
+                            setDuzAciklama(m.aciklama || '')
+                            setDuzOdenenKisi(m.odenen_kisi || '')
+                            setDuzCariId(m.cari_id || null)
+                            setDuzKategoriId(m.kategori_id)
+                            setDuzOdemeYontemiId(m.odeme_yontemi_id)
+                          }} aria-label="Düzenle">✎</button>
+                        )}
+                        <input
+                          type="file"
+                          id={`gorsel-sec-msf-${m.id}`}
+                          accept="image/*,application/pdf"
+                          style={{ display: 'none' }}
+                          onChange={(e) => sonradanFotografEkle(m.id, e.target.files[0], m.santiye_id)}
+                        />
+                        <button className="sil-buton" onClick={() => document.getElementById(`gorsel-sec-msf-${m.id}`).click()} aria-label="Görsel Ekle/Değiştir" title="Görsel Ekle/Değiştir">🖼️</button>
+                        <button className="sil-buton" onClick={() => masrafSil(m.id)} aria-label="Masrafı sil">🗑</button>
+                      </div>
+                    </div>
+                    <div className="etiket-satiri">
+                      <span className="etiket etiket-vurgu">
+                        {m.santiye_id ? (santiyeler.find((s) => s.id === m.santiye_id)?.ad || 'Şantiye') : 'Genel Gider'}
+                      </span>
+                      <span className="etiket">{m.masraf_kategorileri?.ad}</span>
+                      <span className="etiket">{m.odeme_yontemleri?.ad}</span>
+                    </div>
+                    <div className="kart-alt-tarih">
+                      <span>Harcama: {m.harcama_tarihi ? new Date(m.harcama_tarihi).toLocaleDateString('tr-TR') : '—'}</span>
+                      <span>Kayıt: {m.kayit_tarihi ? new Date(m.kayit_tarihi).toLocaleString('tr-TR') : '—'}</span>
+                    </div>
+                    {m.odenen_kisi && <div className="kart-alt-tarih"><span>Ödenen: {m.odenen_kisi}</span></div>}
+                    {m.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{m.aciklama}</p>}
+    
+                    {/* Fotoğraf/Belge Gösterimi */}
+                    {m.fotograf_url && (
+                      <div style={{ marginTop: 8 }}>
+                        <a href={m.fotograf_url} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={m.fotograf_url}
+                            alt="Masraf Belgesi"
+                            style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, border: '1px solid #d3d1c7' }}
+                          />
+                        </a>
+                      </div>
+                    )}
+    
+                    {/* WhatsApp ile Görsel ve Metin Gönderme Butonu */}
+                    {/* Muhasebe Paylaşım Kutucuğu */}
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      marginTop: 10,
+                      padding: '7px 10px',
+                      borderRadius: 6,
+                      background: m.muhasebe_paylasim ? '#E6F9F0' : '#FFF8E1',
+                      border: `1px solid ${m.muhasebe_paylasim ? '#4CAF50' : '#FFD54F'}`,
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: m.muhasebe_paylasim ? '#0B6B41' : '#F57F17',
+                      transition: 'all 0.2s'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={m.muhasebe_paylasim || false}
+                        onChange={(e) => muhasebePaylasimGuncelle(m.id, e.target.checked)}
+                        style={{ accentColor: '#4CAF50', width: 16, height: 16 }}
                       />
-                    </a>
-                  </div>
+                      {m.muhasebe_paylasim ? '✓ Muhasebeye gönderildi' : 'Muhasebe ile paylaşıldı mı?'}
+                    </label>
+    
+                    <button
+                      className="ekle-buton-genis"
+                      onClick={() => whatsappGorselliPaylas(m)}
+                      style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#25D366', color: '#fff', fontSize: 12 }}
+                    >
+                      💬 WhatsApp ile Paylaş
+                    </button>
+                  </>
                 )}
-
-                {/* WhatsApp ile Görsel ve Metin Gönderme Butonu */}
-                {/* Muhasebe Paylaşım Kutucuğu */}
-                <label style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  marginTop: 10,
-                  padding: '7px 10px',
-                  borderRadius: 6,
-                  background: m.muhasebe_paylasim ? '#E6F9F0' : '#FFF8E1',
-                  border: `1px solid ${m.muhasebe_paylasim ? '#4CAF50' : '#FFD54F'}`,
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: m.muhasebe_paylasim ? '#2E7D32' : '#F57F17',
-                }}>
-                  <input
-                    type="checkbox"
-                    checked={!!m.muhasebe_paylasim}
-                    onChange={(e) => muhasebePaylasimGuncelle(m.id, e.target.checked)}
-                    style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#4CAF50' }}
-                  />
-                  {m.muhasebe_paylasim ? '✅ Muhasebeye gönderildi' : '⏳ Muhasebeye gönderilmedi'}
-                </label>
-
-                <button
-                  onClick={() => whatsappGorselliPaylas(m)}
-                  style={{
-                    marginTop: 6,
-                    width: '100%',
-                    padding: '8px 12px',
-                    background: '#25D366',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    fontSize: 12,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6
-                  }}
-                >
-                  💬 WhatsApp ile Paylaş
-                </button>
               </div>
             ))}
             {islenecekListe.length === 0 && <p className="bos-mesaj">Kayıt yok.</p>}

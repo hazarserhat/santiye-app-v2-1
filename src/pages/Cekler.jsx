@@ -7,13 +7,22 @@ import CariAramaSecici from '../components/CariAramaSecici'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
-export default function Cekler() {
+export default function Cekler({ yon = 'verilen' }) {
   const { santiyeler } = useSite()
   const { profile } = useAuth()
   const [cekler, setCekler] = useState([])
   const [bankalar, setBankalar] = useState([])
   const [taseronlar, setTaseronlar] = useState([])
+  const [malikler, setMalikler] = useState([])
   const [yukleniyor, setYukleniyor] = useState(false)
+
+  // Ciro işlemleri için state'ler
+  const [islemTuru, setIslemTuru] = useState('yeni') // 'yeni' | 'ciro'
+  const [alinanCeklerListesi, setAlinanCeklerListesi] = useState([])
+  const [secilenCiroCekId, setSecilenCiroCekId] = useState('')
+  const [secilenCiroBelgeUrl, setSecilenCiroBelgeUrl] = useState('')
+  const [kalanCekSayisi, setKalanCekSayisi] = useState(0)
+  const [toplamCekSayisi, setToplamCekSayisi] = useState(0)
 
   // Düzenleme State'leri
   const [duzenlenenId, setDuzenlenenId] = useState(null)
@@ -27,6 +36,7 @@ export default function Cekler() {
   const [odemeKonusu, setOdemeKonusu] = useState('')
   const [santiyeId, setSantiyeId] = useState('')
   const [odeyen, setOdeyen] = useState('')
+  const [malikId, setMalikId] = useState('')
   const [odenen, setOdenen] = useState('')
   const [secilenCariId, setSecilenCariId] = useState(null)
   const [cekSeriNo, setCekSeriNo] = useState('')
@@ -46,12 +56,83 @@ export default function Cekler() {
     supabase.from('taseronlar').select('*').then(({ data }) => {
       setTaseronlar(data || [])
     })
+    
+    supabase.from('malikler').select('*').order('ad_soyad').then(({ data }) => {
+      setMalikler(data || [])
+    })
+
+    if (yon === 'verilen') {
+      alinanCekleriYukle()
+    }
+
+    const handlePaste = (e) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile()
+          if (file) {
+            const yeniDosya = new File([file], `pano_gorseli_${Date.now()}.png`, { type: file.type })
+            setBelge(yeniDosya)
+          }
+          break
+        }
+      }
+    }
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
   }, [])
 
+  const panodanYapistir = async () => {
+    try {
+      const clipboardItems = await navigator.clipboard.read()
+      for (const clipboardItem of clipboardItems) {
+        for (const type of clipboardItem.types) {
+          if (type.startsWith('image/')) {
+            const blob = await clipboardItem.getType(type)
+            const file = new File([blob], `pano_gorseli_${Date.now()}.png`, { type: blob.type })
+            setBelge(file)
+            return
+          }
+        }
+      }
+      alert('Panoda bir görsel bulunamadı.')
+    } catch (err) {
+      console.error(err)
+      alert('Panoya erişim sağlanamadı. (Cihazınız bu özelliği desteklemiyor veya izin reddedildi)')
+    }
+  }
+
+  const alinanCekleriYukle = async () => {
+    // Hem alınan hem verilen tüm çekleri çek ki ciro eşleştirmesi yapabilelim
+    const { data } = await supabase.from('cekler').select('*')
+    if (!data) return
+    
+    // Verilen ve ciro edilen çeklerin seri numaralarını topla
+    const ciroEdilenSeriNolar = data
+      .filter(c => c.yon === 'verilen' && c.aciklama && c.aciklama.includes('(Ciro Edildi)'))
+      .map(c => c.cek_seri_no)
+      .filter(Boolean) // Boş seri noları at
+
+    const tumAlinanlar = data.filter(c => c.yon === 'alinan')
+    const kalanAlinanlar = tumAlinanlar
+      .filter(c => !c.cek_seri_no || !ciroEdilenSeriNolar.includes(c.cek_seri_no))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+
+    setAlinanCeklerListesi(kalanAlinanlar)
+    setToplamCekSayisi(tumAlinanlar.length)
+    setKalanCekSayisi(kalanAlinanlar.length)
+  }
+
   const cekleriYukle = async () => {
-    const { data, error } = await supabase.from('cekler').select('*, santiyeler(ad), profiles(ad_soyad)').order('created_at', { ascending: false })
+    let query = supabase.from('cekler').select('*, santiyeler(ad), profiles(ad_soyad)').order('created_at', { ascending: false })
+    const { data, error } = await query
     if (error) { alert('Çekler yüklenemedi: ' + error.message); return }
-    setCekler(data || [])
+    const filtrelenmis = (data || []).filter(c => {
+      if (yon === 'verilen') return c.yon === 'verilen' || !c.yon
+      return c.yon === 'alinan'
+    })
+    setCekler(filtrelenmis)
   }
 
   const bankalariYukle = async () => {
@@ -74,6 +155,7 @@ export default function Cekler() {
     setOdemeKonusu('')
     setSantiyeId('')
     setOdeyen('')
+    setMalikId('')
     setOdenen('')
     setSecilenCariId(null)
     setCekSeriNo('')
@@ -83,6 +165,9 @@ export default function Cekler() {
     setBelge(null)
     setVerilisTarihi(bugun())
     setDuzenlenenId(null)
+    setIslemTuru('yeni')
+    setSecilenCiroCekId('')
+    setSecilenCiroBelgeUrl('')
   }
 
   const duzenlemeyiBaslat = (c) => {
@@ -101,6 +186,19 @@ export default function Cekler() {
     setBelge(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+
+  const malikSecildi = (id) => {
+    setMalikId(id)
+    const m = malikler.find((x) => x.id === id)
+    if (m) setOdeyen(m.ad_soyad)
+  }
+
+  const cariSecildi = (isim, cariId) => {
+    setOdeyen(isim)
+    setSecilenCariId(cariId || null)
+  }
+
+  const malikleriSantiyeyeGoreFiltrele = (sId) => malikler.filter((m) => m.santiye_id === sId)
 
   const cekKaydetVeyaGuncelle = async () => {
     if (!odemeKonusu.trim() || !tutar) { alert('Ödeme konusu ve tutar zorunludur.'); return }
@@ -129,6 +227,9 @@ export default function Cekler() {
         const { data: url } = supabase.storage.from('cek-belgeleri').getPublicUrl(data.path)
         belgeUrl = url.publicUrl
       }
+    } else if (islemTuru === 'ciro' && secilenCiroBelgeUrl) {
+      // Ciro ediliyorsa ve yeni belge yüklenmediyse, orijinal çekin belgesini kopyala
+      belgeUrl = secilenCiroBelgeUrl
     }
 
     const veri = {
@@ -142,7 +243,8 @@ export default function Cekler() {
       verilis_tarihi: verilisTarihi,
       cek_vadesi: cekVadesi || null,
       tutar: Number(tutar),
-      aciklama,
+      aciklama: islemTuru === 'ciro' ? (aciklama ? `(Ciro Edildi) ${aciklama}` : '(Ciro Edildi)') : aciklama,
+      yon,
       ...(belgeUrl ? { belge_url: belgeUrl } : {}),
       ...(!duzenlenenId ? { ekleyen: profile?.id } : {})
     }
@@ -179,8 +281,8 @@ export default function Cekler() {
         `💵 *Tutar:* ${paraFormatla(c.tutar)} ₺\n` +
         `🏦 *Banka:* ${c.banka || '—'}\n` +
         `🔢 *Seri No:* ${c.cek_seri_no || '—'}\n` +
-        `👤 *Ödeyen:* ${c.odeyen || '—'}\n` +
-        `👤 *Ödenen:* ${c.odenen || '—'}\n` +
+        (c.odeyen ? `👤 *Ödeyen:* ${c.odeyen}\n` : '') +
+        (c.odenen ? `👤 *Ödenen:* ${c.odenen}\n` : '') +
         `📅 *Veriliş:* ${new Date(c.verilis_tarihi).toLocaleDateString('tr-TR')}\n` +
         `⏳ *Vade:* ${c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : '—'}\n` +
         (c.aciklama ? `📝 *Not:* ${c.aciklama}` : '')
@@ -263,32 +365,102 @@ export default function Cekler() {
           )}
         </div>
 
+        {!duzenlenenId && yon === 'verilen' && (
+          <div className="gorunum-secici" style={{ marginBottom: 12 }}>
+            <button type="button" className={islemTuru === 'yeni' ? 'secili-tab' : ''} onClick={() => { setIslemTuru('yeni'); setSecilenCiroCekId('') }}>
+              Kendi Çekimizi Kes
+            </button>
+            <button type="button" className={islemTuru === 'ciro' ? 'secili-tab' : ''} onClick={() => setIslemTuru('ciro')}>
+              Alınan Çeki Ciro Et (Devret)
+            </button>
+          </div>
+        )}
+
+        {islemTuru === 'ciro' && (
+          <div style={{ marginBottom: 12, padding: 10, backgroundColor: '#FFF8E1', border: '1px solid #FFD54F', borderRadius: 6 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#F57F17', marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Ciro edilecek alınan çeki seçin:</span>
+              <span style={{ background: '#FFD54F', color: '#8A5A00', padding: '2px 6px', borderRadius: 10, fontSize: 11 }}>
+                Kalan: {kalanCekSayisi} / {toplamCekSayisi}
+              </span>
+            </label>
+            <select 
+              value={secilenCiroCekId} 
+              onChange={(e) => {
+                const secilenId = e.target.value
+                setSecilenCiroCekId(secilenId)
+                const secilenCek = alinanCeklerListesi.find(c => c.id === secilenId)
+                if (secilenCek) {
+                  setOdemeKonusu('Ödeme')
+                  setCekSeriNo(secilenCek.cek_seri_no || '')
+                  setBanka(secilenCek.banka || '')
+                  setCekVadesi(secilenCek.cek_vadesi ? secilenCek.cek_vadesi.slice(0, 10) : '')
+                  setTutar(secilenCek.tutar ? String(secilenCek.tutar) : '')
+                  setSecilenCiroBelgeUrl(secilenCek.belge_url || '')
+                } else {
+                  formuSifirla()
+                  setIslemTuru('ciro')
+                }
+              }}
+              style={{ width: '100%', padding: '8px', borderRadius: 6, border: '1px solid #FFD54F' }}
+            >
+              <option value="">-- Alınan Çek Seç --</option>
+              {alinanCeklerListesi.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : ''} Vadeli - {c.banka} - {paraFormatla(c.tutar)} ₺ ({c.odeyen || 'Bilinmiyor'})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <input type="text" placeholder="Ödeme konusu..." value={odemeKonusu} onChange={(e) => setOdemeKonusu(e.target.value)} />
 
-        <select value={santiyeId} onChange={(e) => setSantiyeId(e.target.value)}>
+        <select value={santiyeId} onChange={(e) => { setSantiyeId(e.target.value); setMalikId('') }}>
           <option value="">Şantiye seç (opsiyonel)</option>
           {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
         </select>
 
-        <div className="ekleme-satiri-2">
-          <input type="text" placeholder="Ödeyen" value={odeyen} onChange={(e) => setOdeyen(e.target.value)} />
-          
-          <CariAramaSecici 
-            deger={odenen} 
-            onDegisti={(isim, cariId) => { 
-              setOdenen(isim)
-              setSecilenCariId(cariId || null) 
-            }} 
-            placeholder="Ödenen kişi/firma..." 
-          />
-        </div>
+        {yon === 'alinan' ? (
+          <>
+            <select value={malikId} onChange={(e) => malikSecildi(e.target.value)}>
+              <option value="">Malik seç (opsiyonel)...</option>
+              {malikleriSantiyeyeGoreFiltrele(santiyeId).map((m) => <option key={m.id} value={m.id}>{m.ad_soyad}</option>)}
+            </select>
+            <div className="ekleme-satiri-2">
+              <CariAramaSecici 
+                deger={odeyen} 
+                onDegisti={cariSecildi} 
+                placeholder="Cari / Ortak Ara (opsiyonel)..." 
+              />
+              <input type="text" placeholder="Ödeyen kişi/firma..." value={odeyen} onChange={(e) => setOdeyen(e.target.value)} />
+            </div>
+          </>
+        ) : (
+          <div className="ekleme-satiri-2">
+            <input type="text" placeholder="Ödeyen" value={odeyen} onChange={(e) => setOdeyen(e.target.value)} />
+            
+            <CariAramaSecici 
+              deger={odenen} 
+              onDegisti={(isim, cariId) => { 
+                setOdenen(isim)
+                setSecilenCariId(cariId || null) 
+              }} 
+              placeholder="Ödenen kişi/firma..." 
+            />
+          </div>
+        )}
 
         <input type="text" placeholder="Çek seri no..." value={cekSeriNo} onChange={(e) => setCekSeriNo(e.target.value)} />
 
         {!yeniBankaAcik ? (
           <div className="ekleme-satiri-2">
             <select value={banka} onChange={(e) => setBanka(e.target.value)}>
+              <option value="">-- Banka Seç --</option>
               {bankalar.map((b) => <option key={b.id} value={b.ad}>{b.ad}</option>)}
+              {banka && !bankalar.find(b => b.ad === banka) && (
+                <option value={banka}>{banka}</option>
+              )}
             </select>
             <button onClick={() => setYeniBankaAcik(true)}>+ Banka ekle</button>
           </div>
@@ -320,10 +492,29 @@ export default function Cekler() {
           style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical' }}
         />
 
-        <label className="dosya-buton">
-          📎 {belge ? belge.name.slice(0, 22) : 'Fotoğraf / Galeri / Belge Değiştir (opsiyonel)'}
-          <input type="file" accept="image/*,application/pdf" hidden onChange={(e) => setBelge(e.target.files[0])} />
-        </label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4, marginBottom: 8 }}>
+          <label style={{ fontSize: 12, color: '#5F5E5A', fontWeight: 600 }}>Fiş / Fatura / Görsel Ekle (Opsiyonel):</label>
+          {islemTuru === 'ciro' && secilenCiroBelgeUrl && !belge && (
+            <div style={{ fontSize: 12, color: '#0F6E56', padding: '4px 8px', background: '#E6F9F0', borderRadius: 4, border: '1px solid #4CAF50', marginBottom: 4 }}>
+              ✅ Orijinal çekin belgesi otomatik olarak aktarılacak.
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <label className="dosya-buton" style={{ flex: 1 }}>
+              📎 {belge ? belge.name.slice(0, 22) : 'Fotoğraf / Belge Değiştir'}
+              <input type="file" accept="image/*,application/pdf" hidden onChange={(e) => setBelge(e.target.files[0])} />
+            </label>
+            <button type="button" onClick={panodanYapistir} style={{ padding: '8px 12px', background: '#e6f0ff', color: '#0056b3', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer', fontWeight: 500 }}>
+              📋 Yapıştır
+            </button>
+            {belge && (
+              <button onClick={() => setBelge(null)} style={{ padding: '6px 10px', background: '#ffe6e6', color: '#d9534f', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>
+                ✕ Kaldır
+              </button>
+            )}
+          </div>
+          <p style={{ fontSize: 11, color: '#888780', margin: 0 }}>💡 Görüntü kopyaladıktan sonra Ctrl+V ile de yapıştırabilirsiniz.</p>
+        </div>
 
         <button className="ekle-buton-genis" onClick={cekKaydetVeyaGuncelle} disabled={yukleniyor} style={{ background: duzenlenenId ? '#0F6E56' : undefined }}>
           {yukleniyor ? 'Kaydediliyor...' : (duzenlenenId ? 'Çek Güncellemesini Kaydet' : 'Çek kaydını kaydet')}
@@ -430,10 +621,12 @@ export default function Cekler() {
               <span>Veriliş: {new Date(c.verilis_tarihi).toLocaleDateString('tr-TR')}</span>
               <span>Vade: {c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : '—'}</span>
             </div>
-            <div className="kart-alt-tarih" style={{ marginTop: 2 }}>
-              <span>Ödeyen: {c.odeyen || '—'}</span>
-              <span>Ödenen: {c.odenen || '—'}</span>
-            </div>
+            {(c.odeyen || c.odenen) && (
+              <div className="kart-alt-tarih" style={{ marginTop: 2 }}>
+                {c.odeyen && <span>Ödeyen: {c.odeyen}</span>}
+                {c.odenen && <span>Ödenen: {c.odenen}</span>}
+              </div>
+            )}
             {c.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{c.aciklama}</p>}
 
             {/* Belge / Fotoğraf Önizlemesi */}

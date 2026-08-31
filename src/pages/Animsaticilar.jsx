@@ -31,6 +31,8 @@ export default function Animsaticilar() {
 
   // --- YENİ EKLENEN: Bildirim sekmeleri için state ---
   const [bildirimSekmesi, setBildirimSekmesi] = useState('yeni') // 'yeni' veya 'gecmis'
+  const [gosterilenBildirimSayisi, setGosterilenBildirimSayisi] = useState(10)
+  const [gosterilenAnimsaticiSayisi, setGosterilenAnimsaticiSayisi] = useState(10)
 
   useEffect(() => {
     if (profile) bildirimleriYukle()
@@ -102,9 +104,11 @@ export default function Animsaticilar() {
   // --- BİLDİRİM SEKMELERİ İÇİN FİLTRELEME ---
   const yeniBildirimler = bildirimler.filter((b) => !b.okundu)
   const gecmisBildirimler = bildirimler.filter((b) => b.okundu)
-  const gosterilenBildirimler = bildirimSekmesi === 'yeni' ? yeniBildirimler : gecmisBildirimler
+  const tumGosterilenBildirimler = bildirimSekmesi === 'yeni' ? yeniBildirimler : gecmisBildirimler
+  const gosterilenBildirimler = tumGosterilenBildirimler.slice(0, gosterilenBildirimSayisi)
   
   const gorunenler = filtreSantiye === 'hepsi' ? animsaticilar : animsaticilar.filter((a) => a.santiye_id === filtreSantiye)
+  const gosterilenGorunenler = gorunenler.slice(0, gosterilenAnimsaticiSayisi)
 
   return (
     <div className="sayfa">
@@ -117,8 +121,8 @@ export default function Animsaticilar() {
           </div>
 
           <div className="gorunum-secici" style={{ marginBottom: 12 }}>
-            <button className={bildirimSekmesi === 'yeni' ? 'secili-tab' : ''} onClick={() => setBildirimSekmesi('yeni')}>Yeni ({yeniBildirimler.length})</button>
-            <button className={bildirimSekmesi === 'gecmis' ? 'secili-tab' : ''} onClick={() => setBildirimSekmesi('gecmis')}>Geçmiş ({gecmisBildirimler.length})</button>
+            <button className={bildirimSekmesi === 'yeni' ? 'secili-tab' : ''} onClick={() => { setBildirimSekmesi('yeni'); setGosterilenBildirimSayisi(10) }}>Yeni ({yeniBildirimler.length})</button>
+            <button className={bildirimSekmesi === 'gecmis' ? 'secili-tab' : ''} onClick={() => { setBildirimSekmesi('gecmis'); setGosterilenBildirimSayisi(10) }}>Geçmiş ({gecmisBildirimler.length})</button>
           </div>
 
           <p style={{ fontSize: 11, color: '#888780', margin: '0 0 8px' }}>
@@ -141,6 +145,11 @@ export default function Animsaticilar() {
               <p className="bos-mesaj">Bu sekmede bildirim bulunmuyor.</p>
             )}
           </div>
+          {tumGosterilenBildirimler.length > gosterilenBildirimSayisi && (
+            <button className="daha-fazla-buton" style={{ marginBottom: 16 }} onClick={() => setGosterilenBildirimSayisi((n) => n + 10)}>
+              ▼ Daha fazla göster ({tumGosterilenBildirimler.length - gosterilenBildirimSayisi} tane daha)
+            </button>
+          )}
         </>
       )}
 
@@ -180,7 +189,7 @@ export default function Animsaticilar() {
       </div>
 
       <div className="liste">
-        {gorunenler.map((a) => (
+        {gosterilenGorunenler.map((a) => (
           <div key={a.id} className="kart" style={{ borderLeft: a.oncelik === 'acil' ? '4px solid #D64545' : undefined }}>
             <div className="kart-ust" onClick={() => detayAc(a.id)} style={{ cursor: 'pointer' }}>
               <span className="kart-baslik">{acikId === a.id ? '▾' : '▸'} {a.baslik}</span>
