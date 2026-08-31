@@ -28,12 +28,12 @@ export default function CekTakip() {
   const ok = (alan) => (siralamaAlani === alan ? (siralamaYonu === 'asc' ? ' ▲' : ' ▼') : '')
 
   const bankalar = [...new Set(cekler.map((c) => c.banka).filter(Boolean))].sort()
-  const aylar = [...new Set(cekler.map((c) => c.verilis_tarihi?.slice(0, 7)).filter(Boolean))].sort()
+  const aylar = [...new Set(cekler.map((c) => c.cek_vadesi?.slice(0, 7)).filter(Boolean))].sort()
 
   let liste = cekler
     .filter((c) => filtreSantiye === 'hepsi' || c.santiye_id === filtreSantiye)
     .filter((c) => filtreBanka === 'hepsi' || c.banka === filtreBanka)
-    .filter((c) => filtreAy === 'hepsi' || c.verilis_tarihi?.slice(0, 7) === filtreAy)
+    .filter((c) => filtreAy === 'hepsi' || c.cek_vadesi?.slice(0, 7) === filtreAy)
 
   liste = [...liste].sort((a, b) => {
     let av = a[siralamaAlani], bv = b[siralamaAlani]
@@ -45,6 +45,8 @@ export default function CekTakip() {
     if (av > bv) return siralamaYonu === 'asc' ? 1 : -1
     return 0
   })
+
+  const filtreliToplam = liste.reduce((t, c) => t + Number(c.tutar), 0)
 
   const bugun = new Date().toISOString().slice(0, 10)
   const vadesiGelmemis = cekler.filter((c) => c.cek_vadesi && c.cek_vadesi >= bugun)
@@ -139,6 +141,15 @@ export default function CekTakip() {
               </tr>
             ))}
           </tbody>
+          {liste.length > 0 && (
+            <tfoot>
+              <tr>
+                <td colSpan="5" style={{ ...hucreStil, fontWeight: 'bold', textAlign: 'right' }}>Filtrelenen Toplam:</td>
+                <td style={{ ...hucreStil, fontWeight: 'bold' }}>{paraFormatla(filtreliToplam)} ₺</td>
+                <td colSpan="3" style={hucreStil}></td>
+              </tr>
+            </tfoot>
+          )}
         </table>
         {liste.length === 0 && <p className="bos-mesaj">Bu filtrede çek yok.</p>}
       </div>

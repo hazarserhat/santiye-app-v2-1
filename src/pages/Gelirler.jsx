@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
+import { uploadToGoogleDrive, moveToSilinenler } from '../lib/googleDrive'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -51,11 +52,21 @@ export default function Gelirler() {
 
     let belgeUrl = null
     if (belge) {
-      const dosyaAdi = `${Date.now()}_${belge.name}`
-      const { data, error } = await supabase.storage.from('gelir-belgeleri').upload(dosyaAdi, belge)
-      if (!error) {
-        const { data: url } = supabase.storage.from('gelir-belgeleri').getPublicUrl(data.path)
-        belgeUrl = url.publicUrl
+      const seciliMalik = malikler.find((x) => x.id === malikId)
+      const adSoyad = odemeYapanAdi || seciliMalik?.ad_soyad || profile?.ad_soyad || 'ISIMSIZ'
+      try {
+        const driveSonuc = await uploadToGoogleDrive({
+          file: belge,
+          folderName: 'Gelirler',
+          adSoyad,
+          date: tarih,
+        })
+        belgeUrl = driveSonuc.url
+      } catch (err) {
+        console.error('Google Drive yükleme hatası:', err)
+        alert('Görsel Google Drive\'a yüklenemedi: ' + err.message)
+        setYukleniyor(false)
+        return
       }
     }
 
@@ -79,7 +90,22 @@ export default function Gelirler() {
 
   const gelirSil = async (id) => {
     if (!window.confirm('Bu geliri silmek istediğinize emin misiniz?')) return
-    await supabase.from('gelirler').delete().eq('id', id)
+    const silinecek = gelirler.find((g) => g.id === id)
+
+    // Eğer Google Drive belgesi varsa Silinenler/Gelirler klasörüne taşı
+    if (silinecek?.belge_url) {
+      try {
+        await moveToSilinenler(silinecek.belge_url, 'Gelirler')
+      } catch (err) {
+        console.warn('Belge Silinenler klasörüne taşınırken hata oluştu:', err)
+      }
+    }
+
+    const { error } = await supabase.from('gelirler').delete().eq('id', id)
+    if (error) {
+      alert('Gelir silinemedi: ' + error.message)
+      return
+    }
     gelirleriYukle()
   }
 
@@ -91,7 +117,8 @@ export default function Gelirler() {
       if (g.belge_url) {
         const response = await fetch(g.belge_url)
         const blob = await response.blob()
-        const dosyaAdi = g.odeme_yapan_adi ? `${g.odeme_yapan_adi.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.jpg` : 'gelir_belgesi.jpg'
+        const ext = blob.type.includes('pdf') ? 'pdf' : (blob.type.includes('png') ? 'png' : 'jpg')
+        const dosyaAdi = g.odeme_yapan_adi ? `${g.odeme_yapan_adi.replace(/[^a-zA-Z0-9]/gi, '_').toLowerCase()}.${ext}` : `gelir_belgesi.${ext}`
         const file = new File([blob], dosyaAdi, { type: blob.type })
         dosyalar.push(file)
       }
@@ -210,13 +237,36 @@ export default function Gelirler() {
             {/* Belge / Fotoğraf Önizlemesi */}
             {g.belge_url && (
               <div style={{ marginTop: 8 }}>
-                <a href={g.belge_url} target="_blank" rel="noopener noreferrer">
-                  <img 
-                    src={g.belge_url} 
-                    alt="Gelir Belgesi" 
-                    style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, border: '1px solid #d3d1c7' }} 
-                  />
-                </a>
+                {g.belge_url.toLowerCase().includes('.pdf') ? (
+                  <a 
+                    href={g.belge_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '8px 12px',
+                      backgroundColor: '#F1EFE8',
+                      borderRadius: 6,
+                      textDecoration: 'none',
+                      color: '#2C3E50',
+                      fontWeight: 500,
+                      fontSize: 13,
+                      border: '1px solid #D3D1C7'
+                    }}
+                  >
+                    📄 PDF Belgesini Aç / Görüntüle
+                  </a>
+                ) : (
+                  <a href={g.belge_url} target="_blank" rel="noopener noreferrer">
+                    <img 
+                      src={g.belge_url} 
+                      alt="Gelir Belgesi" 
+                      style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, border: '1px solid #d3d1c7' }} 
+                    />
+                  </a>
+                )}
               </div>
             )}
 
