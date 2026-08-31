@@ -21,6 +21,7 @@ export default function CariKartlar() {
   const [hakedisler, setHakedisler] = useState([])
   const [masraflar, setMasraflar] = useState([])
   const [cekler, setCekler] = useState([])
+  const [gelirler, setGelirler] = useState([])
 
   const [duzenleModu, setDuzenleModu] = useState(false)
   const [duzAd, setDuzAd] = useState('')
@@ -138,6 +139,13 @@ export default function CariKartlar() {
       .select('*, santiyeler(ad)')
       .eq('cari_id', id)
     setCekler(cekData || [])
+
+    const { data: gelirData } = await supabase
+      .from('gelirler')
+      .select('*, santiyeler(ad)')
+      .eq('cari_id', id)
+      .order('tarih', { ascending: false })
+    setGelirler(gelirData || [])
 
     const { data: hkData } = await supabase
       .from('hakedisler')
@@ -290,6 +298,11 @@ export default function CariKartlar() {
       tip: 'cek',
       sortKey: new Date(c.created_at || c.vade_tarihi || Date.now()).getTime(),
       veri: c,
+    })),
+    ...gelirler.map((g) => ({
+      tip: 'gelir',
+      sortKey: new Date(g.tarih || g.created_at || Date.now()).getTime(),
+      veri: g,
     })),
   ].sort((a, b) => b.sortKey - a.sortKey)
 
@@ -496,7 +509,7 @@ export default function CariKartlar() {
                       <span className="not-alt" style={{ display: 'block', marginTop: 2 }}>Kayıt Zamanı: {m.kayit_tarihi ? `${new Date(m.kayit_tarihi).toLocaleDateString('tr-TR')} ${new Date(m.kayit_tarihi).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : '—'}</span>
                     </div>
                   )
-                } else {
+                } else if (olay.tip === 'cek') {
                   const c = olay.veri
                   return (
                     <div key={`cek-${c.id || index}`} className="kart" style={{ borderLeft: '6px solid #059669', backgroundColor: 'rgba(5, 150, 105, 0.03)' }}>
@@ -519,6 +532,27 @@ export default function CariKartlar() {
                         <span>Ödenen: {c.odenen || seciliTaseron?.ad || '—'}</span>
                       </div>
                       {c.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{c.aciklama}</p>}
+                    </div>
+                  )
+                } else {
+                  // GELİR (Ortak Yatırımı vb.)
+                  const g = olay.veri
+                  return (
+                    <div key={`gelir-${g.id || index}`} className="kart" style={{ borderLeft: '6px solid #3B82F6', backgroundColor: 'rgba(59, 130, 246, 0.04)' }}>
+                      <div className="kart-ust">
+                        <span className="kart-baslik">Yatırım / Gelir: {g.odeme_yapan_adi || 'Ortak'}</span>
+                        <span style={{ fontWeight: 700, color: '#3B82F6' }}>-{paraFormatla(Math.abs(g.tutar))} ₺ (Firmaya Nakit Girişi)</span>
+                      </div>
+                      <div className="etiket-satiri">
+                        <span className="etiket etiket-vurgu">{g.santiyeler?.ad || 'Genel Kasa'}</span>
+                        <span className="etiket">{new Date(g.tarih).toLocaleDateString('tr-TR')}</span>
+                      </div>
+                      {g.not_metni && <p className="not-icerik" style={{ marginTop: 6 }}>{g.not_metni}</p>}
+                      {g.belge_url && (
+                        <a href={g.belge_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 13, color: '#3B82F6' }}>
+                          📄 Belgeyi Gör
+                        </a>
+                      )}
                     </div>
                   )
                 }

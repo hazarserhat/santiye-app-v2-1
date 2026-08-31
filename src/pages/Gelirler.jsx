@@ -4,6 +4,7 @@ import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
 import { uploadToGoogleDrive, moveToSilinenler } from '../lib/googleDrive'
+import CariAramaSecici from '../components/CariAramaSecici'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -16,6 +17,7 @@ export default function Gelirler() {
 
   const [santiyeId, setSantiyeId] = useState('')
   const [malikId, setMalikId] = useState('')
+  const [secilenCariId, setSecilenCariId] = useState(null)
   const [odemeYapanAdi, setOdemeYapanAdi] = useState('')
   const [tutar, setTutar] = useState('')
   const [tarih, setTarih] = useState(bugun())
@@ -42,6 +44,11 @@ export default function Gelirler() {
     setMalikId(id)
     const m = malikler.find((x) => x.id === id)
     if (m) setOdemeYapanAdi(m.ad_soyad)
+  }
+
+  const cariSecildi = (isim, cariId) => {
+    setOdemeYapanAdi(isim)
+    setSecilenCariId(cariId || null)
   }
 
   const malikleriSantiyeyeGoreFiltrele = (sId) => malikler.filter((m) => m.santiye_id === sId)
@@ -73,6 +80,7 @@ export default function Gelirler() {
     const { error } = await supabase.from('gelirler').insert({
       santiye_id: santiyeId,
       malik_id: malikId || null,
+      cari_id: secilenCariId || null,
       odeme_yapan_adi: odemeYapanAdi,
       tutar: Number(tutar),
       tarih,
@@ -83,7 +91,7 @@ export default function Gelirler() {
 
     if (error) { alert('Gelir eklenemedi: ' + error.message); setYukleniyor(false); return }
 
-    setMalikId(''); setOdemeYapanAdi(''); setTutar(''); setNotMetni(''); setBelge(null); setTarih(bugun())
+    setMalikId(''); setSecilenCariId(null); setOdemeYapanAdi(''); setTutar(''); setNotMetni(''); setBelge(null); setTarih(bugun())
     setYukleniyor(false)
     gelirleriYukle()
   }
@@ -184,6 +192,12 @@ export default function Gelirler() {
           <option value="">Malik seç (opsiyonel)...</option>
           {malikleriSantiyeyeGoreFiltrele(santiyeId).map((m) => <option key={m.id} value={m.id}>{m.ad_soyad}</option>)}
         </select>
+
+        <CariAramaSecici
+          deger={odemeYapanAdi}
+          onDegisti={cariSecildi}
+          placeholder="Cari / Ortak Ara (opsiyonel)..."
+        />
 
         <input type="text" placeholder="Ödeme yapanın adı" value={odemeYapanAdi} onChange={(e) => setOdemeYapanAdi(e.target.value)} />
 
