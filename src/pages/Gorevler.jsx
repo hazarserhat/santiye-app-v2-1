@@ -48,84 +48,103 @@ function GorevKarti({ gorev, seviye, ctx }) {
   const gosterilecekAltlar = genisletildi ? altlar : altlar.slice(0, 2)
 
   return (
-    <div style={{ marginLeft: seviye * 16 }}>
-      <div className="kart" style={{ borderLeft: oncelik ? `4px solid ${oncelik.renk}` : undefined }}>
-        <div className="kart-ust">
-          <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, gap: 8 }}>
+    <div style={{ marginLeft: seviye > 0 ? 12 : 0, marginBottom: 4 }}>
+      <div className="kart" style={{ padding: '8px 10px', borderLeft: oncelik ? `4px solid ${oncelik.renk}` : '4px solid #e2e0d8', borderRadius: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <input
+            type="checkbox"
+            checked={seciliGorevler.includes(gorev.id)}
+            onChange={() => setSeciliGorevler((onceki) =>
+              onceki.includes(gorev.id) ? onceki.filter((x) => x !== gorev.id) : [...onceki, gorev.id]
+            )}
+            style={{ width: 14, height: 14, margin: 0, flexShrink: 0 }}
+          />
+          {numaraHaritasi[gorev.id] && <span style={{ fontSize: 10, fontWeight: 700, color: '#1D9596', flexShrink: 0 }}>{numaraHaritasi[gorev.id]}</span>}
+          
+          {duzenlenenId === gorev.id ? (
             <input
-              type="checkbox"
-              checked={seciliGorevler.includes(gorev.id)}
-              onChange={() => setSeciliGorevler((onceki) =>
-                onceki.includes(gorev.id) ? onceki.filter((x) => x !== gorev.id) : [...onceki, gorev.id]
-              )}
-              style={{ flexShrink: 0, width: 16, height: 16 }}
+              type="text"
+              value={duzenlenenBaslik}
+              onChange={(e) => setDuzenlenenBaslik(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && basligiKaydet(gorev.id)}
+              autoFocus
+              style={{ flex: 1, padding: '4px 6px', fontSize: 13, borderRadius: 4, border: '1px solid #1D9596' }}
             />
-            {numaraHaritasi[gorev.id] && <span className="gorev-numara-rozet">{numaraHaritasi[gorev.id]}</span>}
+          ) : (
+            <span style={{ fontSize: 13, fontWeight: 500, flex: 1, minWidth: 100, wordBreak: 'break-word', color: gorev.durum === 'tamamlandi' ? '#888' : '#212124', textDecoration: gorev.durum === 'tamamlandi' ? 'line-through' : 'none' }}>
+              {gorev.baslik}
+            </span>
+          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            {/* Öncelik Noktası */}
+            <div 
+              onClick={() => setOncelikSeciciAcikId(oncelikSeciciAcikId === gorev.id ? null : gorev.id)}
+              style={{ width: 12, height: 12, borderRadius: '50%', background: oncelik ? oncelik.renk : '#e2e0d8', cursor: 'pointer', border: '1px solid #d3d1c7' }}
+              title={oncelik ? oncelik.etiket : 'Öncelik Ata'}
+            />
+
+            {/* Kişiler */}
+            <div 
+              onClick={() => setKisiSeciciAcikId(kisiSeciciAcikId === gorev.id ? null : gorev.id)}
+              style={{ display: 'flex', cursor: 'pointer' }}
+              title="Kişi Ata/Kaldır"
+            >
+              {kisiEtiketleri.length > 0 ? kisiEtiketleri.slice(0, 3).map((e, idx) => {
+                const kisi = kullanicilar.find((k) => k.id === e.deger)
+                const basHarfler = kisi?.ad_soyad.split(' ').map(n => n[0]).join('').substring(0,2) || '?'
+                return (
+                  <div key={e.id} style={{ width: 18, height: 18, borderRadius: '50%', background: '#1D9596', color: 'white', fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: idx > 0 ? -6 : 0, border: '1px solid white', fontWeight: 600 }}>
+                    {basHarfler}
+                  </div>
+                )
+              }) : <span style={{ fontSize: 13, filter: 'grayscale(1)', opacity: 0.5 }}>👤</span>}
+              {kisiEtiketleri.length > 3 && (
+                <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#f0f0ed', color: '#555', fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: -6, border: '1px solid white' }}>
+                  +{kisiEtiketleri.length - 3}
+                </div>
+              )}
+            </div>
+
+            {/* Durum Seçici */}
+            <select 
+              value={gorev.durum} 
+              onChange={(ev) => durumGuncelle(gorev.id, ev.target.value)}
+              style={{ fontSize: 11, padding: '2px 4px', borderRadius: 4, border: '1px solid #d3d1c7', background: 'transparent', maxWidth: 90 }}
+            >
+              {DURUMLAR.filter((d) => d.deger !== 'hepsi').map((d) => (
+                <option key={d.deger} value={d.deger}>{d.etiket}</option>
+              ))}
+            </select>
+
+            {/* Butonlar */}
             {duzenlenenId === gorev.id ? (
-              <input
-                type="text"
-                value={duzenlenenBaslik}
-                onChange={(e) => setDuzenlenenBaslik(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && basligiKaydet(gorev.id)}
-                autoFocus
-                style={{ flex: 1 }}
-              />
+              <button className="sil-buton" onClick={() => basligiKaydet(gorev.id)} style={{ padding: 2 }}>✓</button>
             ) : (
-              <span className="kart-baslik" style={{ textAlign: 'left' }}>{gorev.baslik}</span>
+              <div style={{ display: 'flex', gap: 2 }}>
+                <button className="sil-buton" onClick={() => { setDuzenlenenId(gorev.id); setDuzenlenenBaslik(gorev.baslik) }} style={{ padding: 2, fontSize: 12 }} title="Düzenle">✎</button>
+                {seviye < 2 && <button className="sil-buton" onClick={() => { setAltGorevAcikId(altGorevAcikId === gorev.id ? null : gorev.id); setAltGorevMetni('') }} style={{ padding: 2, fontSize: 12 }} title="Alt Görev Ekle">➕</button>}
+                <button className="sil-buton" onClick={() => gorevSil(gorev.id)} style={{ padding: 2, fontSize: 12 }} title="Sil">🗑</button>
+              </div>
             )}
-          </div>
-          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-            {duzenlenenId === gorev.id ? (
-              <button className="sil-buton" onClick={() => basligiKaydet(gorev.id)} aria-label="Kaydet">✓</button>
-            ) : (
-              <button className="sil-buton" onClick={() => { setDuzenlenenId(gorev.id); setDuzenlenenBaslik(gorev.baslik) }} aria-label="Düzenle">✎</button>
-            )}
-            <button className="sil-buton" onClick={() => gorevSil(gorev.id)} aria-label="Görevi sil">🗑</button>
           </div>
         </div>
 
-        <div className="etiket-satiri">
-          {seviye === 0 && filtreSantiye === 'hepsi' && <span className="etiket etiket-vurgu">{gorev.santiyeler?.ad}</span>}
-          {oncelik ? (
-            <span
-              className="etiket"
-              style={{ background: oncelik.renk, color: 'white', cursor: 'pointer' }}
-              onClick={() => setOncelikSeciciAcikId(oncelikSeciciAcikId === gorev.id ? null : gorev.id)}
-            >
-              {oncelik.etiket} ✎
-            </span>
-          ) : (
-            <span
-              className="etiket"
-              style={{ cursor: 'pointer' }}
-              onClick={() => setOncelikSeciciAcikId(oncelikSeciciAcikId === gorev.id ? null : gorev.id)}
-            >
-              Öncelik ata
-            </span>
+        <div style={{ display: 'flex', gap: 8, marginTop: 6, fontSize: 10, color: '#888780', alignItems: 'center' }}>
+          {seviye === 0 && filtreSantiye === 'hepsi' && gorev.santiyeler?.ad && (
+            <span style={{ background: '#1D9596', color: 'white', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>{gorev.santiyeler.ad}</span>
           )}
-          {kisiEtiketleri.map((e) => {
-            const kisi = kullanicilar.find((k) => k.id === e.deger)
-            return <span key={e.id} className="etiket">@{kisi?.ad_soyad || '—'}</span>
-          })}
-          <span
-            className="etiket"
-            style={{ cursor: 'pointer' }}
-            onClick={() => setKisiSeciciAcikId(kisiSeciciAcikId === gorev.id ? null : gorev.id)}
-          >
-            👤 Kişi ata/kaldır
-          </span>
+          <span>{gorev.profiles?.ad_soyad || 'Bilinmiyor'}</span>
+          <span>•</span>
+          <span>{guvenliTarih(gorev.created_at)}</span>
         </div>
 
         {kisiSeciciAcikId === gorev.id && (
-          <div className="kisi-etiket-secici" style={{ marginBottom: 8 }}>
+          <div className="kisi-etiket-secici" style={{ marginTop: 8, padding: 8, background: '#f8f7f2', borderRadius: 6 }}>
             {kullanicilar.map((k) => {
               const atanmis = kisiEtiketleri.some((e) => e.deger === k.id)
               return (
-                <button
-                  key={k.id}
-                  className={`filtre-chip ${atanmis ? 'secili' : ''}`}
-                  onClick={() => kisiEtiketiDegistir(gorev, k.id)}
-                >
+                <button key={k.id} className={`filtre-chip ${atanmis ? 'secili' : ''}`} onClick={() => kisiEtiketiDegistir(gorev, k.id)} style={{ padding: '4px 8px', fontSize: 11 }}>
                   {atanmis ? '✓ ' : ''}{k.ad_soyad}
                 </button>
               )
@@ -134,47 +153,17 @@ function GorevKarti({ gorev, seviye, ctx }) {
         )}
 
         {oncelikSeciciAcikId === gorev.id && (
-          <div className="oncelik-secici-satiri" style={{ marginBottom: 8 }}>
+          <div className="oncelik-secici-satiri" style={{ marginTop: 8, padding: 8, background: '#f8f7f2', borderRadius: 6, gap: 8 }}>
             {ONCELIKLER.map((o) => (
-              <button
-                key={o.deger}
-                className={`oncelik-nokta ${oncelik?.deger === o.deger ? 'secili' : ''}`}
-                style={{ background: o.renk }}
-                onClick={() => oncelikDegistir(gorev, o.deger)}
-                aria-label={o.etiket}
-                title={o.etiket}
-              />
+              <button key={o.deger} className={`oncelik-nokta ${oncelik?.deger === o.deger ? 'secili' : ''}`} style={{ background: o.renk, width: 22, height: 22 }} onClick={() => oncelikDegistir(gorev, o.deger)} title={o.etiket} />
             ))}
           </div>
         )}
 
-        <select value={gorev.durum} onChange={(ev) => durumGuncelle(gorev.id, ev.target.value)} className="durum-secici">
-          {DURUMLAR.filter((d) => d.deger !== 'hepsi').map((d) => (
-            <option key={d.deger} value={d.deger}>{d.etiket}</option>
-          ))}
-        </select>
-
-        <div className="gorev-alt-bilgi">
-          {gorev.profiles?.ad_soyad || 'Bilinmiyor'} · {guvenliTarih(gorev.created_at)}
-        </div>
-
-        {seviye < 2 && (
-          <button className="alt-gorev-ekle-buton" onClick={() => { setAltGorevAcikId(altGorevAcikId === gorev.id ? null : gorev.id); setAltGorevMetni('') }}>
-            + Alt görev ekle
-          </button>
-        )}
-
         {altGorevAcikId === gorev.id && (
-          <div className="ekleme-satiri-2" style={{ marginTop: 8 }}>
-            <input
-              type="text"
-              placeholder="Alt görev yaz..."
-              value={altGorevMetni}
-              onChange={(e) => setAltGorevMetni(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && altGorevEkle(gorev.id, gorev.santiye_id)}
-              autoFocus
-            />
-            <button onClick={() => altGorevEkle(gorev.id, gorev.santiye_id)}>Ekle</button>
+          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+            <input type="text" placeholder="Alt görev yaz..." value={altGorevMetni} onChange={(e) => setAltGorevMetni(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && altGorevEkle(gorev.id, gorev.santiye_id)} autoFocus style={{ flex: 1, padding: '6px 8px', fontSize: 12, borderRadius: 6, border: '1px solid #d3d1c7' }} />
+            <button onClick={() => altGorevEkle(gorev.id, gorev.santiye_id)} style={{ padding: '6px 12px', background: '#1D9596', color: 'white', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>Ekle</button>
           </div>
         )}
       </div>
@@ -182,11 +171,7 @@ function GorevKarti({ gorev, seviye, ctx }) {
       {gosterilecekAltlar.map((alt) => <GorevKarti key={alt.id} gorev={alt} seviye={seviye + 1} ctx={ctx} />)}
 
       {altlar.length > 2 && (
-        <button
-          className="daha-fazla-buton"
-          style={{ marginLeft: (seviye + 1) * 16 }}
-          onClick={() => setGenisletilmis((onceki) => ({ ...onceki, [gorev.id]: !onceki[gorev.id] }))}
-        >
+        <button className="daha-fazla-buton" style={{ marginLeft: 12, fontSize: 11, padding: '2px 0 6px' }} onClick={() => setGenisletilmis((onceki) => ({ ...onceki, [gorev.id]: !onceki[gorev.id] }))}>
           {genisletildi ? '▲ Daralt' : `▼ ${altlar.length - 2} tane daha göster`}
         </button>
       )}
