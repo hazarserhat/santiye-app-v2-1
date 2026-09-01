@@ -18,11 +18,11 @@ const gunEkle = (t, n) => {
 }
 
 const ALANLAR = [
-  { anahtar: 'malzeme', etiket: 'Şantiyeye Gelen Malzemeler', simge: '📦' },
-  { anahtar: 'ekipman', etiket: 'Ekipman / İş Makinesi', simge: '🚜' },
-  { anahtar: 'yapilan_is', etiket: 'İmalat (Ne İş Yapıldı)', simge: '🔨' },
-  { anahtar: 'diger', etiket: 'Diğer', simge: '📝' },
-  { anahtar: 'sorunlar', etiket: 'Sorunlar', simge: '⚠️' },
+  { anahtar: 'malzeme', etiket: 'Şantiyeye Gelen Malzemeler', simge: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> },
+  { anahtar: 'ekipman', etiket: 'Ekipman / İş Makinesi', simge: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg> },
+  { anahtar: 'yapilan_is', etiket: 'İmalat (Ne İş Yapıldı)', simge: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg> },
+  { anahtar: 'diger', etiket: 'Diğer', simge: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> },
+  { anahtar: 'sorunlar', etiket: 'Sorunlar', simge: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> },
 ]
 
 export default function GunlukRapor() {
@@ -201,82 +201,139 @@ export default function GunlukRapor() {
 
   return (
     <div className="sayfa">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <h2 style={{ margin: 0 }}>Günlük Rapor</h2>
-        <button className="ekle-buton-genis" style={{ width: 'auto', padding: '8px 14px' }} onClick={() => setGorunum('ekle')}>+ Rapor Ekle</button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, color: '#1D9596', letterSpacing: '-0.2px' }}>Günlük Rapor</h2>
+        <button 
+          onClick={() => setGorunum('ekle')}
+          style={{ width: 'auto', padding: '10px 14px', borderRadius: 10, background: 'linear-gradient(135deg, #24b8b9, #1D9596)', border: 'none', boxShadow: '0 3px 8px rgba(29, 149, 150, 0.3)', fontWeight: 700, color: 'white', cursor: 'pointer', textShadow: '0 1px 2px rgba(0,0,0,0.1)', transition: 'all 0.2s', fontSize: 13 }}
+        >
+          + Rapor Ekle
+        </button>
       </div>
 
       {gorunum !== 'ekle' && (
         <>
-          <div className="filtre-satiri">
-            <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
-            {santiyeler.map((s) => (
-              <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
-            ))}
+          <div style={{ background: '#f8f7f2', padding: '12px', borderRadius: 12, boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.03)', marginBottom: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>Şantiye</label>
+              <select 
+                value={filtreSantiye} 
+                onChange={(e) => setFiltreSantiye(e.target.value)} 
+                style={{ padding: '8px 10px', fontSize: 13, borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.03)', outline: 'none', cursor: 'pointer' }}
+              >
+                <option value="hepsi">Tüm şantiyeler</option>
+                {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+              </select>
+            </div>
           </div>
 
-          <div className="gorunum-secici" style={{ marginBottom: 14 }}>
-            <button className={gorunum === 'liste' ? 'secili-tab' : ''} onClick={() => setGorunum('liste')}>Liste</button>
-            <button className={gorunum === 'takvim' ? 'secili-tab' : ''} onClick={() => setGorunum('takvim')}>Takvim</button>
+          <div style={{ display: 'flex', background: '#f4f3ed', padding: 4, borderRadius: 10, marginBottom: 16, boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.05)' }}>
+            <button 
+              onClick={() => setGorunum('liste')}
+              style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', background: gorunum === 'liste' ? '#fff' : 'transparent', color: gorunum === 'liste' ? '#1D9596' : '#5F5E5A', fontWeight: gorunum === 'liste' ? 700 : 500, boxShadow: gorunum === 'liste' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 13 }}
+            >
+              Liste
+            </button>
+            <button 
+              onClick={() => setGorunum('takvim')}
+              style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', background: gorunum === 'takvim' ? '#fff' : 'transparent', color: gorunum === 'takvim' ? '#1D9596' : '#5F5E5A', fontWeight: gorunum === 'takvim' ? 700 : 500, boxShadow: gorunum === 'takvim' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 13 }}
+            >
+              Takvim
+            </button>
           </div>
         </>
       )}
 
       {gorunum === 'liste' && (
-        <div className="liste">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {raporlar.map((r) => (
-            <div key={r.id} className="kart">
-              <div className="kart-ust" onClick={() => detayAc(r.id)} style={{ cursor: 'pointer' }}>
-                <div>
-                  <span className="kart-baslik">{detayAcikId === r.id ? '▾' : '▸'} {new Date(r.tarih).toLocaleDateString('tr-TR')}</span>
-                  <span className="etiket etiket-vurgu" style={{ marginLeft: 8 }}>{r.santiyeler?.ad}</span>
+            <div key={r.id} style={{ background: 'linear-gradient(to bottom, #ffffff, #fcfcf9)', border: '1px solid rgba(0,0,0,0.03)', borderRadius: 16, padding: '12px 16px', boxShadow: '0 6px 16px rgba(0, 0, 0, 0.04), inset 0 2px 4px rgba(255,255,255,0.8)' }}>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => detayAc(r.id)}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ color: '#1D9596', display: 'flex', alignItems: 'center', transition: 'transform 0.2s', transform: detayAcikId === r.id ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </span>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: '#2b2b2b', letterSpacing: '-0.2px' }}>
+                      {new Date(r.tarih).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 18 }}>
+                    <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: '#f0efeb', color: '#555', fontWeight: 600, border: '1px solid rgba(0,0,0,0.03)' }}>{r.santiyeler?.ad}</span>
+                    <span style={{ fontSize: 10, color: '#888780' }}>· Ekleyen: {r.profiles?.ad_soyad?.split(' ')[0] || 'Bilinmiyor'}</span>
+                  </div>
                 </div>
-                <button className="sil-buton" onClick={(e) => { e.stopPropagation(); raporSil(r.id) }} aria-label="Sil">🗑</button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); raporPaylas(r) }}
+                    style={{ 
+                      padding: '6px 12px', 
+                      background: 'linear-gradient(135deg, #32c45e, #25D366)', 
+                      color: '#fff', 
+                      border: 'none', 
+                      borderRadius: 8, 
+                      cursor: 'pointer', 
+                      fontWeight: 700, 
+                      fontSize: 11, 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 4,
+                      boxShadow: '0 2px 6px rgba(37, 211, 102, 0.3)',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                    Paylaş
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); raporSil(r.id) }} 
+                    style={{ 
+                      padding: '6px 10px', 
+                      background: '#fff', 
+                      border: '1px solid rgba(214, 69, 69, 0.2)', 
+                      borderRadius: 8, 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 4, 
+                      cursor: 'pointer', 
+                      color: '#D64545', 
+                      fontWeight: 700,
+                      fontSize: 11,
+                      boxShadow: '0 2px 4px rgba(214, 69, 69, 0.05)', 
+                      transition: 'all 0.2s' 
+                    }}
+                    title="Sil"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    Sil
+                  </button>
+                </div>
               </div>
-              <div className="gorev-alt-bilgi">Ekleyen: {r.profiles?.ad_soyad || 'Bilinmiyor'} · {new Date(r.created_at).toLocaleDateString('tr-TR')} {new Date(r.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>
 
               {detayAcikId === r.id && (
-                <div style={{ marginTop: 10 }}>
+                <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.04)' }}>
                   {ALANLAR.map((a) => r[a.anahtar] && (
-                    <div key={a.anahtar} style={{ marginBottom: 8 }}>
-                      <p style={{ fontSize: 12, fontWeight: 700, margin: '0 0 2px' }}>{a.simge} {a.etiket}</p>
-                      <p className="not-icerik">{r[a.anahtar]}</p>
+                    <div key={a.anahtar} style={{ marginBottom: 12, background: '#f8f7f2', padding: 10, borderRadius: 8, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.02)' }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, margin: '0 0 4px', color: '#1D9596' }}>{a.simge} {a.etiket}</p>
+                      <p style={{ margin: 0, fontSize: 13, color: '#444', whiteSpace: 'pre-wrap' }}>{r[a.anahtar]}</p>
                     </div>
                   ))}
                   {(fotograflar[r.id] || []).length > 0 && (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                       {fotograflar[r.id].map((f) => (
                         <a key={f.id} href={getGoogleDriveViewUrl(f.url)} target="_blank" rel="noreferrer">
-                          <img src={getGoogleDriveInlineImageUrl(f.url)} alt="Rapor fotoğrafı" style={{ width: 70, height: 70, objectFit: 'cover', borderRadius: 8 }} />
+                          <img src={getGoogleDriveInlineImageUrl(f.url)} alt="Rapor fotoğrafı" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }} />
                         </a>
                       ))}
                     </div>
                   )}
                 </div>
               )}
-
-              {/* WhatsApp ile Çoklu Görsel ve Metin Gönderme Butonu */}
-              <button 
-                onClick={() => raporPaylas(r)}
-                style={{ 
-                  marginTop: 10, 
-                  width: '100%', 
-                  padding: '8px 12px', 
-                  background: '#25D366', 
-                  color: '#fff', 
-                  border: 'none', 
-                  borderRadius: 6, 
-                  cursor: 'pointer', 
-                  fontWeight: 600, 
-                  fontSize: 12, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  gap: 6 
-                }}
-              >
-                💬 WhatsApp ile Paylaş
-              </button>
             </div>
           ))}
           {raporlar.length === 0 && <p className="bos-mesaj">Bu filtrede rapor yok.</p>}
@@ -316,32 +373,54 @@ export default function GunlukRapor() {
       {gorunum === 'ekle' && (
         <div className="ekleme-kutusu">
           <div className="ekleme-satiri-2">
-            <select value={yeniSantiyeId} onChange={(e) => setYeniSantiyeId(e.target.value)}>
+            <select 
+              value={yeniSantiyeId} 
+              onChange={(e) => setYeniSantiyeId(e.target.value)}
+              style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.04)', fontSize: 13, outline: 'none' }}
+            >
               {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
             </select>
-            <input type="date" value={yeniTarih} onChange={(e) => setYeniTarih(e.target.value)} />
+            <input 
+              type="date" 
+              value={yeniTarih} 
+              onChange={(e) => setYeniTarih(e.target.value)} 
+              style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.04)', fontSize: 13, outline: 'none' }}
+            />
           </div>
 
           {ALANLAR.map((a) => (
             <div key={a.anahtar}>
-              <label style={{ fontSize: 12, color: '#5F5E5A' }}>{a.simge} {a.etiket}</label>
+              <label style={{ fontSize: 12, color: '#555', fontWeight: 600 }}>{a.simge} {a.etiket}</label>
               <textarea
                 value={alanlar[a.anahtar]}
                 onChange={(e) => setAlanlar((o) => ({ ...o, [a.anahtar]: e.target.value }))}
                 rows={2}
-                style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', marginTop: 4 }}
+                style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.04)', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', marginTop: 4, outline: 'none' }}
               />
             </div>
           ))}
 
-          <label className="dosya-buton">
-            📷 {yeniFotograflar.length > 0 ? `${yeniFotograflar.length} fotoğraf seçildi` : 'Fotoğraf / Galeri ekle'}
+          <label 
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', background: 'linear-gradient(to bottom, #ffffff, #f4f3ed)', border: '1px dashed rgba(0,0,0,0.15)', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#555', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', marginTop: 8 }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            {yeniFotograflar.length > 0 ? `${yeniFotograflar.length} fotoğraf seçildi` : 'Fotoğraf / Galeri ekle'}
             <input type="file" accept="image/*" multiple hidden onChange={(e) => setYeniFotograflar(Array.from(e.target.files))} />
           </label>
 
-          <div className="ekleme-satiri-2">
-            <button onClick={() => setGorunum('liste')}>Vazgeç</button>
-            <button className="ekle-buton-genis" onClick={raporEkle} disabled={yukleniyor}>
+          <div className="ekleme-satiri-2" style={{ marginTop: 8 }}>
+            <button 
+              onClick={() => setGorunum('liste')}
+              style={{ padding: '10px', background: '#f4f3ed', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 10, color: '#555', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}
+            >
+              Vazgeç
+            </button>
+            <button 
+              className="ekle-buton-genis" 
+              onClick={raporEkle} 
+              disabled={yukleniyor}
+              style={{ padding: '10px', background: 'linear-gradient(135deg, #24b8b9, #1D9596)', color: 'white', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 10px rgba(29, 149, 150, 0.3)', opacity: yukleniyor ? 0.7 : 1 }}
+            >
               {yukleniyor ? 'Kaydediliyor...' : 'Raporu kaydet'}
             </button>
           </div>
