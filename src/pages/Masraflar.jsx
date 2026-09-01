@@ -15,6 +15,49 @@ export default function Masraflar() {
   const yonetici = profile?.rol === 'yonetici'
   const [sekme, setSekme] = useState('masraf') // 'masraf' | 'cek'
 
+  // Yüzde Dağılım Yardımcı Fonksiyonları
+  const handleYuzdeDegisimi = (liste, setListe, degisenIndex, yeniDeger) => {
+    const yeniListe = [...liste]
+    const val = Number(yeniDeger)
+    yeniListe[degisenIndex] = { ...yeniListe[degisenIndex], yuzde: yeniDeger }
+    
+    if (yeniListe.length > 1 && val >= 0 && val <= 100 && yeniDeger !== '') {
+      const kalan = 100 - val
+      const digerAdet = yeniListe.length - 1
+      const pay = Math.floor(kalan / digerAdet)
+      let kalanPay = kalan - (pay * digerAdet)
+
+      yeniListe.forEach((item, idx) => {
+        if (idx !== degisenIndex) {
+          if (kalanPay > 0) {
+            yeniListe[idx].yuzde = (pay + 1).toString()
+            kalanPay--
+          } else {
+            yeniListe[idx].yuzde = pay.toString()
+          }
+        }
+      })
+    }
+    setListe(yeniListe)
+  }
+
+  const handleSantiyeEkle = (liste, setListe) => {
+    const yeniListe = [...liste, { santiye_id: '', yuzde: '' }]
+    const adet = yeniListe.length
+    const pay = Math.floor(100 / adet)
+    let kalanPay = 100 - (pay * adet)
+    
+    yeniListe.forEach((item, idx) => {
+      if (kalanPay > 0) {
+        yeniListe[idx].yuzde = (pay + 1).toString()
+        kalanPay--
+      } else {
+        yeniListe[idx].yuzde = pay.toString()
+      }
+    })
+    setListe(yeniListe)
+  }
+
   const [masraflar, setMasraflar] = useState([])
   const [kullanicilar, setKullanicilar] = useState([])
   const [kategoriler, setKategoriler] = useState([])
@@ -461,16 +504,14 @@ export default function Masraflar() {
                       {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
                     </select>
                     <input type="number" placeholder="% Yüzde" value={dagilim.yuzde} onChange={(e) => {
-                      const yeni = [...santiyeDagilimi]
-                      yeni[i].yuzde = e.target.value
-                      setSantiyeDagilimi(yeni)
+                      handleYuzdeDegisimi(santiyeDagilimi, setSantiyeDagilimi, i, e.target.value)
                     }} style={{ width: 80, margin: 0 }} onKeyDown={sadeceSayiTuslari} />
                     {santiyeDagilimi.length > 1 && (
                       <button onClick={() => setSantiyeDagilimi(santiyeDagilimi.filter((_, index) => index !== i))} style={{ padding: '0 8px', background: '#ffe6e6', color: '#d9534f', border: 'none', borderRadius: 6, cursor: 'pointer' }}>✕</button>
                     )}
                   </div>
                 ))}
-                <button onClick={() => setSantiyeDagilimi([...santiyeDagilimi, { santiye_id: '', yuzde: '' }])} style={{ fontSize: 11, padding: '6px 10px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', marginTop: 4 }}>
+                <button onClick={() => handleSantiyeEkle(santiyeDagilimi, setSantiyeDagilimi)} style={{ fontSize: 11, padding: '6px 10px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', marginTop: 4 }}>
                   + Yeni Şantiye Ekle
                 </button>
                 <div style={{ fontSize: 11, marginTop: 6, color: santiyeDagilimi.reduce((acc, val) => acc + (Number(val.yuzde)||0), 0) === 100 ? '#0F6E56' : '#d9534f' }}>
@@ -635,16 +676,14 @@ export default function Masraflar() {
                               {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
                             </select>
                             <input type="number" placeholder="% Yüzde" value={dagilim.yuzde} onChange={(e) => {
-                              const yeni = [...duzSantiyeDagilimi]
-                              yeni[i].yuzde = e.target.value
-                              setDuzSantiyeDagilimi(yeni)
+                              handleYuzdeDegisimi(duzSantiyeDagilimi, setDuzSantiyeDagilimi, i, e.target.value)
                             }} style={{ width: 80, margin: 0 }} onKeyDown={sadeceSayiTuslari} />
                             {duzSantiyeDagilimi.length > 1 && (
                               <button onClick={() => setDuzSantiyeDagilimi(duzSantiyeDagilimi.filter((_, index) => index !== i))} style={{ padding: '0 8px', background: '#ffe6e6', color: '#d9534f', border: 'none', borderRadius: 6, cursor: 'pointer' }}>✕</button>
                             )}
                           </div>
                         ))}
-                        <button onClick={() => setDuzSantiyeDagilimi([...duzSantiyeDagilimi, { santiye_id: '', yuzde: '' }])} style={{ fontSize: 11, padding: '6px 10px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', marginTop: 4 }}>
+                        <button onClick={() => handleSantiyeEkle(duzSantiyeDagilimi, setDuzSantiyeDagilimi)} style={{ fontSize: 11, padding: '6px 10px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', marginTop: 4 }}>
                           + Yeni Şantiye Ekle
                         </button>
                         <div style={{ fontSize: 11, marginTop: 6, color: duzSantiyeDagilimi.reduce((acc, val) => acc + (Number(val.yuzde)||0), 0) === 100 ? '#0F6E56' : '#d9534f' }}>
