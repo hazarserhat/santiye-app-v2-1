@@ -310,74 +310,97 @@ export default function CariKartlar() {
   if (seciliId && seciliTaseron) {
     return (
       <div className="sayfa">
-        <button className="geri-buton" onClick={() => setSeciliId(null)}>← Listeye dön</button>
+        <button 
+          onClick={() => setSeciliId(null)}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 10, cursor: 'pointer', color: '#555', fontWeight: 600, fontSize: 13, marginBottom: 16, boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          Listeye Dön
+        </button>
 
-        <div className="taseron-baslik-satiri">
-          <div className="avatar-daire">{seciliTaseron.ad.slice(0, 2).toUpperCase()}</div>
+        <div style={{ background: 'linear-gradient(to bottom, #ffffff, #fcfcf9)', border: '1px solid rgba(0,0,0,0.03)', borderRadius: 16, padding: '16px', boxShadow: '0 6px 16px rgba(0, 0, 0, 0.04), inset 0 2px 4px rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'linear-gradient(135deg, #1D9596, #117575)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 16, flexShrink: 0, boxShadow: '0 4px 10px rgba(29, 149, 150, 0.3)' }}>
+            {seciliTaseron.ad.slice(0, 2).toUpperCase()}
+          </div>
           <div style={{ flex: 1 }}>
-            <p className="taseron-ad">{seciliTaseron.ad}</p>
-            <p className="taseron-firma">{seciliTaseron.sifat}{seciliTaseron.sifat && seciliTaseron.firma ? ' · ' : ''}{seciliTaseron.firma}</p>
+            <p style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700, color: '#333', letterSpacing: '-0.3px' }}>{seciliTaseron.ad}</p>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: '#666' }}>{seciliTaseron.sifat}{seciliTaseron.sifat && seciliTaseron.firma ? ' · ' : ''}{seciliTaseron.firma}</p>
           </div>
           {yonetici && !duzenleModu && (
-            <button className="sil-buton" onClick={() => setDuzenleModu(true)} aria-label="Düzenle">✎</button>
+            <button 
+              onClick={() => setDuzenleModu(true)} 
+              aria-label="Düzenle"
+              style={{ padding: '8px', background: '#fff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 8, cursor: 'pointer', color: '#1D9596', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', display: 'flex' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+            </button>
           )}
         </div>
 
         {duzenleModu ? (
           <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
-            <input type="text" placeholder="Ad soyad" value={duzAd} onChange={(e) => setDuzAd(e.target.value)} />
-            <input type="text" placeholder="Sıfat / unvan" value={duzSifat} onChange={(e) => setDuzSifat(e.target.value)} />
-            <input type="text" placeholder="Firma" value={duzFirma} onChange={(e) => setDuzFirma(e.target.value)} />
-            <input type="text" placeholder="Telefon" value={duzTelefon} onChange={(e) => setDuzTelefon(e.target.value)} />
-            <input type="text" placeholder="Adres" value={duzAdres} onChange={(e) => setDuzAdres(e.target.value)} />
-            <div className="ekleme-satiri-2">
-              <button onClick={() => setDuzenleModu(false)}>Vazgeç</button>
-              <button className="ekle-buton-genis" onClick={taseronGuncelle}>Kaydet</button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <input type="text" placeholder="Ad Soyad" value={duzAd} onChange={(e) => setDuzAd(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+              <input type="text" placeholder="Sıfat / unvan" value={duzSifat} onChange={(e) => setDuzSifat(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+              <input type="text" placeholder="Firma" value={duzFirma} onChange={(e) => setDuzFirma(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+              <input type="text" placeholder="Telefon" value={duzTelefon} onChange={(e) => setDuzTelefon(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+              <input type="text" placeholder="Adres" value={duzAdres} onChange={(e) => setDuzAdres(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setDuzenleModu(false)} style={{ flex: 1, padding: '10px', background: '#f4f3ed', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 10, color: '#555', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>Vazgeç</button>
+                <button onClick={taseronGuncelle} style={{ flex: 2, padding: '10px', background: 'linear-gradient(135deg, #24b8b9, #1D9596)', color: 'white', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 10px rgba(29, 149, 150, 0.3)' }}>Kaydet</button>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="bilgi-kutusu">
-            <div className="bilgi-satiri">
-              <span>Telefon</span>
+          <div style={{ background: '#f8f7f2', padding: 16, borderRadius: 16, boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.03)', marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 10, borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+              <span style={{ fontSize: 13, color: '#888780', fontWeight: 600 }}>Telefon</span>
               {seciliTaseron.telefon ? (
                 <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <a href={`tel:${seciliTaseron.telefon}`} style={{ color: '#0F6E56', fontWeight: 500 }}>{seciliTaseron.telefon}</a>
+                  <a href={`tel:${seciliTaseron.telefon}`} style={{ color: '#0F6E56', fontWeight: 600, fontSize: 14 }}>{seciliTaseron.telefon}</a>
                   <button
-                    className="sil-buton"
                     onClick={() => { navigator.clipboard.writeText(seciliTaseron.telefon); alert('Telefon numarası kopyalandı.') }}
                     aria-label="Telefonu kopyala"
-                  >📋</button>
+                    style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, cursor: 'pointer', color: '#1D9596', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  </button>
                 </span>
-              ) : <span>—</span>}
+              ) : <span style={{ fontSize: 14, color: '#444' }}>—</span>}
             </div>
-            <div className="bilgi-satiri"><span>Adres</span><span>{seciliTaseron.adres || '—'}</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 10 }}>
+              <span style={{ fontSize: 13, color: '#888780', fontWeight: 600 }}>Adres</span>
+              <span style={{ fontSize: 14, color: '#444', textAlign: 'right', flex: 1, marginLeft: 16 }}>{seciliTaseron.adres || '—'}</span>
+            </div>
           </div>
         )}
 
-        <p className="alt-baslik">Çalıştığı şantiyeler</p>
-        <div className="etiket-satiri" style={{ marginBottom: 10 }}>
+        <p style={{ margin: '0 0 10px', fontSize: 15, fontWeight: 700, color: '#333' }}>Çalıştığı Şantiyeler</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
           {iliskiliSantiyeler.map((r) => (
-            <span key={r.id} className="etiket etiket-vurgu" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#e0f2f1', color: '#00695c', padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, border: '1px solid rgba(0, 105, 92, 0.1)' }}>
               {santiyeler.find((s) => s.id === r.santiye_id)?.ad || '—'}
-              <button className="etiket-sil-x" onClick={() => santiyeIliskisiSil(r.id)} aria-label="Şantiye ilişkisini kaldır">×</button>
+              <button onClick={() => santiyeIliskisiSil(r.id)} style={{ background: 'none', border: 'none', padding: 0, margin: 0, display: 'flex', cursor: 'pointer', color: '#00695c', opacity: 0.7 }} aria-label="Kaldır">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
             </span>
           ))}
-          {iliskiliSantiyeler.length === 0 && <span className="bos-mesaj" style={{ padding: 0 }}>Henüz şantiye eklenmemiş.</span>}
+          {iliskiliSantiyeler.length === 0 && <span className="bos-mesaj" style={{ padding: 0, margin: 0 }}>Henüz şantiye eklenmemiş.</span>}
         </div>
         {eklenebilirSantiyeler.length > 0 && (
-          <div className="ekleme-satiri-2" style={{ marginBottom: 16 }}>
-            <select value={eklenecekSantiyeId} onChange={(e) => setEklenecekSantiyeId(e.target.value)}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+            <select value={eklenecekSantiyeId} onChange={(e) => setEklenecekSantiyeId(e.target.value)} style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.04)', fontSize: 13, outline: 'none' }}>
               <option value="">Şantiye seç...</option>
               {eklenebilirSantiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
             </select>
-            <button onClick={santiyeIliskisiEkle}>Ekle</button>
+            <button onClick={santiyeIliskisiEkle} style={{ padding: '10px 16px', background: '#f4f3ed', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 10, color: '#333', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>Ekle</button>
           </div>
         )}
 
-        <p className="alt-baslik">Notlar</p>
-        <div className="liste">
+        <p style={{ margin: '0 0 10px', fontSize: 15, fontWeight: 700, color: '#333' }}>Notlar</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
           {notlar.map((n) => (
-            <div key={n.id} className="kart">
+            <div key={n.id} style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.04)', borderRadius: 12, padding: '12px 14px', boxShadow: '0 4px 10px rgba(0,0,0,0.02)' }}>
               {duzenlenenNotId === n.id ? (
                 <>
                   <input
@@ -386,171 +409,155 @@ export default function CariKartlar() {
                     onChange={(e) => setDuzenlenenNotMetni(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && notGuncelle(n.id)}
                     autoFocus
-                    style={{ width: '100%', marginBottom: 6 }}
+                    style={{ width: '100%', marginBottom: 8, padding: '10px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.04)', fontSize: 13, outline: 'none' }}
                   />
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={() => setDuzenlenenNotId(null)} style={{ fontSize: 12 }}>Vazgeç</button>
-                    <button onClick={() => notGuncelle(n.id)} style={{ fontSize: 12 }}>Kaydet</button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => setDuzenlenenNotId(null)} style={{ flex: 1, padding: '8px', background: '#f4f3ed', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 8, color: '#555', fontWeight: 600, cursor: 'pointer' }}>Vazgeç</button>
+                    <button onClick={() => notGuncelle(n.id)} style={{ flex: 2, padding: '8px', background: 'linear-gradient(135deg, #24b8b9, #1D9596)', color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>Kaydet</button>
                   </div>
                 </>
               ) : (
                 <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 8 }}>
-                    <p className="not-icerik" style={{ flex: 1 }}>{n.icerik}</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                    <p style={{ margin: 0, fontSize: 13, color: '#444', lineHeight: 1.4, flex: 1 }}>{n.icerik}</p>
                     {yonetici && (
-                      <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                        <button className="sil-buton" onClick={() => { setDuzenlenenNotId(n.id); setDuzenlenenNotMetni(n.icerik) }} aria-label="Notu düzenle">✎</button>
-                        <button className="sil-buton" onClick={() => notSil(n.id)} aria-label="Notu sil">🗑</button>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        <button onClick={() => { setDuzenlenenNotId(n.id); setDuzenlenenNotMetni(n.icerik) }} style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#1D9596', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }} title="Düzenle">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                        </button>
+                        <button onClick={() => notSil(n.id)} style={{ background: '#fff', border: '1px solid rgba(214, 69, 69, 0.2)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#D64545', boxShadow: '0 2px 4px rgba(214, 69, 69, 0.05)' }} title="Sil">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
                       </div>
                     )}
                   </div>
-                  <span className="not-alt">{n.profiles?.ad_soyad || 'Bilinmiyor'} · {new Date(n.created_at).toLocaleDateString('tr-TR')} {new Date(n.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span style={{ display: 'block', marginTop: 8, fontSize: 10, color: '#888780', fontWeight: 500 }}>
+                    {n.profiles?.ad_soyad || 'Bilinmiyor'} · {new Date(n.created_at).toLocaleDateString('tr-TR')} {new Date(n.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </>
               )}
             </div>
           ))}
           {notlar.length === 0 && <p className="bos-mesaj">Henüz not yok.</p>}
         </div>
-        <div className="ekleme-kutusu">
-          <input type="text" placeholder="Not yaz..." value={yeniNot} onChange={(e) => setYeniNot(e.target.value)} />
-          <button className="ekle-buton-genis" onClick={notEkle}>Notu ekle</button>
+        <div className="ekleme-kutusu" style={{ display: 'flex', gap: 8, padding: 12 }}>
+          <input type="text" placeholder="Yeni not yaz..." value={yeniNot} onChange={(e) => setYeniNot(e.target.value)} style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.04)', fontSize: 13, outline: 'none' }} />
+          <button onClick={notEkle} style={{ padding: '10px 16px', background: 'linear-gradient(135deg, #24b8b9, #1D9596)', color: 'white', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 10px rgba(29, 149, 150, 0.3)' }}>Ekle</button>
         </div>
 
-        {/* --- ORTAK TİMELİNE --- */}
-        <p className="alt-baslik" style={{ marginTop: 20 }}>Anlaşma / Avans / İskonto / Hakediş Bilgi Kartları & Finansal Akış</p>
+        <p style={{ margin: '24px 0 10px', fontSize: 15, fontWeight: 700, color: '#333' }}>Finansal Akış & Bilgi Kartları</p>
 
         {!yonetici && (
-          <div className="kilit-kutusu">
-            <span className="kilit-ikon">🔒</span>
-            <p>Finansal bilgiler sadece yöneticiler tarafından görülebilir.</p>
+          <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 12, padding: 16, display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 10px rgba(0,0,0,0.02)' }}>
+            <span style={{ display: 'flex', color: '#ffb300' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </span>
+            <p style={{ margin: 0, fontSize: 13, color: '#555', fontWeight: 500 }}>Finansal bilgiler sadece yöneticiler tarafından görülebilir.</p>
           </div>
         )}
 
         {yonetici && (
           <>
-            <div className="liste">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
               {timelineOlaylari.map((olay, index) => {
                 if (olay.tip === 'hakedis') {
                   const h = olay.veri
                   const duzenlekte = duzenlenenHakedisId === h.id
                   const netTutar = Number(h.tutar) - Number(h.kesinti_avans || 0)
 
-                  // Belirginleştirilmiş Renkler ve Arka Plan Tonu
                   const isPozitif = netTutar > 0
-                  const hakedisKenarRengi = isPozitif ? '#DC2626' : '#059669' // Kırmızı veya Yeşil
-                  const hakedisArkaPlan = isPozitif ? 'rgba(220, 38, 38, 0.03)' : 'rgba(5, 150, 105, 0.03)'
+                  const hakedisKenarRengi = isPozitif ? '#DC2626' : '#059669' 
+                  const hakedisGölge = isPozitif ? 'rgba(220, 38, 38, 0.08)' : 'rgba(5, 150, 105, 0.08)'
 
                   return (
                     <div
                       key={`hk-${h.id || index}`}
-                      className="kart"
                       style={{
-                        borderLeft: `6px solid ${hakedisKenarRengi}`,
-                        backgroundColor: hakedisArkaPlan
+                        background: '#fff',
+                        borderLeft: `5px solid ${hakedisKenarRengi}`,
+                        borderRadius: '0 12px 12px 0',
+                        padding: '14px',
+                        boxShadow: `0 4px 12px ${hakedisGölge}, inset 0 2px 4px rgba(255,255,255,0.8)`,
+                        borderTop: '1px solid rgba(0,0,0,0.03)',
+                        borderRight: '1px solid rgba(0,0,0,0.03)',
+                        borderBottom: '1px solid rgba(0,0,0,0.03)',
                       }}
                     >
                       {duzenlekte ? (
-                        <div className="ekleme-kutusu" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
-                          <input type="text" placeholder="Başlık" value={duzHkDonem} onChange={(e) => setDuzHkDonem(e.target.value)} style={{ marginBottom: 6 }} />
-                          <div className="ekleme-satiri-2" style={{ marginBottom: 6 }}>
-                            <input type="number" placeholder="Tutar (₺)" value={duzHkTutar} onChange={(e) => setDuzHkTutar(e.target.value)} onKeyDown={sadeceSayiTuslari} />
-                            <input type="number" placeholder="Kesinti/Avans (₺)" value={duzHkKesinti} onChange={(e) => setDuzHkKesinti(e.target.value)} onKeyDown={sadeceSayiTuslari} />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <input type="text" placeholder="Başlık" value={duzHkDonem} onChange={(e) => setDuzHkDonem(e.target.value)} style={{ padding: '10px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <input type="number" placeholder="Tutar" value={duzHkTutar} onChange={(e) => setDuzHkTutar(e.target.value)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
+                            <input type="number" placeholder="Kesinti/Avans" value={duzHkKesinti} onChange={(e) => setDuzHkKesinti(e.target.value)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
                           </div>
-                          <input type="text" placeholder="Açıklama" value={duzHkAciklama} onChange={(e) => setDuzHkAciklama(e.target.value)} style={{ marginBottom: 8 }} />
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            <button onClick={() => setDuzenlenenHakedisId(null)} style={{ fontSize: 12 }}>Vazgeç</button>
-                            <button onClick={() => hakedisGuncelle(h.id)} style={{ fontSize: 12 }}>Güncelle</button>
+                          <input type="text" placeholder="Açıklama" value={duzHkAciklama} onChange={(e) => setDuzHkAciklama(e.target.value)} style={{ padding: '10px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
+                          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                            <button onClick={() => setDuzenlenenHakedisId(null)} style={{ flex: 1, padding: '8px', background: '#f4f3ed', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 8, color: '#555', fontWeight: 600, cursor: 'pointer' }}>Vazgeç</button>
+                            <button onClick={() => hakedisGuncelle(h.id)} style={{ flex: 2, padding: '8px', background: 'linear-gradient(135deg, #24b8b9, #1D9596)', color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>Kaydet</button>
                           </div>
                         </div>
                       ) : (
                         <>
-                          <div className="kart-ust">
-                            <span className="kart-baslik">{h.donem}</span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <button className="sil-buton" onClick={() => hakedisPaylas(h)} aria-label="Paylaş">📤</button>
-                              <button className="sil-buton" onClick={() => {
-                                setDuzenlenenHakedisId(h.id)
-                                setDuzHkDonem(h.donem)
-                                setDuzHkTutar(h.tutar)
-                                setDuzHkKesinti(h.kesinti_avans || '')
-                                setDuzHkAciklama(h.aciklama || '')
-                              }} aria-label="Düzenle">✎</button>
-                              <button className="sil-buton" onClick={() => hakedisSil(h.id)} aria-label="Sil">🗑</button>
-                            </div>
-                          </div>
-                          <div className="hakedis-hesap" style={{ marginTop: 4 }}>
-                            <span>Tutar</span><span>{paraFormatla(h.tutar)} ₺</span>
-                            <span>Kesinti/Avans</span><span>-{paraFormatla(h.kesinti_avans)} ₺</span>
-                            <span className="hakedis-net-etiket">Net</span>
-                            <span className="hakedis-net-tutar" style={{ color: hakedisKenarRengi, fontWeight: 700 }}>
-                              {paraFormatla(netTutar)} ₺
-                            </span>
-                          </div>
-                          {h.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{h.aciklama}</p>}
-                          <span className="not-alt" style={{ display: 'block', marginTop: 4 }}>Eklenme Zamanı: {new Date(h.created_at).toLocaleDateString('tr-TR')} {new Date(h.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                          <p style={{ margin: '0 0 4px', fontSize: 11, color: '#888780', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            {new Date(h.created_at).toLocaleDateString('tr-TR')} · Hakediş
+                          </p>
+                          <span style={{ color: hakedisKenarRengi, fontWeight: 700, fontSize: 15 }}>
+                            {paraFormatla(netTutar)} ₺
+                          </span>
+                          {h.aciklama && <p style={{ margin: '8px 0 0 0', fontSize: 13, color: '#555', fontStyle: 'italic' }}>{h.aciklama}</p>}
                         </>
                       )}
                     </div>
                   )
-                } else if (olay.tip === 'masraf') {
+                }
+
+                if (olay.tip === 'cek' || olay.tip === 'gelir' || olay.tip === 'masraf') {
                   const m = olay.veri
+                  
+                  let baslik = ''
+                  let belge = m.belge_url || m.cek_foto
+                  let tutarGosterim = paraFormatla(Math.abs(m.tutar))
+                  let tipRengi = '#333'
+                  let tipGölge = 'rgba(0,0,0,0.05)'
+                  let isaret = ''
+                  let ekstraMetin = ''
+                  
+                  if (olay.tip === 'masraf') {
+                    baslik = `Ödeme / Masraf: ${m.baslik || 'Ödeme'}`
+                    tipRengi = '#059669' // Yeşil
+                    tipGölge = 'rgba(5, 150, 105, 0.08)'
+                    isaret = '+'
+                  } else if (olay.tip === 'cek') {
+                    baslik = `Çek Girdisi (${m.odeme_konusu || 'Çek'})`
+                    tipRengi = '#059669' // Yeşil
+                    tipGölge = 'rgba(5, 150, 105, 0.08)'
+                    isaret = '+'
+                  } else if (olay.tip === 'gelir') {
+                    baslik = `Yatırım / Gelir: ${m.odeme_yapan_adi || 'Ortak'}`
+                    tipRengi = '#3B82F6' // Mavi
+                    tipGölge = 'rgba(59, 130, 246, 0.08)'
+                    isaret = '-'
+                    ekstraMetin = ' (Firmaya Nakit Girişi)'
+                  }
+
                   return (
-                    <div key={`msf-${m.id || index}`} className="kart" style={{ borderLeft: '6px solid #059669', backgroundColor: 'rgba(5, 150, 105, 0.03)' }}>
-                      <div className="kart-ust">
-                        <span className="kart-baslik">Ödeme / Masraf: {m.baslik}</span>
-                        <span style={{ fontWeight: 700, color: '#059669' }}>+{paraFormatla(Math.abs(m.tutar))} ₺</span>
-                      </div>
-                      <div className="etiket-satiri">
-                        <span className="etiket etiket-vurgu">{m.santiyeler?.ad || 'Genel Gider'}</span>
-                        <span className="etiket">{m.masraf_kategorileri?.ad || 'Ödeme'}</span>
-                      </div>
-                      {m.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{m.aciklama}</p>}
-                      <span className="not-alt">Ödeme Tarihi: {m.harcama_tarihi ? new Date(m.harcama_tarihi).toLocaleDateString('tr-TR') : '—'}</span>
-                      <span className="not-alt" style={{ display: 'block', marginTop: 2 }}>Kayıt Zamanı: {m.kayit_tarihi ? `${new Date(m.kayit_tarihi).toLocaleDateString('tr-TR')} ${new Date(m.kayit_tarihi).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : '—'}</span>
-                    </div>
-                  )
-                } else if (olay.tip === 'cek') {
-                  const c = olay.veri
-                  return (
-                    <div key={`cek-${c.id || index}`} className="kart" style={{ borderLeft: '6px solid #059669', backgroundColor: 'rgba(5, 150, 105, 0.03)' }}>
-                      <div className="kart-ust">
-                        <span className="kart-baslik">{c.odeme_konusu || 'Çek Girdisi'}</span>
-                        <span className="kart-tutar" style={{ color: '#059669', fontWeight: 700 }}>+{paraFormatla(Math.abs(c.tutar))} ₺</span>
-                      </div>
-                      <div className="etiket-satiri">
-                        <span className="etiket etiket-vurgu">{c.odenen || seciliTaseron?.ad || 'Cari'}</span>
-                        <span className="etiket">{c.banka || 'Banka'}</span>
-                        <span className="etiket">Seri: {c.cek_seri_no || '—'}</span>
-                        {c.belge_url && <a className="etiket" href={c.belge_url} target="_blank" rel="noreferrer">Belge</a>}
-                      </div>
-                      <div className="kart-alt-tarih">
-                        <span>Veriliş: {c.verilis_tarihi ? new Date(c.verilis_tarihi).toLocaleDateString('tr-TR') : '—'}</span>
-                        <span>Vade: {c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : '—'}</span>
-                      </div>
-                      <div className="kart-alt-tarih" style={{ marginTop: 2 }}>
-                        <span>Ödeyen: {c.odeyen || '—'}</span>
-                        <span>Ödenen: {c.odenen || seciliTaseron?.ad || '—'}</span>
-                      </div>
-                      {c.aciklama && <p className="not-icerik" style={{ marginTop: 6 }}>{c.aciklama}</p>}
-                    </div>
-                  )
-                } else {
-                  // GELİR (Ortak Yatırımı vb.)
-                  const g = olay.veri
-                  return (
-                    <div key={`gelir-${g.id || index}`} className="kart" style={{ borderLeft: '6px solid #3B82F6', backgroundColor: 'rgba(59, 130, 246, 0.04)' }}>
-                      <div className="kart-ust">
-                        <span className="kart-baslik">Yatırım / Gelir: {g.odeme_yapan_adi || 'Ortak'}</span>
-                        <span style={{ fontWeight: 700, color: '#3B82F6' }}>-{paraFormatla(Math.abs(g.tutar))} ₺ (Firmaya Nakit Girişi)</span>
-                      </div>
-                      <div className="etiket-satiri">
-                        <span className="etiket etiket-vurgu">{g.santiyeler?.ad || 'Genel Kasa'}</span>
-                        <span className="etiket">{new Date(g.tarih).toLocaleDateString('tr-TR')}</span>
-                      </div>
-                      {g.not_metni && <p className="not-icerik" style={{ marginTop: 6 }}>{g.not_metni}</p>}
-                      {g.belge_url && (
-                        <a href={g.belge_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 13, color: '#3B82F6' }}>
-                          📄 Belgeyi Gör
+                    <div key={`${olay.tip}-${m.id}`} style={{ background: '#fff', borderLeft: `5px solid ${tipRengi}`, borderRadius: '0 12px 12px 0', padding: '14px', boxShadow: `0 4px 12px ${tipGölge}, inset 0 2px 4px rgba(255,255,255,0.8)`, borderTop: '1px solid rgba(0,0,0,0.03)', borderRight: '1px solid rgba(0,0,0,0.03)', borderBottom: '1px solid rgba(0,0,0,0.03)' }}>
+                      <p style={{ margin: '0 0 4px', fontSize: 11, color: '#888780', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        {new Date(olay.sortKey).toLocaleDateString('tr-TR')} · {baslik}
+                      </p>
+                      <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: tipRengi }}>
+                        {isaret}{tutarGosterim} ₺<span style={{ fontSize: 12, fontWeight: 500, color: '#666' }}>{ekstraMetin}</span>
+                      </p>
+                      {m.santiye_id && <span style={{ display: 'inline-block', fontSize: 10, padding: '2px 8px', borderRadius: 6, background: '#f0efeb', color: '#555', fontWeight: 600, border: '1px solid rgba(0,0,0,0.03)' }}>{m.santiyeler?.ad || 'Şantiye'}</span>}
+                      {m.masraf_kategorileri?.ad && <span style={{ display: 'inline-block', fontSize: 10, padding: '2px 8px', borderRadius: 6, background: '#e0f2fe', color: '#0369a1', fontWeight: 600, border: '1px solid rgba(3, 105, 161, 0.1)', marginLeft: 6 }}>{m.masraf_kategorileri.ad}</span>}
+                      {olay.tip === 'cek' && <span style={{ display: 'inline-block', fontSize: 10, padding: '2px 8px', borderRadius: 6, background: '#fef3c7', color: '#b45309', fontWeight: 600, border: '1px solid rgba(180, 83, 9, 0.1)', marginLeft: 6 }}>{m.banka} / {m.cek_seri_no}</span>}
+                      
+                      {m.not_metni && <p style={{ margin: '8px 0 0 0', fontSize: 13, color: '#555', fontStyle: 'italic' }}>{m.not_metni}</p>}
+                      {m.aciklama && <p style={{ margin: '8px 0 0 0', fontSize: 13, color: '#555', fontStyle: 'italic' }}>{m.aciklama}</p>}
+                      {belge && (
+                        <a href={belge} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, color: '#3B82F6', fontWeight: 600, textDecoration: 'none' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                          Belgeyi Gör
                         </a>
                       )}
                     </div>
@@ -560,15 +567,22 @@ export default function CariKartlar() {
               {timelineOlaylari.length === 0 && <p className="bos-mesaj">Henüz finansal hareket kaydı yok.</p>}
             </div>
 
-            <div className="ekleme-kutusu">
-              <p style={{ fontSize: 13, fontWeight: 700, margin: '0 0 8px' }}>Yeni Bilgi Kartı Ekle (Anlaşma / Avans / İskonto / Hakediş)</p>
-              <input type="text" placeholder="Başlık (örn. Temel İşçiliği Anlaşması)" value={hkDonem} onChange={(e) => setHkDonem(e.target.value)} style={{ marginBottom: 6 }} />
-              <div className="ekleme-satiri-2" style={{ marginBottom: 6 }}>
-                <input type="number" placeholder="Tutar (₺)" value={hkTutar} onChange={(e) => setHkTutar(e.target.value)} onKeyDown={sadeceSayiTuslari} />
-                <input type="number" placeholder="Kesinti/Avans (₺)" value={hkKesinti} onChange={(e) => setHkKesinti(e.target.value)} onKeyDown={sadeceSayiTuslari} />
+            <div className="ekleme-kutusu" style={{ marginTop: 16 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700, color: '#333' }}>Yeni Bilgi Kartı Ekle</p>
+                <input type="text" placeholder="Başlık (örn. Temel İşçiliği Anlaşması)" value={hkDonem} onChange={(e) => setHkDonem(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input type="number" placeholder="Tutar (₺)" value={hkTutar} onChange={(e) => setHkTutar(e.target.value)} onKeyDown={sadeceSayiTuslari} style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+                  <input type="number" placeholder="Kesinti/Avans (₺)" value={hkKesinti} onChange={(e) => setHkKesinti(e.target.value)} onKeyDown={sadeceSayiTuslari} style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+                </div>
+                <input type="text" placeholder="Açıklama (opsiyonel)" value={hkAciklama} onChange={(e) => setHkAciklama(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+                <button 
+                  onClick={hakedisEkle}
+                  style={{ padding: '12px', background: 'linear-gradient(135deg, #24b8b9, #1D9596)', color: 'white', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 10px rgba(29, 149, 150, 0.3)', marginTop: 4 }}
+                >
+                  Bilgi kartı kaydı ekle
+                </button>
               </div>
-              <input type="text" placeholder="Açıklama (opsiyonel)" value={hkAciklama} onChange={(e) => setHkAciklama(e.target.value)} style={{ marginBottom: 8 }} />
-              <button className="ekle-buton-genis" onClick={hakedisEkle}>Bilgi kartı kaydı ekle</button>
             </div>
           </>
         )}
@@ -579,32 +593,62 @@ export default function CariKartlar() {
   // ---- LİSTE GÖRÜNÜMÜ ----
   return (
     <div className="sayfa">
-      <h2>Cari Hesaplar</h2>
-
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
-        <input type="text" placeholder="Taşeron ara..." value={arama} onChange={(e) => setArama(e.target.value)} style={{ flex: 1, margin: 0 }} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, color: '#1D9596', letterSpacing: '-0.2px' }}>Cari Hesaplar (Rehber)</h2>
       </div>
 
-      <div className="gorunum-secici" style={{ marginBottom: 12 }}>
-        <button className={siralama === 'alfabetik' ? 'secili-tab' : ''} onClick={() => setSiralama('alfabetik')}>Alfabetik</button>
-        <button className={siralama === 'tarih' ? 'secili-tab' : ''} onClick={() => setSiralama('tarih')}>Eklenme tarihi</button>
+      <div style={{ marginBottom: 12 }}>
+        <input 
+          type="text" 
+          placeholder="Taşeron veya cari hesap ara..." 
+          value={arama} 
+          onChange={(e) => setArama(e.target.value)} 
+          style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.04)', fontSize: 13, outline: 'none' }}
+        />
       </div>
 
-      <div className="filtre-satiri">
-        <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
-        {santiyeler.map((s) => (
-          <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
-        ))}
+      <div style={{ background: '#f8f7f2', padding: '12px', borderRadius: 12, boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.03)', marginBottom: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>Şantiye Filtresi</label>
+          <select 
+            value={filtreSantiye} 
+            onChange={(e) => setFiltreSantiye(e.target.value)} 
+            style={{ padding: '8px 10px', fontSize: 13, borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.03)', outline: 'none', cursor: 'pointer' }}
+          >
+            <option value="hepsi">Tüm şantiyeler</option>
+            {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+          </select>
+        </div>
       </div>
 
-      <div className="liste">
+      <div style={{ display: 'flex', background: '#f4f3ed', padding: 4, borderRadius: 10, marginBottom: 16, boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.05)' }}>
+        <button 
+          onClick={() => setSiralama('alfabetik')}
+          style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', background: siralama === 'alfabetik' ? '#fff' : 'transparent', color: siralama === 'alfabetik' ? '#1D9596' : '#5F5E5A', fontWeight: siralama === 'alfabetik' ? 700 : 500, boxShadow: siralama === 'alfabetik' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 12 }}
+        >
+          Alfabetik
+        </button>
+        <button 
+          onClick={() => setSiralama('tarih')}
+          style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', background: siralama === 'tarih' ? '#fff' : 'transparent', color: siralama === 'tarih' ? '#1D9596' : '#5F5E5A', fontWeight: siralama === 'tarih' ? 700 : 500, boxShadow: siralama === 'tarih' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 12 }}
+        >
+          Eklenme Tarihi
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {filtreliListe.map((t) => (
-          <div key={t.id} className="kart taseron-satir" onClick={() => detayYukle(t.id)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div key={t.id} onClick={() => detayYukle(t.id)} style={{ background: 'linear-gradient(to bottom, #ffffff, #fcfcf9)', border: '1px solid rgba(0,0,0,0.03)', borderRadius: 16, padding: '12px 14px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03), inset 0 2px 4px rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-              <div className="avatar-daire">{t.ad.slice(0, 2).toUpperCase()}</div>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #1D9596, #117575)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0, boxShadow: '0 2px 6px rgba(29, 149, 150, 0.3)' }}>
+                {t.ad.slice(0, 2).toUpperCase()}
+              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p className="taseron-ad">{t.ad}{t.sifat ? <span className="taseron-sifat"> · {t.sifat}</span> : ''}</p>
-                <p className="taseron-firma">
+                <p style={{ margin: '0 0 2px', fontSize: 14, fontWeight: 700, color: '#333' }}>
+                  {t.ad}
+                  {t.sifat ? <span style={{ fontWeight: 500, color: '#888780', fontSize: 12 }}> · {t.sifat}</span> : ''}
+                </p>
+                <p style={{ margin: 0, fontSize: 11, color: '#555', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {(taseronSantiyeHaritasi[t.id] || []).map((sid) => santiyeler.find((s) => s.id === sid)?.ad).filter(Boolean).join(', ') || 'Şantiye ataması yok'}
                 </p>
               </div>
@@ -613,42 +657,68 @@ export default function CariKartlar() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, flexShrink: 0 }}>
               {yonetici && (
                 <>
-                  <label onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <label onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, background: '#f8f7f2', padding: '4px 8px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.04)' }}>
                     <input
                       type="checkbox"
                       checked={t.sef_gorunur || false}
                       onChange={(e) => gorunurlukDegistir(t.id, t.sef_gorunur, e)}
-                    /> Şef Görsün
+                      style={{ accentColor: '#1D9596' }}
+                    /> <span style={{ fontSize: 10, fontWeight: 600, color: '#555' }}>Şef Görsün</span>
                   </label>
 
                   <button
                     onClick={(e) => taseronSil(t.id, e)}
-                    style={{ background: '#ffe6e6', color: '#d9534f', border: 'none', padding: '4px 8px', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}
+                    style={{ background: '#fff', border: '1px solid rgba(214, 69, 69, 0.2)', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#D64545', boxShadow: '0 2px 4px rgba(214, 69, 69, 0.05)', transition: 'all 0.2s' }}
+                    title="Sil"
                   >
-                    🗑 Sil
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
                   </button>
                 </>
               )}
-              <span className="chevron-buyuk">›</span>
+              <span style={{ color: '#aaa', display: 'flex' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </span>
             </div>
           </div>
         ))}
-        {filtreliListe.length === 0 && <p className="bos-mesaj">Taşeron bulunamadı.</p>}
+        {filtreliListe.length === 0 && <p className="bos-mesaj">Kayıt bulunamadı.</p>}
       </div>
 
       {!yeniTaseronAcik ? (
-        <button className="ekle-buton-genis" style={{ marginTop: 14 }} onClick={() => setYeniTaseronAcik(true)}>
-          + Yeni taşeron ekle
+        <button 
+          style={{ marginTop: 16, width: '100%', padding: '12px 14px', borderRadius: 12, background: 'linear-gradient(135deg, #24b8b9, #1D9596)', border: 'none', boxShadow: '0 4px 12px rgba(29, 149, 150, 0.3)', fontWeight: 700, color: 'white', cursor: 'pointer', textShadow: '0 1px 2px rgba(0,0,0,0.1)', transition: 'all 0.2s', fontSize: 14 }} 
+          onClick={() => setYeniTaseronAcik(true)}
+        >
+          + Yeni Kayıt Ekle
         </button>
       ) : (
-        <div className="ekleme-kutusu">
-          <input type="text" placeholder="Ad soyad" value={yeniAd} onChange={(e) => setYeniAd(e.target.value)} />
-          <input type="text" placeholder="Sıfat / unvan (örn. Elektrik ustası)" value={yeniSifat} onChange={(e) => setYeniSifat(e.target.value)} />
-          <input type="text" placeholder="Firma" value={yeniFirma} onChange={(e) => setYeniFirma(e.target.value)} />
-          <input type="text" placeholder="Telefon" value={yeniTelefon} onChange={(e) => setYeniTelefon(e.target.value)} />
-          <input type="text" placeholder="Adres" value={yeniAdres} onChange={(e) => setYeniAdres(e.target.value)} />
-          <p style={{ fontSize: 11, color: '#888780', margin: 0 }}>Şantiye ataması kaydettikten sonra detay ekranından yapılabilir.</p>
-          <button className="ekle-buton-genis" onClick={taseronEkle}>Taşeronu kaydet</button>
+        <div className="ekleme-kutusu" style={{ marginTop: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <input type="text" placeholder="Ad Soyad" value={yeniAd} onChange={(e) => setYeniAd(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+            <input type="text" placeholder="Sıfat / Unvan (örn. Elektrik ustası)" value={yeniSifat} onChange={(e) => setYeniSifat(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+            <input type="text" placeholder="Firma Adı" value={yeniFirma} onChange={(e) => setYeniFirma(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+            <input type="text" placeholder="Telefon Numarası" value={yeniTelefon} onChange={(e) => setYeniTelefon(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+            <input type="text" placeholder="Açık Adres" value={yeniAdres} onChange={(e) => setYeniAdres(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+            <p style={{ fontSize: 11, color: '#888780', margin: '4px 0 8px 0', textAlign: 'center' }}>Şantiye ataması kaydettikten sonra detay ekranından yapılabilir.</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button 
+                onClick={() => setYeniTaseronAcik(false)}
+                style={{ flex: 1, padding: '10px', background: '#f4f3ed', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 10, color: '#555', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}
+              >
+                Vazgeç
+              </button>
+              <button 
+                className="ekle-buton-genis" 
+                onClick={taseronEkle}
+                style={{ flex: 2, padding: '10px', background: 'linear-gradient(135deg, #24b8b9, #1D9596)', color: 'white', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 10px rgba(29, 149, 150, 0.3)' }}
+              >
+                Kişiyi Kaydet
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
