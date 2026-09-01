@@ -228,7 +228,7 @@ export default function Gorevler() {
   const [filtrelerAcik, setFiltrelerAcik] = useState(false)
   const [arsivAcik, setArsivAcik] = useState(false)
   
-  const yonetici = profile?.rol === 'yonetici'
+  const yonetici = profile?.rol === 'yonetici' || profile?.rol === 'koordinator'
 
   const [yeniBaslik, setYeniBaslik] = useState('')
   const [yeniSantiyeId, setYeniSantiyeId] = useState('')
@@ -266,7 +266,18 @@ export default function Gorevler() {
       alert('Görevler yüklenemedi: ' + error.message)
       return
     }
-    setGorevler(data || [])
+    
+    let gecerliGorevler = data || []
+    
+    // Şantiye şefleri sadece kendi oluşturdukları veya kendilerinin etiketlendiği görevleri görebilir.
+    if (profile?.rol === 'santiye_sefi') {
+      gecerliGorevler = gecerliGorevler.filter(g => 
+        g.olusturan === profile.id || 
+        (g.gorev_etiketleri && g.gorev_etiketleri.some(e => e.etiket_turu === 'kisi' && e.deger === profile.id))
+      )
+    }
+    
+    setGorevler(gecerliGorevler)
   }
 
   const gorevEkle = async () => {

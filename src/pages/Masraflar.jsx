@@ -12,7 +12,7 @@ const bugun = () => new Date().toISOString().slice(0, 10)
 export default function Masraflar() {
   const { aktifSantiye, santiyeler } = useSite()
   const { profile } = useAuth()
-  const yonetici = profile?.rol === 'yonetici'
+  const yonetici = profile?.rol === 'yonetici' || profile?.rol === 'koordinator'
   const [sekme, setSekme] = useState('masraf') // 'masraf' | 'cek'
 
   // Yüzde Dağılım Yardımcı Fonksiyonları

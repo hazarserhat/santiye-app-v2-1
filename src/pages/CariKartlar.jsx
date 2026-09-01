@@ -7,7 +7,7 @@ import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
 export default function CariKartlar() {
   const { santiyeler } = useSite()
   const { profile } = useAuth()
-  const yonetici = profile?.rol === 'yonetici'
+  const yonetici = profile?.rol === 'yonetici' || profile?.rol === 'koordinator'
 
   const [taseronlar, setTaseronlar] = useState([])
   const [taseronSantiyeHaritasi, setTaseronSantiyeHaritasi] = useState({})
