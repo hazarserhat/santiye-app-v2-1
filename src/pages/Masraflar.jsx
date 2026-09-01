@@ -43,6 +43,8 @@ export default function Masraflar() {
   const [fotograf, setFotograf] = useState(null)
   const [dinliyor, setDinliyor] = useState(false)
   const [secilenSantiyeId, setSecilenSantiyeId] = useState('')
+  const [cokluSantiyeAcik, setCokluSantiyeAcik] = useState(false)
+  const [santiyeDagilimi, setSantiyeDagilimi] = useState([{ santiye_id: '', yuzde: '' }])
 
   const seciliYontem = odemeYontemleri.find(o => o.id === odemeYontemiId)
   const isKrediKarti = seciliYontem && seciliYontem.ad.toLowerCase().includes('kart')
@@ -57,6 +59,9 @@ export default function Masraflar() {
   const [duzKategoriId, setDuzKategoriId] = useState('')
   const [duzOdemeYontemiId, setDuzOdemeYontemiId] = useState('')
   const [duzCariId, setDuzCariId] = useState(null)
+  const [duzSantiyeId, setDuzSantiyeId] = useState('')
+  const [duzCokluSantiyeAcik, setDuzCokluSantiyeAcik] = useState(false)
+  const [duzSantiyeDagilimi, setDuzSantiyeDagilimi] = useState([])
 
   // Clipboard yapıştırma (Ctrl+V ile görüntü yükleme)
   useEffect(() => {
@@ -152,12 +157,21 @@ export default function Masraflar() {
   // WhatsApp ile Görsel ve Metin Paylaşım Fonksiyonu
   const whatsappGorselliPaylas = async (m) => {
     try {
-      const santiyeAdi = m.santiye_id ? (santiyeler.find((s) => s.id === m.santiye_id)?.ad || 'Şantiye') : 'Genel Gider'
+      let santiyeMetni = ''
+      if (m.santiye_dagilimi && m.santiye_dagilimi.length > 0) {
+        santiyeMetni = '\n' + m.santiye_dagilimi.map((d, index) => {
+          const s = santiyeler.find(x => x.id === d.santiye_id)
+          return `-${index + 1}- ${s ? s.ad : 'Bilinmeyen'} % ${d.yuzde}`
+        }).join('\n')
+      } else {
+        santiyeMetni = m.santiye_id ? (santiyeler.find((s) => s.id === m.santiye_id)?.ad || 'Şantiye') : 'Genel Gider'
+      }
+
       const metin =
         `💰 *GİDER BİLDİRİMİ*\n` +
         `📌 *Başlık:* ${m.baslik}\n` +
         `💵 *Tutar:* ${paraFormatla(m.tutar)} ₺\n` +
-        `🏗 *Şantiye:* ${santiyeAdi}\n` +
+        `🏗 *Şantiye:* ${santiyeMetni}\n` +
         `📁 *Kategori:* ${m.masraf_kategorileri?.ad || '—'}\n` +
         `💳 *Ödeme:* ${m.odeme_yontemleri?.ad || '—'}\n` +
         (m.taksit_sayisi && m.taksit_sayisi > 1 ? `🔄 *Taksit:* ${m.taksit_sayisi} Taksit\n` : '') +
@@ -235,6 +249,22 @@ export default function Masraflar() {
         }
       }
     }
+    
+    let finalDagilim = null
+    if (cokluSantiyeAcik) {
+      let toplamYuzde = 0
+      for (const d of santiyeDagilimi) {
+        toplamYuzde += Number(d.yuzde) || 0
+        if (!d.santiye_id) { alert('Lütfen tüm şantiyeleri seçin.'); setYukleniyor(false); return }
+      }
+      if (toplamYuzde !== 100) {
+        alert('Şantiye yüzdeleri toplamı 100 olmalıdır. (Şu anki: ' + toplamYuzde + ')')
+        setYukleniyor(false)
+        return
+      }
+      finalDagilim = santiyeDagilimi.map(d => ({ santiye_id: d.santiye_id, yuzde: Number(d.yuzde) }))
+    }
+    
     let fotografUrl = null
     if (fotograf) {
       const seciliSantiye = santiyeler.find((s) => s.id === secilenSantiyeId)
@@ -270,7 +300,8 @@ export default function Masraflar() {
     }
 
     const eklenecekMasraf = {
-      santiye_id: secilenSantiyeId === 'genel' ? null : secilenSantiyeId,
+      santiye_id: (cokluSantiyeAcik || secilenSantiyeId === 'genel') ? null : secilenSantiyeId,
+      santiye_dagilimi: finalDagilim,
       kategori_id: kategoriId,
       baslik: finalBaslik,
       odenen_kisi: odenenKisi,
@@ -300,6 +331,8 @@ export default function Masraflar() {
     setTaksitSayisi(1)
     setFotograf(null)
     setHarcamaTarihi(bugun())
+    setCokluSantiyeAcik(false)
+    setSantiyeDagilimi([{ santiye_id: '', yuzde: '' }])
     if (aktifSantiye) setSecilenSantiyeId(aktifSantiye.id)
     setYukleniyor(false)
     masraflariYukle()
@@ -354,6 +387,20 @@ export default function Masraflar() {
     if (!duzBaslik.trim() || !duzTutar) return
     const guncelTutar = temizleTutar(duzTutar)
     
+    let finalDagilim = null
+    if (duzCokluSantiyeAcik) {
+      let toplamYuzde = 0
+      for (const d of duzSantiyeDagilimi) {
+        toplamYuzde += Number(d.yuzde) || 0
+        if (!d.santiye_id) { alert('Lütfen tüm şantiyeleri seçin.'); return }
+      }
+      if (toplamYuzde !== 100) {
+        alert('Şantiye yüzdeleri toplamı 100 olmalıdır. (Şu anki: ' + toplamYuzde + ')')
+        return
+      }
+      finalDagilim = duzSantiyeDagilimi.map(d => ({ santiye_id: d.santiye_id, yuzde: Number(d.yuzde) }))
+    }
+
     const { error } = await supabase.from('masraflar').update({
       baslik: duzBaslik,
       tutar: guncelTutar,
@@ -362,7 +409,9 @@ export default function Masraflar() {
       odenen_kisi: duzOdenenKisi,
       cari_id: duzCariId || null,
       kategori_id: duzKategoriId,
-      odeme_yontemi_id: duzOdemeYontemiId
+      odeme_yontemi_id: duzOdemeYontemiId,
+      santiye_id: duzCokluSantiyeAcik ? null : (duzSantiyeId === 'genel' ? null : duzSantiyeId),
+      santiye_dagilimi: finalDagilim
     }).eq('id', id)
     if (error) { alert('Güncellenemedi: ' + error.message); return }
     setDuzenlenenId(null)
@@ -386,10 +435,50 @@ export default function Masraflar() {
         <>
           {/* YENİ MASRAF EKLEME ALANI (EN ÜSTTE) */}
           <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
-            <select value={secilenSantiyeId} onChange={(e) => setSecilenSantiyeId(e.target.value)} className="santiye-secici-form">
-              {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
-              <option value="genel">Genel Gider (şantiyeye bağlı değil)</option>
-            </select>
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#0F6E56', cursor: 'pointer' }}>
+                <input type="checkbox" checked={cokluSantiyeAcik} onChange={(e) => setCokluSantiyeAcik(e.target.checked)} style={{ width: 14, height: 14, accentColor: '#0F6E56' }} />
+                Birden Fazla Şantiyeye Pay Et
+              </label>
+            </div>
+
+            {!cokluSantiyeAcik ? (
+              <select value={secilenSantiyeId} onChange={(e) => setSecilenSantiyeId(e.target.value)} className="santiye-secici-form">
+                {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+                <option value="genel">Genel Gider (şantiyeye bağlı değil)</option>
+              </select>
+            ) : (
+              <div style={{ background: '#F8F7F2', border: '1px solid #D3D1C7', padding: 10, borderRadius: 8, marginBottom: 10 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, margin: '0 0 8px 0', color: '#2C3E50' }}>Şantiye Dağılımı (%100 Olmalıdır)</p>
+                {santiyeDagilimi.map((dagilim, i) => (
+                  <div key={i} className="ekleme-satiri-2" style={{ marginBottom: 6, display: 'flex', gap: 6 }}>
+                    <select value={dagilim.santiye_id} onChange={(e) => {
+                      const yeni = [...santiyeDagilimi]
+                      yeni[i].santiye_id = e.target.value
+                      setSantiyeDagilimi(yeni)
+                    }} style={{ flex: 1, margin: 0 }}>
+                      <option value="">Şantiye Seç...</option>
+                      {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+                    </select>
+                    <input type="number" placeholder="% Yüzde" value={dagilim.yuzde} onChange={(e) => {
+                      const yeni = [...santiyeDagilimi]
+                      yeni[i].yuzde = e.target.value
+                      setSantiyeDagilimi(yeni)
+                    }} style={{ width: 80, margin: 0 }} onKeyDown={sadeceSayiTuslari} />
+                    {santiyeDagilimi.length > 1 && (
+                      <button onClick={() => setSantiyeDagilimi(santiyeDagilimi.filter((_, index) => index !== i))} style={{ padding: '0 8px', background: '#ffe6e6', color: '#d9534f', border: 'none', borderRadius: 6, cursor: 'pointer' }}>✕</button>
+                    )}
+                  </div>
+                ))}
+                <button onClick={() => setSantiyeDagilimi([...santiyeDagilimi, { santiye_id: '', yuzde: '' }])} style={{ fontSize: 11, padding: '6px 10px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', marginTop: 4 }}>
+                  + Yeni Şantiye Ekle
+                </button>
+                <div style={{ fontSize: 11, marginTop: 6, color: santiyeDagilimi.reduce((acc, val) => acc + (Number(val.yuzde)||0), 0) === 100 ? '#0F6E56' : '#d9534f' }}>
+                  Toplam: %{santiyeDagilimi.reduce((acc, val) => acc + (Number(val.yuzde)||0), 0)}
+                </div>
+              </div>
+            )}
+            
             <input type="text" placeholder="Masraf başlığı..." value={baslik} onChange={(e) => setBaslik(e.target.value)} />
 
             <CariAramaSecici
@@ -520,6 +609,49 @@ export default function Masraflar() {
                 {duzenlenenId === m.id && yonetici ? (
                   /* DÜZENLEME MODU */
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ marginBottom: 6 }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#0F6E56', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={duzCokluSantiyeAcik} onChange={(e) => setDuzCokluSantiyeAcik(e.target.checked)} style={{ width: 14, height: 14, accentColor: '#0F6E56' }} />
+                        Birden Fazla Şantiyeye Pay Et
+                      </label>
+                    </div>
+
+                    {!duzCokluSantiyeAcik ? (
+                      <select value={duzSantiyeId} onChange={(e) => setDuzSantiyeId(e.target.value)}>
+                        <option value="genel">Genel Gider (şantiyeye bağlı değil)</option>
+                        {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+                      </select>
+                    ) : (
+                      <div style={{ background: '#F8F7F2', border: '1px solid #D3D1C7', padding: 10, borderRadius: 8, marginBottom: 10 }}>
+                        <p style={{ fontSize: 12, fontWeight: 700, margin: '0 0 8px 0', color: '#2C3E50' }}>Şantiye Dağılımı (%100 Olmalıdır)</p>
+                        {duzSantiyeDagilimi.map((dagilim, i) => (
+                          <div key={i} className="ekleme-satiri-2" style={{ marginBottom: 6, display: 'flex', gap: 6 }}>
+                            <select value={dagilim.santiye_id} onChange={(e) => {
+                              const yeni = [...duzSantiyeDagilimi]
+                              yeni[i].santiye_id = e.target.value
+                              setDuzSantiyeDagilimi(yeni)
+                            }} style={{ flex: 1, margin: 0 }}>
+                              <option value="">Şantiye Seç...</option>
+                              {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+                            </select>
+                            <input type="number" placeholder="% Yüzde" value={dagilim.yuzde} onChange={(e) => {
+                              const yeni = [...duzSantiyeDagilimi]
+                              yeni[i].yuzde = e.target.value
+                              setDuzSantiyeDagilimi(yeni)
+                            }} style={{ width: 80, margin: 0 }} onKeyDown={sadeceSayiTuslari} />
+                            {duzSantiyeDagilimi.length > 1 && (
+                              <button onClick={() => setDuzSantiyeDagilimi(duzSantiyeDagilimi.filter((_, index) => index !== i))} style={{ padding: '0 8px', background: '#ffe6e6', color: '#d9534f', border: 'none', borderRadius: 6, cursor: 'pointer' }}>✕</button>
+                            )}
+                          </div>
+                        ))}
+                        <button onClick={() => setDuzSantiyeDagilimi([...duzSantiyeDagilimi, { santiye_id: '', yuzde: '' }])} style={{ fontSize: 11, padding: '6px 10px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', marginTop: 4 }}>
+                          + Yeni Şantiye Ekle
+                        </button>
+                        <div style={{ fontSize: 11, marginTop: 6, color: duzSantiyeDagilimi.reduce((acc, val) => acc + (Number(val.yuzde)||0), 0) === 100 ? '#0F6E56' : '#d9534f' }}>
+                          Toplam: %{duzSantiyeDagilimi.reduce((acc, val) => acc + (Number(val.yuzde)||0), 0)}
+                        </div>
+                      </div>
+                    )}
                     <input type="text" value={duzBaslik} onChange={(e) => setDuzBaslik(e.target.value)} placeholder="Masraf başlığı" />
                     <CariAramaSecici
                       deger={duzOdenenKisi}
@@ -569,6 +701,14 @@ export default function Masraflar() {
                             setDuzCariId(m.cari_id || null)
                             setDuzKategoriId(m.kategori_id)
                             setDuzOdemeYontemiId(m.odeme_yontemi_id)
+                            setDuzSantiyeId(m.santiye_id || 'genel')
+                            if (m.santiye_dagilimi && m.santiye_dagilimi.length > 0) {
+                              setDuzCokluSantiyeAcik(true)
+                              setDuzSantiyeDagilimi(m.santiye_dagilimi)
+                            } else {
+                              setDuzCokluSantiyeAcik(false)
+                              setDuzSantiyeDagilimi([{ santiye_id: '', yuzde: '' }])
+                            }
                           }} aria-label="Düzenle">✎</button>
                         )}
                         <input
@@ -584,7 +724,9 @@ export default function Masraflar() {
                     </div>
                     <div className="etiket-satiri">
                       <span className="etiket etiket-vurgu">
-                        {m.santiye_id ? (santiyeler.find((s) => s.id === m.santiye_id)?.ad || 'Şantiye') : 'Genel Gider'}
+                        {m.santiye_dagilimi && m.santiye_dagilimi.length > 0 
+                          ? 'Çoklu Şantiye (Paylaşımlı)' 
+                          : (m.santiye_id ? (santiyeler.find((s) => s.id === m.santiye_id)?.ad || 'Şantiye') : 'Genel Gider')}
                       </span>
                       <span className="etiket">{m.masraf_kategorileri?.ad}</span>
                       <span className="etiket">{m.odeme_yontemleri?.ad}</span>

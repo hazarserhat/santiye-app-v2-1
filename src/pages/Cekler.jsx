@@ -49,6 +49,10 @@ export default function Cekler({ yon = 'verilen' }) {
   const [tutar, setTutar] = useState('')
   const [aciklama, setAciklama] = useState('')
   const [belge, setBelge] = useState(null)
+  const [cokluSantiyeAcik, setCokluSantiyeAcik] = useState(false)
+  const [santiyeDagilimi, setSantiyeDagilimi] = useState([{ santiye_id: '', yuzde: '' }])
+  const [duzCokluSantiyeAcik, setDuzCokluSantiyeAcik] = useState(false)
+  const [duzSantiyeDagilimi, setDuzSantiyeDagilimi] = useState([])
 
   useEffect(() => {
     cekleriYukle()
@@ -169,6 +173,8 @@ export default function Cekler({ yon = 'verilen' }) {
     setIslemTuru('yeni')
     setSecilenCiroCekId('')
     setSecilenCiroBelgeUrl('')
+    setCokluSantiyeAcik(false)
+    setSantiyeDagilimi([{ santiye_id: '', yuzde: '' }])
   }
 
   const duzenlemeyiBaslat = (c) => {
@@ -183,9 +189,15 @@ export default function Cekler({ yon = 'verilen' }) {
     setYeniBankaAcik(false)
     setVerilisTarihi(c.verilis_tarihi ? c.verilis_tarihi.slice(0, 10) : bugun())
     setCekVadesi(c.cek_vadesi ? c.cek_vadesi.slice(0, 10) : '')
-    setTutar(formatInputTutar(c.tutar))
     setAciklama(c.aciklama || '')
     setBelge(null)
+    if (c.santiye_dagilimi && c.santiye_dagilimi.length > 0) {
+      setDuzCokluSantiyeAcik(true)
+      setDuzSantiyeDagilimi(c.santiye_dagilimi)
+    } else {
+      setDuzCokluSantiyeAcik(false)
+      setDuzSantiyeDagilimi([{ santiye_id: '', yuzde: '' }])
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -240,13 +252,31 @@ export default function Cekler({ yon = 'verilen' }) {
         return
       }
     } else if (islemTuru === 'ciro' && secilenCiroBelgeUrl) {
-      // Ciro ediliyorsa ve yeni belge yüklenmediyse, orijinal çekin belgesini kopyala
       belgeUrl = secilenCiroBelgeUrl
+    }
+    let finalDagilim = null
+    const isDuz = !!duzenlenenId
+    const acikMi = isDuz ? duzCokluSantiyeAcik : cokluSantiyeAcik
+    const dagilimListe = isDuz ? duzSantiyeDagilimi : santiyeDagilimi
+
+    if (acikMi) {
+      let toplamYuzde = 0
+      for (const d of dagilimListe) {
+        toplamYuzde += Number(d.yuzde) || 0
+        if (!d.santiye_id) { alert('Lütfen tüm şantiyeleri seçin.'); setYukleniyor(false); return }
+      }
+      if (toplamYuzde !== 100) {
+        alert('Şantiye yüzdeleri toplamı 100 olmalıdır. (Şu anki: ' + toplamYuzde + ')')
+        setYukleniyor(false)
+        return
+      }
+      finalDagilim = dagilimListe.map(d => ({ santiye_id: d.santiye_id, yuzde: Number(d.yuzde) }))
     }
 
     const veri = {
       odeme_konusu: odemeKonusu,
-      santiye_id: santiyeId || null,
+      santiye_id: (acikMi || santiyeId === 'genel') ? null : (santiyeId || null),
+      santiye_dagilimi: finalDagilim,
       odeyen,
       odenen,
       cari_id: finalCariId || null,
@@ -328,10 +358,20 @@ export default function Cekler({ yon = 'verilen' }) {
   // WhatsApp ile Görsel ve Metin Paylaşım Fonksiyonu
   const cekPaylas = async (c) => {
     try {
+      let santiyeMetni = ''
+      if (c.santiye_dagilimi && c.santiye_dagilimi.length > 0) {
+        santiyeMetni = '\n' + c.santiye_dagilimi.map((d, index) => {
+          const s = santiyeler.find(x => x.id === d.santiye_id)
+          return `-${index + 1}- ${s ? s.ad : 'Bilinmeyen'} % ${d.yuzde}`
+        }).join('\n')
+      } else {
+        santiyeMetni = c.santiye_id ? (santiyeler.find((s) => s.id === c.santiye_id)?.ad || 'Şantiye') : 'Genel'
+      }
+
       const metin =
         `💳 *ÇEK / ÖDEME BİLDİRİMİ*\n` +
         `📌 *Konu:* ${c.odeme_konusu}\n` +
-        `🏗 *Şantiye:* ${c.santiyeler?.ad || 'Genel'}\n` +
+        `🏗 *Şantiye:* ${santiyeMetni}\n` +
         `💵 *Tutar:* ${paraFormatla(c.tutar)} ₺\n` +
         `🏦 *Banka:* ${c.banka || '—'}\n` +
         `🔢 *Seri No:* ${c.cek_seri_no || '—'}\n` +
@@ -473,10 +513,62 @@ export default function Cekler({ yon = 'verilen' }) {
 
         <input type="text" placeholder="Ödeme konusu..." value={odemeKonusu} onChange={(e) => setOdemeKonusu(e.target.value)} />
 
-        <select value={santiyeId} onChange={(e) => { setSantiyeId(e.target.value); setMalikId('') }}>
-          <option value="">Şantiye seç (opsiyonel)</option>
-          {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
-        </select>
+        <div style={{ marginBottom: 10 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#0F6E56', cursor: 'pointer' }}>
+            <input type="checkbox" checked={duzenlenenId ? duzCokluSantiyeAcik : cokluSantiyeAcik} onChange={(e) => {
+              if (duzenlenenId) setDuzCokluSantiyeAcik(e.target.checked)
+              else setCokluSantiyeAcik(e.target.checked)
+            }} style={{ width: 14, height: 14, accentColor: '#0F6E56' }} />
+            Birden Fazla Şantiyeye Pay Et
+          </label>
+        </div>
+
+        {!(duzenlenenId ? duzCokluSantiyeAcik : cokluSantiyeAcik) ? (
+          <select value={santiyeId} onChange={(e) => { setSantiyeId(e.target.value); setMalikId('') }}>
+            <option value="">Şantiye seç (opsiyonel)</option>
+            {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+          </select>
+        ) : (
+          <div style={{ background: '#F8F7F2', border: '1px solid #D3D1C7', padding: 10, borderRadius: 8, marginBottom: 10 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, margin: '0 0 8px 0', color: '#2C3E50' }}>Şantiye Dağılımı (%100 Olmalıdır)</p>
+            {(duzenlenenId ? duzSantiyeDagilimi : santiyeDagilimi).map((dagilim, i) => (
+              <div key={i} className="ekleme-satiri-2" style={{ marginBottom: 6, display: 'flex', gap: 6 }}>
+                <select value={dagilim.santiye_id} onChange={(e) => {
+                  if (duzenlenenId) {
+                    const yeni = [...duzSantiyeDagilimi]; yeni[i].santiye_id = e.target.value; setDuzSantiyeDagilimi(yeni);
+                  } else {
+                    const yeni = [...santiyeDagilimi]; yeni[i].santiye_id = e.target.value; setSantiyeDagilimi(yeni);
+                  }
+                }} style={{ flex: 1, margin: 0 }}>
+                  <option value="">Şantiye Seç...</option>
+                  {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+                </select>
+                <input type="number" placeholder="% Yüzde" value={dagilim.yuzde} onChange={(e) => {
+                  if (duzenlenenId) {
+                    const yeni = [...duzSantiyeDagilimi]; yeni[i].yuzde = e.target.value; setDuzSantiyeDagilimi(yeni);
+                  } else {
+                    const yeni = [...santiyeDagilimi]; yeni[i].yuzde = e.target.value; setSantiyeDagilimi(yeni);
+                  }
+                }} style={{ width: 80, margin: 0 }} onKeyDown={sadeceSayiTuslari} />
+                {(duzenlenenId ? duzSantiyeDagilimi : santiyeDagilimi).length > 1 && (
+                  <button onClick={() => {
+                    if (duzenlenenId) setDuzSantiyeDagilimi(duzSantiyeDagilimi.filter((_, index) => index !== i))
+                    else setSantiyeDagilimi(santiyeDagilimi.filter((_, index) => index !== i))
+                  }} style={{ padding: '0 8px', background: '#ffe6e6', color: '#d9534f', border: 'none', borderRadius: 6, cursor: 'pointer' }}>✕</button>
+                )}
+              </div>
+            ))}
+            <button onClick={() => {
+              if (duzenlenenId) setDuzSantiyeDagilimi([...duzSantiyeDagilimi, { santiye_id: '', yuzde: '' }])
+              else setSantiyeDagilimi([...santiyeDagilimi, { santiye_id: '', yuzde: '' }])
+            }} style={{ fontSize: 11, padding: '6px 10px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', marginTop: 4 }}>
+              + Yeni Şantiye Ekle
+            </button>
+            <div style={{ fontSize: 11, marginTop: 6, color: (duzenlenenId ? duzSantiyeDagilimi : santiyeDagilimi).reduce((acc, val) => acc + (Number(val.yuzde)||0), 0) === 100 ? '#0F6E56' : '#d9534f' }}>
+              Toplam: %{(duzenlenenId ? duzSantiyeDagilimi : santiyeDagilimi).reduce((acc, val) => acc + (Number(val.yuzde)||0), 0)}
+            </div>
+          </div>
+        )}
 
         {yon === 'alinan' ? (
           <>
@@ -678,7 +770,11 @@ export default function Cekler({ yon = 'verilen' }) {
               </div>
             </div>
             <div className="etiket-satiri">
-              <span className="etiket etiket-vurgu">{c.santiyeler?.ad || 'Genel'}</span>
+              <span className="etiket etiket-vurgu">
+                {c.santiye_dagilimi && c.santiye_dagilimi.length > 0
+                  ? 'Çoklu Şantiye (Paylaşımlı)'
+                  : (c.santiye_id ? (santiyeler.find((s) => s.id === c.santiye_id)?.ad || 'Şantiye') : 'Genel')}
+              </span>
               <span className="etiket">{c.banka}</span>
               <span className="etiket">Seri: {c.cek_seri_no || '—'}</span>
             </div>

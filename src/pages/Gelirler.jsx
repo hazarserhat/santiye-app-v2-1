@@ -30,6 +30,13 @@ export default function Gelirler() {
   const [belge, setBelge] = useState(null)
   const [yukleniyor, setYukleniyor] = useState(false)
 
+  // Hızlı malik ekleme state'leri
+  const [yeniMalikAcik, setYeniMalikAcik] = useState(false)
+  const [yeniMalikAd, setYeniMalikAd] = useState('')
+  const [yeniMalikTelefon, setYeniMalikTelefon] = useState('')
+  const [yeniMalikMeskenTuru, setYeniMalikMeskenTuru] = useState('')
+  const [yeniMalikDaireNo, setYeniMalikDaireNo] = useState('')
+
   // Düzenleme state'leri
   const [duzenlenenId, setDuzenlenenId] = useState(null)
   const [duzTutar, setDuzTutar] = useState('')
@@ -113,6 +120,35 @@ export default function Gelirler() {
   }
 
   const malikleriSantiyeyeGoreFiltrele = (sId) => malikler.filter((m) => m.santiye_id === sId)
+
+  const malikEkleHizli = async () => {
+    if (!yeniMalikAd.trim() || !santiyeId) { alert('Ad ve şantiye zorunludur.'); return }
+    setYukleniyor(true)
+    const { data, error } = await supabase.from('malikler').insert({ 
+      ad_soyad: yeniMalikAd, 
+      telefon: yeniMalikTelefon, 
+      mesken_turu: yeniMalikMeskenTuru,
+      daire_no: yeniMalikDaireNo,
+      santiye_id: santiyeId 
+    }).select().single()
+    
+    if (error) { alert('Malik eklenemedi: ' + error.message); setYukleniyor(false); return }
+    
+    const bosAsamalar = Array.from({ length: 4 }).map((_, i) => ({ malik_id: data.id, ad: '', tutar: 0, tamamlandi: false, sira: i + 1 }))
+    await supabase.from('malik_asamalari').insert(bosAsamalar)
+    
+    const { data: mData } = await supabase.from('malikler').select('*').order('ad_soyad')
+    setMalikler(mData || [])
+    
+    malikSecildi(data.id)
+    
+    setYeniMalikAd('')
+    setYeniMalikTelefon('')
+    setYeniMalikMeskenTuru('')
+    setYeniMalikDaireNo('')
+    setYeniMalikAcik(false)
+    setYukleniyor(false)
+  }
 
   const gelirEkle = async () => {
     if (!santiyeId || !tutar) { alert('Şantiye ve tutar zorunludur.'); return }
@@ -300,10 +336,31 @@ export default function Gelirler() {
               {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
             </select>
 
-            <select value={malikId} onChange={(e) => malikSecildi(e.target.value)}>
-              <option value="">Malik seç (opsiyonel)...</option>
-              {malikleriSantiyeyeGoreFiltrele(santiyeId).map((m) => <option key={m.id} value={m.id}>{m.ad_soyad}</option>)}
-            </select>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <select style={{ flex: 1, margin: 0 }} value={malikId} onChange={(e) => malikSecildi(e.target.value)}>
+                <option value="">Malik seç (opsiyonel)...</option>
+                {malikleriSantiyeyeGoreFiltrele(santiyeId).map((m) => <option key={m.id} value={m.id}>{m.ad_soyad}</option>)}
+              </select>
+              <button type="button" onClick={() => setYeniMalikAcik(!yeniMalikAcik)} style={{ padding: '8px 12px', background: '#f0f0ed', border: '1px solid #D3D1C7', borderRadius: 6, cursor: 'pointer', flexShrink: 0, fontWeight: 700, color: '#5F5E5A' }} title="Yeni Malik Ekle">
+                + Ekle
+              </button>
+            </div>
+
+            {yeniMalikAcik && (
+              <div style={{ background: '#F8F7F2', border: '1px solid #D3D1C7', padding: 12, borderRadius: 8, marginBottom: 12, marginTop: -6 }}>
+                <p style={{ margin: '0 0 10px 0', fontSize: 13, fontWeight: 700, color: '#2C3E50' }}>Yeni Malik Ekle</p>
+                <input type="text" placeholder="Ad Soyad *" value={yeniMalikAd} onChange={(e) => setYeniMalikAd(e.target.value)} style={{ marginBottom: 8 }} />
+                <input type="text" placeholder="Telefon" value={yeniMalikTelefon} onChange={(e) => setYeniMalikTelefon(e.target.value)} style={{ marginBottom: 8 }} />
+                <div className="ekleme-satiri-2" style={{ marginBottom: 8 }}>
+                  <input type="text" placeholder="Mesken Türü (Daire vb.)" value={yeniMalikMeskenTuru} onChange={(e) => setYeniMalikMeskenTuru(e.target.value)} />
+                  <input type="text" placeholder="Daire No" value={yeniMalikDaireNo} onChange={(e) => setYeniMalikDaireNo(e.target.value)} />
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button type="button" onClick={() => setYeniMalikAcik(false)} style={{ flex: 1, padding: '8px', background: '#e0ded6', border: 'none', borderRadius: 6, cursor: 'pointer', color: '#5F5E5A', fontWeight: 600 }}>Vazgeç</button>
+                  <button type="button" onClick={malikEkleHizli} disabled={yukleniyor} style={{ flex: 1, padding: '8px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>{yukleniyor ? 'Kaydediliyor...' : 'Kaydet'}</button>
+                </div>
+              </div>
+            )}
 
             <CariAramaSecici
               deger={odemeYapanAdi}
