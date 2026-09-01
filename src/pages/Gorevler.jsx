@@ -30,6 +30,7 @@ function guvenliTarih(tarihStr) {
 }
 
 function GorevKarti({ gorev, seviye, ctx }) {
+  const [baslikAcik, setBaslikAcik] = useState(false)
   const {
     filtreSantiye, kullanicilar, numaraHaritasi, altGorevleriBul,
     genisletilmis, setGenisletilmis,
@@ -48,103 +49,138 @@ function GorevKarti({ gorev, seviye, ctx }) {
   const gosterilecekAltlar = genisletildi ? altlar : altlar.slice(0, 2)
 
   return (
-    <div style={{ marginLeft: seviye > 0 ? 12 : 0, marginBottom: 4 }}>
-      <div className="kart" style={{ padding: '8px 10px', borderLeft: oncelik ? `4px solid ${oncelik.renk}` : '4px solid #e2e0d8', borderRadius: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <input
-            type="checkbox"
-            checked={seciliGorevler.includes(gorev.id)}
-            onChange={() => setSeciliGorevler((onceki) =>
-              onceki.includes(gorev.id) ? onceki.filter((x) => x !== gorev.id) : [...onceki, gorev.id]
-            )}
-            style={{ width: 14, height: 14, margin: 0, flexShrink: 0 }}
-          />
-          {numaraHaritasi[gorev.id] && <span style={{ fontSize: 10, fontWeight: 700, color: '#1D9596', flexShrink: 0 }}>{numaraHaritasi[gorev.id]}</span>}
+    <div style={{ marginLeft: seviye > 0 ? 12 : 0, marginBottom: 6 }}>
+      <div 
+        className="kart" 
+        style={{ 
+          padding: '12px', 
+          borderLeft: oncelik ? `5px solid ${oncelik.renk}` : '5px solid #e2e0d8', 
+          borderRadius: 12,
+          background: gorev.durum === 'tamamlandi' ? '#f8f7f2' : '#ffffff',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02)',
+          border: '1px solid rgba(0,0,0,0.03)',
+          opacity: gorev.durum === 'tamamlandi' ? 0.85 : 1,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10
+        }}
+      >
+        {/* ÜST SATIR */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 8 }}>
           
-          {duzenlenenId === gorev.id ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
             <input
-              type="text"
-              value={duzenlenenBaslik}
-              onChange={(e) => setDuzenlenenBaslik(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && basligiKaydet(gorev.id)}
-              autoFocus
-              style={{ flex: 1, padding: '4px 6px', fontSize: 13, borderRadius: 4, border: '1px solid #1D9596' }}
+              type="checkbox"
+              checked={seciliGorevler.includes(gorev.id)}
+              onChange={() => setSeciliGorevler((onceki) =>
+                onceki.includes(gorev.id) ? onceki.filter((x) => x !== gorev.id) : [...onceki, gorev.id]
+              )}
+              style={{ width: 16, height: 16, margin: 0, flexShrink: 0, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}
             />
-          ) : (
-            <span style={{ fontSize: 13, fontWeight: 500, flex: 1, minWidth: 100, wordBreak: 'break-word', color: gorev.durum === 'tamamlandi' ? '#888' : '#212124', textDecoration: gorev.durum === 'tamamlandi' ? 'line-through' : 'none' }}>
-              {gorev.baslik}
-            </span>
-          )}
+            {numaraHaritasi[gorev.id] && <span style={{ fontSize: 11, fontWeight: 800, color: '#1D9596', flexShrink: 0, textShadow: '0 1px 1px rgba(29,149,150,0.2)' }}>{numaraHaritasi[gorev.id]}</span>}
+            
+            {duzenlenenId === gorev.id ? (
+              <input
+                type="text"
+                value={duzenlenenBaslik}
+                onChange={(e) => setDuzenlenenBaslik(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && basligiKaydet(gorev.id)}
+                autoFocus
+                style={{ flex: 1, padding: '4px 8px', fontSize: 13, borderRadius: 6, border: '1px solid #1D9596', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)', background: '#faf9f5', outline: 'none', minWidth: 0 }}
+              />
+            ) : (
+              <span 
+                onClick={() => setBaslikAcik(!baslikAcik)}
+                title={gorev.baslik}
+                style={{ 
+                  fontSize: 14, 
+                  fontWeight: 600, 
+                  flex: 1, 
+                  whiteSpace: baslikAcik ? 'normal' : 'nowrap', 
+                  overflow: 'hidden', 
+                  textOverflow: 'ellipsis', 
+                  color: gorev.durum === 'tamamlandi' ? '#888' : '#212124', 
+                  textDecoration: gorev.durum === 'tamamlandi' ? 'line-through' : 'none', 
+                  textShadow: '0 1px 1px rgba(0,0,0,0.02)',
+                  cursor: 'pointer'
+                }}
+              >
+                {gorev.baslik}
+              </span>
+            )}
+          </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            {/* Öncelik Noktası */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, background: '#f8f7f2', padding: '3px 6px', borderRadius: 8, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)' }}>
+            {duzenlenenId === gorev.id ? (
+              <button className="sil-buton" onClick={() => basligiKaydet(gorev.id)} style={{ padding: '4px 8px', background: 'linear-gradient(to bottom, #24b8b9, #1D9596)', color: 'white', borderRadius: 4, boxShadow: '0 2px 4px rgba(29,149,150,0.3)' }}>✓</button>
+            ) : (
+              <>
+                <button className="sil-buton" onClick={() => { setDuzenlenenId(gorev.id); setDuzenlenenBaslik(gorev.baslik) }} style={{ padding: '2px 4px', fontSize: 13, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }} title="Düzenle">✎</button>
+                {seviye < 2 && <button className="sil-buton" onClick={() => { setAltGorevAcikId(altGorevAcikId === gorev.id ? null : gorev.id); setAltGorevMetni('') }} style={{ padding: '2px 4px', fontSize: 13, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }} title="Alt Görev Ekle">➕</button>}
+                <button className="sil-buton" onClick={() => gorevSil(gorev.id)} style={{ padding: '2px 4px', fontSize: 13, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }} title="Sil">🗑</button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* ALT SATIR */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 8 }}>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, overflow: 'hidden' }}>
             <div 
               onClick={() => setOncelikSeciciAcikId(oncelikSeciciAcikId === gorev.id ? null : gorev.id)}
-              style={{ width: 12, height: 12, borderRadius: '50%', background: oncelik ? oncelik.renk : '#e2e0d8', cursor: 'pointer', border: '1px solid #d3d1c7' }}
+              style={{ width: 14, height: 14, borderRadius: '50%', background: oncelik ? oncelik.renk : '#e2e0d8', cursor: 'pointer', border: '1px solid rgba(0,0,0,0.05)', boxShadow: oncelik ? `0 2px 6px ${oncelik.renk}66, inset 0 2px 4px rgba(255,255,255,0.4)` : 'inset 0 2px 4px rgba(0,0,0,0.1)', flexShrink: 0 }}
               title={oncelik ? oncelik.etiket : 'Öncelik Ata'}
             />
 
-            {/* Kişiler */}
+            {seviye === 0 && filtreSantiye === 'hepsi' && gorev.santiyeler?.ad && (
+              <span style={{ background: 'linear-gradient(135deg, #24b8b9, #1D9596)', color: 'white', padding: '2px 6px', fontSize: 10, borderRadius: 12, fontWeight: 700, boxShadow: '0 2px 4px rgba(29, 149, 150, 0.2)', whiteSpace: 'nowrap', flexShrink: 0 }}>{gorev.santiyeler.ad}</span>
+            )}
+
             <div 
               onClick={() => setKisiSeciciAcikId(kisiSeciciAcikId === gorev.id ? null : gorev.id)}
-              style={{ display: 'flex', cursor: 'pointer' }}
+              style={{ display: 'flex', cursor: 'pointer', padding: '2px', borderRadius: 12, background: '#f8f7f2', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.04)', flexShrink: 0 }}
               title="Kişi Ata/Kaldır"
             >
               {kisiEtiketleri.length > 0 ? kisiEtiketleri.slice(0, 3).map((e, idx) => {
                 const kisi = kullanicilar.find((k) => k.id === e.deger)
                 const basHarfler = kisi?.ad_soyad.split(' ').map(n => n[0]).join('').substring(0,2) || '?'
                 return (
-                  <div key={e.id} style={{ width: 18, height: 18, borderRadius: '50%', background: '#1D9596', color: 'white', fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: idx > 0 ? -6 : 0, border: '1px solid white', fontWeight: 600 }}>
+                  <div key={e.id} style={{ width: 20, height: 20, borderRadius: '50%', background: 'linear-gradient(135deg, #24b8b9, #1D9596)', color: 'white', fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: idx > 0 ? -6 : 0, border: '2px solid white', fontWeight: 700, boxShadow: '0 2px 4px rgba(29, 149, 150, 0.3)', zIndex: 10 - idx }}>
                     {basHarfler}
                   </div>
                 )
-              }) : <span style={{ fontSize: 13, filter: 'grayscale(1)', opacity: 0.5 }}>👤</span>}
+              }) : <span style={{ fontSize: 13, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))', opacity: 0.6, padding: '0 4px' }}>👤</span>}
               {kisiEtiketleri.length > 3 && (
-                <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#f0f0ed', color: '#555', fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: -6, border: '1px solid white' }}>
+                <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'linear-gradient(135deg, #f0f0ed, #e2e0d8)', color: '#555', fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: -6, border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', zIndex: 0 }}>
                   +{kisiEtiketleri.length - 3}
                 </div>
               )}
             </div>
 
-            {/* Durum Seçici */}
-            <select 
-              value={gorev.durum} 
-              onChange={(ev) => durumGuncelle(gorev.id, ev.target.value)}
-              style={{ fontSize: 11, padding: '2px 4px', borderRadius: 4, border: '1px solid #d3d1c7', background: 'transparent', maxWidth: 90 }}
-            >
-              {DURUMLAR.filter((d) => d.deger !== 'hepsi').map((d) => (
-                <option key={d.deger} value={d.deger}>{d.etiket}</option>
-              ))}
-            </select>
-
-            {/* Butonlar */}
-            {duzenlenenId === gorev.id ? (
-              <button className="sil-buton" onClick={() => basligiKaydet(gorev.id)} style={{ padding: 2 }}>✓</button>
-            ) : (
-              <div style={{ display: 'flex', gap: 2 }}>
-                <button className="sil-buton" onClick={() => { setDuzenlenenId(gorev.id); setDuzenlenenBaslik(gorev.baslik) }} style={{ padding: 2, fontSize: 12 }} title="Düzenle">✎</button>
-                {seviye < 2 && <button className="sil-buton" onClick={() => { setAltGorevAcikId(altGorevAcikId === gorev.id ? null : gorev.id); setAltGorevMetni('') }} style={{ padding: 2, fontSize: 12 }} title="Alt Görev Ekle">➕</button>}
-                <button className="sil-buton" onClick={() => gorevSil(gorev.id)} style={{ padding: 2, fontSize: 12 }} title="Sil">🗑</button>
-              </div>
-            )}
+            <span style={{ fontSize: 10, color: '#888780', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {gorev.profiles?.ad_soyad || 'Bilinmiyor'} • {guvenliTarih(gorev.created_at)}
+            </span>
           </div>
+
+          <select 
+            value={gorev.durum} 
+            onChange={(ev) => durumGuncelle(gorev.id, ev.target.value)}
+            style={{ flexShrink: 0, fontSize: 11, padding: '4px 6px', borderRadius: 6, border: '1px solid #d3d1c7', background: 'linear-gradient(to bottom, #ffffff, #f4f3ed)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', width: 90, cursor: 'pointer', outline: 'none', fontWeight: 500 }}
+          >
+            {DURUMLAR.filter((d) => d.deger !== 'hepsi').map((d) => (
+              <option key={d.deger} value={d.deger}>{d.etiket}</option>
+            ))}
+          </select>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 6, fontSize: 10, color: '#888780', alignItems: 'center' }}>
-          {seviye === 0 && filtreSantiye === 'hepsi' && gorev.santiyeler?.ad && (
-            <span style={{ background: '#1D9596', color: 'white', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>{gorev.santiyeler.ad}</span>
-          )}
-          <span>{gorev.profiles?.ad_soyad || 'Bilinmiyor'}</span>
-          <span>•</span>
-          <span>{guvenliTarih(gorev.created_at)}</span>
-        </div>
-
+        {/* Seçici Paneller (İçe çökük derinlik) */}
         {kisiSeciciAcikId === gorev.id && (
-          <div className="kisi-etiket-secici" style={{ marginTop: 8, padding: 8, background: '#f8f7f2', borderRadius: 6 }}>
+          <div className="kisi-etiket-secici" style={{ marginTop: 10, padding: 10, background: '#f4f3ed', borderRadius: 8, boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.05)' }}>
             {kullanicilar.map((k) => {
               const atanmis = kisiEtiketleri.some((e) => e.deger === k.id)
               return (
-                <button key={k.id} className={`filtre-chip ${atanmis ? 'secili' : ''}`} onClick={() => kisiEtiketiDegistir(gorev, k.id)} style={{ padding: '4px 8px', fontSize: 11 }}>
+                <button key={k.id} className={`filtre-chip ${atanmis ? 'secili' : ''}`} onClick={() => kisiEtiketiDegistir(gorev, k.id)} style={{ padding: '6px 10px', fontSize: 11, boxShadow: atanmis ? '0 2px 4px rgba(29,149,150,0.3)' : '0 1px 2px rgba(0,0,0,0.05)' }}>
                   {atanmis ? '✓ ' : ''}{k.ad_soyad}
                 </button>
               )
@@ -153,17 +189,17 @@ function GorevKarti({ gorev, seviye, ctx }) {
         )}
 
         {oncelikSeciciAcikId === gorev.id && (
-          <div className="oncelik-secici-satiri" style={{ marginTop: 8, padding: 8, background: '#f8f7f2', borderRadius: 6, gap: 8 }}>
+          <div className="oncelik-secici-satiri" style={{ marginTop: 10, padding: 10, background: '#f4f3ed', borderRadius: 8, gap: 10, boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.05)' }}>
             {ONCELIKLER.map((o) => (
-              <button key={o.deger} className={`oncelik-nokta ${oncelik?.deger === o.deger ? 'secili' : ''}`} style={{ background: o.renk, width: 22, height: 22 }} onClick={() => oncelikDegistir(gorev, o.deger)} title={o.etiket} />
+              <button key={o.deger} className={`oncelik-nokta ${oncelik?.deger === o.deger ? 'secili' : ''}`} style={{ background: o.renk, width: 24, height: 24, boxShadow: oncelik?.deger === o.deger ? `0 2px 8px ${o.renk}88` : '0 2px 4px rgba(0,0,0,0.1)' }} onClick={() => oncelikDegistir(gorev, o.deger)} title={o.etiket} />
             ))}
           </div>
         )}
 
         {altGorevAcikId === gorev.id && (
-          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-            <input type="text" placeholder="Alt görev yaz..." value={altGorevMetni} onChange={(e) => setAltGorevMetni(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && altGorevEkle(gorev.id, gorev.santiye_id)} autoFocus style={{ flex: 1, padding: '6px 8px', fontSize: 12, borderRadius: 6, border: '1px solid #d3d1c7' }} />
-            <button onClick={() => altGorevEkle(gorev.id, gorev.santiye_id)} style={{ padding: '6px 12px', background: '#1D9596', color: 'white', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>Ekle</button>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, padding: 10, background: '#f4f3ed', borderRadius: 8, boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.05)' }}>
+            <input type="text" placeholder="Alt görev yaz..." value={altGorevMetni} onChange={(e) => setAltGorevMetni(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && altGorevEkle(gorev.id, gorev.santiye_id)} autoFocus style={{ flex: 1, padding: '8px 12px', fontSize: 12, borderRadius: 6, border: '1px solid #d3d1c7', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.04)', outline: 'none' }} />
+            <button onClick={() => altGorevEkle(gorev.id, gorev.santiye_id)} style={{ padding: '8px 16px', background: 'linear-gradient(to bottom, #24b8b9, #1D9596)', color: 'white', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, boxShadow: '0 2px 6px rgba(29,149,150,0.4)', cursor: 'pointer' }}>Ekle</button>
           </div>
         )}
       </div>
@@ -171,7 +207,7 @@ function GorevKarti({ gorev, seviye, ctx }) {
       {gosterilecekAltlar.map((alt) => <GorevKarti key={alt.id} gorev={alt} seviye={seviye + 1} ctx={ctx} />)}
 
       {altlar.length > 2 && (
-        <button className="daha-fazla-buton" style={{ marginLeft: 12, fontSize: 11, padding: '2px 0 6px' }} onClick={() => setGenisletilmis((onceki) => ({ ...onceki, [gorev.id]: !onceki[gorev.id] }))}>
+        <button className="daha-fazla-buton" style={{ marginLeft: 16, fontSize: 11, padding: '4px 8px', fontWeight: 600, color: '#1D9596', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.05))' }} onClick={() => setGenisletilmis((onceki) => ({ ...onceki, [gorev.id]: !onceki[gorev.id] }))}>
           {genisletildi ? '▲ Daralt' : `▼ ${altlar.length - 2} tane daha göster`}
         </button>
       )}
@@ -455,12 +491,12 @@ export default function Gorevler() {
 
   return (
     <div className="sayfa">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, gap: 8, flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0 }}>Görevler</h2>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={() => paylas(true)} style={{ fontSize: 12, padding: '6px 10px' }}>📤 Tümünü paylaş</button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, color: '#1D9596', letterSpacing: '-0.2px' }}>Görevler</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => paylas(true)} style={{ fontSize: 12, padding: '8px 12px', borderRadius: 10, background: 'linear-gradient(to bottom, #ffffff, #f4f3ed)', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 2px 6px rgba(0,0,0,0.04)', fontWeight: 700, color: '#555', cursor: 'pointer', transition: 'all 0.2s' }}>📤 Tümünü paylaş</button>
           {seciliGorevler.length > 0 && (
-            <button onClick={() => paylas(false)} style={{ fontSize: 12, padding: '6px 10px' }}>
+            <button onClick={() => paylas(false)} style={{ fontSize: 12, padding: '8px 12px', borderRadius: 10, background: 'linear-gradient(135deg, #24b8b9, #1D9596)', border: 'none', boxShadow: '0 3px 8px rgba(29, 149, 150, 0.3)', fontWeight: 700, color: 'white', cursor: 'pointer', textShadow: '0 1px 2px rgba(0,0,0,0.1)', transition: 'all 0.2s' }}>
               📤 Seçilenleri paylaş ({seciliGorevler.length})
             </button>
           )}
@@ -481,7 +517,7 @@ export default function Gorevler() {
           {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
         </select>
 
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
           <input
             type="text"
             placeholder="Görev ekle..."
@@ -490,40 +526,55 @@ export default function Gorevler() {
             onKeyDown={(e) => e.key === 'Enter' && gorevEkle()}
             style={{ flex: 1 }}
           />
-          <button className="mikrofon-buton" onClick={sesleYaz} aria-label="Sesle yaz">{dinliyor ? '●' : '🎤'}</button>
         </div>
 
-        <div className="oncelik-secici-satiri">
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 8, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
           {ONCELIKLER.map((o) => (
             <button
               key={o.deger}
-              className={`oncelik-nokta ${yeniOncelik === o.deger ? 'secili' : ''}`}
-              style={{ background: o.renk }}
               onClick={() => setYeniOncelik(o.deger)}
-              aria-label={o.etiket}
-              title={o.etiket}
-            />
+              style={{
+                padding: '4px 10px',
+                borderRadius: 20,
+                border: yeniOncelik === o.deger ? 'none' : '1px solid rgba(0,0,0,0.05)',
+                background: yeniOncelik === o.deger ? o.renk : '#f8f7f2',
+                color: yeniOncelik === o.deger ? 'white' : '#5F5E5A',
+                fontSize: 11,
+                fontWeight: yeniOncelik === o.deger ? 700 : 500,
+                boxShadow: yeniOncelik === o.deger ? `0 2px 6px ${o.renk}88` : 'inset 0 1px 3px rgba(0,0,0,0.03)',
+                cursor: 'pointer',
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5
+              }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: yeniOncelik === o.deger ? 'white' : o.renk, boxShadow: yeniOncelik === o.deger ? 'none' : '0 1px 2px rgba(0,0,0,0.1)' }} />
+              {o.etiket}
+            </button>
           ))}
         </div>
 
-        <div className="renk-anlam-tablosu">
-          {ONCELIKLER.map((o) => (
-            <div key={o.deger} className="renk-anlam-satiri">
-              <span className="renk-anlam-nokta" style={{ background: o.renk }} />
-              <span>{o.etiket}</span>
-            </div>
-          ))}
-        </div>
-
-        <p style={{ fontSize: 12, color: '#5F5E5A', margin: '4px 0 2px' }}>Etiketlenecek kişiler:</p>
-        <div className="kisi-etiket-secici">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 12 }}>
+          <span style={{ fontSize: 11, color: '#888780', fontWeight: 600, marginRight: 2 }}>Kişiler:</span>
           {kullanicilar.map((k) => (
             <button
               key={k.id}
-              className={`filtre-chip ${yeniEtiketliler.includes(k.id) ? 'secili' : ''}`}
               onClick={() => etiketliKisiToggle(k.id)}
+              style={{
+                padding: '4px 8px',
+                borderRadius: 6,
+                border: yeniEtiketliler.includes(k.id) ? 'none' : '1px solid rgba(0,0,0,0.04)',
+                background: yeniEtiketliler.includes(k.id) ? 'linear-gradient(135deg, #24b8b9, #1D9596)' : '#fff',
+                color: yeniEtiketliler.includes(k.id) ? 'white' : '#555',
+                fontSize: 11,
+                fontWeight: yeniEtiketliler.includes(k.id) ? 700 : 500,
+                boxShadow: yeniEtiketliler.includes(k.id) ? '0 2px 4px rgba(29, 149, 150, 0.3)' : '0 1px 2px rgba(0,0,0,0.03)',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
             >
-              {k.ad_soyad}
+              {yeniEtiketliler.includes(k.id) ? '✓ ' : ''}{k.ad_soyad}
             </button>
           ))}
         </div>
@@ -532,71 +583,90 @@ export default function Gorevler() {
       </div>
 
       {/* FİLTRE PANELİ */}
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: 16 }}>
         <button
           onClick={() => setFiltrelerAcik(!filtrelerAcik)}
           style={{
             width: '100%',
-            padding: '10px 14px',
-            background: filtrelerAcik ? '#0F6E56' : '#f0f0ed',
+            padding: '12px 16px',
+            background: filtrelerAcik ? 'linear-gradient(135deg, #24b8b9, #1D9596)' : 'linear-gradient(to bottom, #ffffff, #fcfcf9)',
             color: filtrelerAcik ? '#fff' : '#333',
-            border: '1px solid #d3d1c7',
-            borderRadius: 8,
-            fontWeight: 600,
+            border: filtrelerAcik ? 'none' : '1px solid rgba(0,0,0,0.04)',
+            boxShadow: filtrelerAcik ? '0 4px 12px rgba(29, 149, 150, 0.3)' : '0 2px 6px rgba(0,0,0,0.04)',
+            borderRadius: 12,
+            fontWeight: 700,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             cursor: 'pointer',
-            fontSize: 13
+            fontSize: 14,
+            transition: 'all 0.2s'
           }}
         >
-          <span>🔍 Filtreler {aktifFiltreSayisi > 0 ? `(${aktifFiltreSayisi} aktif)` : ''}</span>
+          <span style={{ textShadow: filtrelerAcik ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>🔍 Filtreler {aktifFiltreSayisi > 0 ? `(${aktifFiltreSayisi} aktif)` : ''}</span>
           <span>{filtrelerAcik ? '▲ Gizle' : '▼ Göster'}</span>
         </button>
 
         {filtrelerAcik && (
-          <div style={{ background: '#faf9f5', padding: '12px', borderRadius: 8, border: '1px solid #d3d1c7', marginTop: 6 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px', color: '#555' }}>Şantiye</p>
-            <div className="filtre-satiri" style={{ marginBottom: 8 }}>
-              <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tümü</button>
-              {santiyeler.map((s) => (
-                <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
-              ))}
-            </div>
+          <div style={{ background: '#f8f7f2', padding: '16px', borderRadius: 12, boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.03)', marginTop: 8 }}>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>Şantiye</label>
+                <select 
+                  value={filtreSantiye} 
+                  onChange={(e) => setFiltreSantiye(e.target.value)} 
+                  style={{ padding: '8px 10px', fontSize: 12, borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.03)', outline: 'none', cursor: 'pointer' }}
+                >
+                  <option value="hepsi">Tümü</option>
+                  {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+                </select>
+              </div>
 
-            <p style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px', color: '#555' }}>Durum</p>
-            <div className="filtre-satiri" style={{ marginBottom: 8 }}>
-              {DURUMLAR.filter(d => d.deger !== 'tamamlandi').map((d) => (
-                <button key={d.deger} className={`filtre-chip ${filtreDurum === d.deger ? 'secili' : ''}`} onClick={() => setFiltreDurum(d.deger)}>{d.etiket}</button>
-              ))}
-            </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>Durum</label>
+                <select 
+                  value={filtreDurum} 
+                  onChange={(e) => setFiltreDurum(e.target.value)} 
+                  style={{ padding: '8px 10px', fontSize: 12, borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.03)', outline: 'none', cursor: 'pointer' }}
+                >
+                  <option value="hepsi">Tümü</option>
+                  {DURUMLAR.filter(d => d.deger !== 'tamamlandi').map((d) => <option key={d.deger} value={d.deger}>{d.etiket}</option>)}
+                </select>
+              </div>
 
-            {yonetici && (
-              <>
-                <p style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px', color: '#555' }}>Etiketlenen Kişi</p>
-                <div className="filtre-satiri" style={{ marginBottom: 8 }}>
-                  <button className={`filtre-chip ${filtreKisi === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreKisi('hepsi')}>Tümü</button>
-                  {kullanicilar.map((k) => (
-                    <button key={k.id} className={`filtre-chip ${filtreKisi === k.id ? 'secili' : ''}`} onClick={() => setFiltreKisi(k.id)}>{k.ad_soyad}</button>
-                  ))}
+              {yonetici && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>Kişi (Etiket)</label>
+                  <select 
+                    value={filtreKisi} 
+                    onChange={(e) => setFiltreKisi(e.target.value)} 
+                    style={{ padding: '8px 10px', fontSize: 12, borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.03)', outline: 'none', cursor: 'pointer' }}
+                  >
+                    <option value="hepsi">Tümü</option>
+                    {kullanicilar.map((k) => <option key={k.id} value={k.id}>{k.ad_soyad}</option>)}
+                  </select>
                 </div>
-              </>
-            )}
+              )}
 
-            <p style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px', color: '#555' }}>Görevi Ekleyen</p>
-            <div className="filtre-satiri" style={{ marginBottom: 4 }}>
-              <button className={`filtre-chip ${filtreEkleyen === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreEkleyen('hepsi')}>Tümü</button>
-              {kullanicilar.map((k) => (
-                <button key={k.id} className={`filtre-chip ${filtreEkleyen === k.id ? 'secili' : ''}`} onClick={() => setFiltreEkleyen(k.id)}>
-                  {k.ad_soyad}
-                </button>
-              ))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>Ekleyen</label>
+                <select 
+                  value={filtreEkleyen} 
+                  onChange={(e) => setFiltreEkleyen(e.target.value)} 
+                  style={{ padding: '8px 10px', fontSize: 12, borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.03)', outline: 'none', cursor: 'pointer' }}
+                >
+                  <option value="hepsi">Tümü</option>
+                  {kullanicilar.map((k) => <option key={k.id} value={k.id}>{k.ad_soyad}</option>)}
+                </select>
+              </div>
             </div>
 
             {aktifFiltreSayisi > 0 && (
               <button
                 onClick={() => { setFiltreSantiye('hepsi'); setFiltreDurum('hepsi'); setFiltreKisi('hepsi'); setFiltreEkleyen('hepsi') }}
-                style={{ fontSize: 11, marginTop: 8, background: 'none', border: 'none', color: '#D64545', cursor: 'pointer', padding: 0, fontWeight: 600 }}
+                style={{ width: '100%', padding: '10px', fontSize: 12, marginTop: 16, background: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 8, color: '#D64545', cursor: 'pointer', fontWeight: 700, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
               >
                 ✕ Filtreleri Temizle
               </button>
@@ -606,19 +676,21 @@ export default function Gorevler() {
       </div>
 
       {/* TEK BİRLEŞTİRİLMİŞ SIRALAMA BUTONU VE ARŞİV */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
         <button
           onClick={() => setSiralamaYonu((onceki) => (onceki === 'yeni' ? 'eski' : 'yeni'))}
           style={{
             flex: 1,
-            padding: '8px 12px',
-            background: '#fff',
-            border: '1px solid #d3d1c7',
-            borderRadius: 8,
+            padding: '10px 14px',
+            background: 'linear-gradient(to bottom, #ffffff, #fcfcf9)',
+            border: '1px solid rgba(0,0,0,0.04)',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+            borderRadius: 12,
             fontSize: 13,
-            fontWeight: 600,
+            fontWeight: 700,
             cursor: 'pointer',
-            textAlign: 'center'
+            textAlign: 'center',
+            color: '#444'
           }}
         >
           {siralamaYonu === 'yeni' ? 'Sıralama (Y - E)' : 'Sıralama (E - Y)'}
@@ -627,14 +699,16 @@ export default function Gorevler() {
         <button
           onClick={() => setArsivAcik(true)}
           style={{
-            padding: '8px 14px',
-            background: '#0F6E56',
+            padding: '10px 18px',
+            background: 'linear-gradient(135deg, #118166, #0F6E56)',
             color: '#fff',
             border: 'none',
-            borderRadius: 8,
+            boxShadow: '0 4px 10px rgba(15, 110, 86, 0.3)',
+            borderRadius: 12,
             fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer'
+            fontWeight: 700,
+            cursor: 'pointer',
+            textShadow: '0 1px 2px rgba(0,0,0,0.1)'
           }}
         >
           📦 Arşiv ({tamamlananGorevler.length})
@@ -656,33 +730,33 @@ export default function Gorevler() {
       {arsivAcik && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 16
+          background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 16, backdropFilter: 'blur(3px)'
         }}>
           <div style={{
-            background: '#fff', width: '100%', maxWidth: 500, maxHeight: '80vh', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+            background: 'linear-gradient(to bottom, #ffffff, #fcfcf9)', width: '100%', maxWidth: 500, maxHeight: '80vh', borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', boxShadow: '0 10px 40px rgba(0,0,0,0.2), inset 0 1px 2px rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.05)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>Tamamlanan Görevler (Arşiv)</h3>
-              <button onClick={() => setArsivAcik(false)} style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer' }}>✕</button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1D9596', letterSpacing: '-0.3px' }}>Tamamlanan Görevler (Arşiv)</h3>
+              <button onClick={() => setArsivAcik(false)} style={{ background: '#f4f3ed', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', color: '#555', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>✕</button>
             </div>
 
-            <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 10, paddingRight: 4 }}>
               {tamamlananGorevler.map((g) => (
-                <div key={g.id} style={{ padding: 10, background: '#f9f9f8', borderRadius: 8, border: '1px solid #e2e0d8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div key={g.id} style={{ padding: 12, background: 'linear-gradient(to bottom, #ffffff, #f8f7f2)', borderRadius: 12, border: '1px solid rgba(0,0,0,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
                   <div>
-                    <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: 13 }}>{g.baslik}</p>
-                    <span style={{ fontSize: 11, color: '#666' }}>{g.santiyeler?.ad || 'Genel'} · {guvenliTarih(g.created_at)}</span>
+                    <p style={{ margin: '0 0 6px', fontWeight: 600, fontSize: 14, color: '#333' }}>{g.baslik}</p>
+                    <span style={{ fontSize: 11, color: '#888780', fontWeight: 500 }}>{g.santiyeler?.ad || 'Genel'} · {guvenliTarih(g.created_at)}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
                     <button
                       onClick={() => durumGuncelle(g.id, 'bekliyor')}
-                      style={{ padding: '4px 8px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 4, fontSize: 11, cursor: 'pointer' }}
+                      style={{ padding: '6px 10px', background: 'linear-gradient(135deg, #24b8b9, #1D9596)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 6px rgba(29, 149, 150, 0.3)', transition: 'all 0.2s' }}
                     >
                       Aktife Al
                     </button>
                     <button
                       onClick={() => gorevSil(g.id)}
-                      style={{ padding: '4px 8px', background: '#D64545', color: '#fff', border: 'none', borderRadius: 4, fontSize: 11, cursor: 'pointer' }}
+                      style={{ padding: '6px 10px', background: 'linear-gradient(135deg, #e05e5e, #D64545)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 6px rgba(214, 69, 69, 0.2)', transition: 'all 0.2s' }}
                     >
                       Sil
                     </button>
