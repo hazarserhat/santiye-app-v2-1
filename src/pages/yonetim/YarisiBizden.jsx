@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useSite } from '../../context/SiteContext'
 import { paraFormatla } from '../../lib/format'
+import { generateAndSharePDF } from '../../lib/pdfGenerator'
 
 const ASAMALAR = [
   { anahtar: 'asama1_odendi', yuzde: 0.30, etiket: '1. Aşama (%30)', aciklama: 'Kat İrtifakı Kurulunca' },
@@ -15,6 +16,7 @@ export default function YarisiBizden() {
   const { santiyeler } = useSite()
   const [kayitlar, setKayitlar] = useState({}) // { santiyeId: row }
   const [devletDestegiHaritasi, setDevletDestegiHaritasi] = useState({}) // { santiyeId: toplam }
+  const [seciliSantiyeler, setSeciliSantiyeler] = useState([])
 
   const yenile = async () => {
     const { data, error } = await supabase.from('yarisi_bizden_odemeleri').select('*')
@@ -71,16 +73,82 @@ export default function YarisiBizden() {
   const beklenenBasvurulan = santiyeler.filter((s) => kayitlar[s.id]?.basvuru_durumu).reduce((t, s) => t + satirBeklenen(s.id, kayitlar[s.id]), 0)
   const tumBeklenen = santiyeler.reduce((t, s) => t + satirBeklenen(s.id, kayitlar[s.id]), 0)
 
+  const tumunuSecToggle = () => {
+    if (seciliSantiyeler.length === santiyeler.length) setSeciliSantiyeler([])
+    else setSeciliSantiyeler(santiyeler.map(s => s.id))
+  }
+
+  const santiyeSecToggle = (id) => {
+    setSeciliSantiyeler(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  const pdfPaylas = async (sadeceSecilenler = false) => {
+    const dataListesi = sadeceSecilenler ? santiyeler.filter(s => seciliSantiyeler.includes(s.id)) : santiyeler
+    if (dataListesi.length === 0) return alert('PDF için şantiye bulunamadı.')
+
+    const basliklar = ['Santiye', 'Basvuru', 'Toplam Destek', ...ASAMALAR.map(a => a.etiket), 'Alinan', 'Beklenen']
+    const satirVerileri = dataListesi.map(s => {
+      const satir = kayitlar[s.id]
+      const toplam = toplamTutarBul(s.id)
+      return [
+        s.ad,
+        satir?.basvuru_durumu ? 'Evet' : 'Hayir',
+        `${paraFormatla(toplam)} TL`,
+        ...ASAMALAR.map(a => satir?.[a.anahtar] ? `Odendi (${paraFormatla(toplam * a.yuzde)} TL)` : 'Odenmedi'),
+        `${paraFormatla(satirAlinan(s.id, satir))} TL`,
+        `${paraFormatla(satirBeklenen(s.id, satir))} TL`
+      ]
+    })
+
+    const seciliToplamDestek = dataListesi.reduce((t, s) => t + toplamTutarBul(s.id), 0)
+    const seciliAlinan = dataListesi.reduce((t, s) => t + satirAlinan(s.id, kayitlar[s.id]), 0)
+    const seciliBeklenen = dataListesi.reduce((t, s) => t + satirBeklenen(s.id, kayitlar[s.id]), 0)
+
+    const toplamSatir = Array(basliklar.length).fill('')
+    toplamSatir[1] = 'TOPLAM:'
+    toplamSatir[2] = `${paraFormatla(seciliToplamDestek)} TL`
+    toplamSatir[toplamSatir.length - 2] = `${paraFormatla(seciliAlinan)} TL`
+    toplamSatir[toplamSatir.length - 1] = `${paraFormatla(seciliBeklenen)} TL`
+    satirVerileri.push(toplamSatir)
+
+    await generateAndSharePDF({
+      title: `Yarisi Bizden Odemeleri ${sadeceSecilenler ? '(Secilenler)' : ''}`,
+      filename: 'yarisi-bizden.pdf',
+      columns: basliklar,
+      data: satirVerileri
+    })
+  }
+
   const hucreStil = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #F1EFE8' }
   const baslikStil = { ...hucreStil, fontWeight: 700, color: '#5F5E5A', fontSize: 11, borderBottom: '1px solid #D3D1C7', whiteSpace: 'nowrap' }
 
   return (
     <div className="sayfa">
-      <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
-      <h2>Yarısı Bizden Ödemeleri</h2>
-      <p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 0 }}>
-        Toplam tutar, Proje Gelirleri sayfasındaki maliklerin "Devlet Desteği" alanlarının toplamından otomatik hesaplanır — buradan elle girilmez.
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div>
+          <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
+          <h2>Yarısı Bizden Ödemeleri</h2>
+          <p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 0 }}>
+            Toplam tutar, Proje Gelirleri sayfasındaki maliklerin "Devlet Desteği" alanlarının toplamından otomatik hesaplanır.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {seciliSantiyeler.length > 0 && (
+            <button 
+              onClick={() => pdfPaylas(true)}
+              style={{ background: '#F57F17', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              📄 Seçilenleri Paylaş ({seciliSantiyeler.length})
+            </button>
+          )}
+          <button 
+            onClick={() => pdfPaylas(false)}
+            style={{ background: '#2C3E50', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            📄 Tüm Tabloyu Paylaş (PDF)
+          </button>
+        </div>
+      </div>
 
       <div style={{ background: 'white', border: '1px solid #D3D1C7', borderRadius: 12, padding: 12, marginBottom: 14 }}>
         {ASAMALAR.map((a) => (
@@ -94,7 +162,10 @@ export default function YarisiBizden() {
         <table style={{ borderCollapse: 'collapse', width: '100%' }}>
           <thead>
             <tr>
-              <th style={{ ...baslikStil, position: 'sticky', left: 0, background: 'white' }}>Şantiye</th>
+              <th style={{ ...baslikStil, position: 'sticky', left: 0, background: 'white', width: 40, textAlign: 'center', zIndex: 2 }}>
+                <input type="checkbox" checked={santiyeler.length > 0 && seciliSantiyeler.length === santiyeler.length} onChange={tumunuSecToggle} />
+              </th>
+              <th style={{ ...baslikStil, position: 'sticky', left: 40, background: 'white', zIndex: 2 }}>Şantiye</th>
               <th style={baslikStil}>Başvuru</th>
               <th style={baslikStil}>Toplam Tutar (otomatik)</th>
               {ASAMALAR.map((a) => <th key={a.anahtar} style={baslikStil}>{a.etiket}</th>)}
@@ -107,8 +178,11 @@ export default function YarisiBizden() {
               const satir = kayitlar[s.id]
               const toplam = toplamTutarBul(s.id)
               return (
-                <tr key={s.id}>
-                  <td style={{ ...hucreStil, position: 'sticky', left: 0, background: 'white', fontWeight: 700 }}>{s.ad}</td>
+                <tr key={s.id} style={{ backgroundColor: seciliSantiyeler.includes(s.id) ? '#F3F8FF' : 'transparent' }}>
+                  <td style={{ ...hucreStil, position: 'sticky', left: 0, background: seciliSantiyeler.includes(s.id) ? '#F3F8FF' : 'white', textAlign: 'center', zIndex: 1 }}>
+                    <input type="checkbox" checked={seciliSantiyeler.includes(s.id)} onChange={() => santiyeSecToggle(s.id)} />
+                  </td>
+                  <td style={{ ...hucreStil, position: 'sticky', left: 40, background: seciliSantiyeler.includes(s.id) ? '#F3F8FF' : 'white', fontWeight: 700, zIndex: 1 }}>{s.ad}</td>
                   <td style={{ ...hucreStil, textAlign: 'center' }}>
                     <input type="checkbox" checked={satir?.basvuru_durumu || false} onChange={() => basvuruGuncelle(s.id)} style={{ width: 16, height: 16 }} />
                   </td>

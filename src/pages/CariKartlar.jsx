@@ -71,10 +71,10 @@ export default function CariKartlar() {
     const { data: iliskiler, error: iliskiHata } = await supabase.from('taseron_santiyeler').select('taseron_id, santiye_id')
     if (iliskiHata) { alert('Şantiye ilişkileri yüklenemedi: ' + iliskiHata.message); return }
     const harita = {}
-    ;(iliskiler || []).forEach((r) => {
-      if (!harita[r.taseron_id]) harita[r.taseron_id] = []
-      harita[r.taseron_id].push(r.santiye_id)
-    })
+      ; (iliskiler || []).forEach((r) => {
+        if (!harita[r.taseron_id]) harita[r.taseron_id] = []
+        harita[r.taseron_id].push(r.santiye_id)
+      })
     setTaseronSantiyeHaritasi(harita)
   }
 
@@ -85,7 +85,7 @@ export default function CariKartlar() {
       .from('taseronlar')
       .update({ sef_gorunur: !mevcutDurum })
       .eq('id', id)
-    
+
     if (error) {
       alert('Hata oluştu: ' + error.message)
     } else {
@@ -434,19 +434,19 @@ export default function CariKartlar() {
                   const h = olay.veri
                   const duzenlekte = duzenlenenHakedisId === h.id
                   const netTutar = Number(h.tutar) - Number(h.kesinti_avans || 0)
-                  
+
                   // Belirginleştirilmiş Renkler ve Arka Plan Tonu
                   const isPozitif = netTutar > 0
                   const hakedisKenarRengi = isPozitif ? '#DC2626' : '#059669' // Kırmızı veya Yeşil
                   const hakedisArkaPlan = isPozitif ? 'rgba(220, 38, 38, 0.03)' : 'rgba(5, 150, 105, 0.03)'
 
                   return (
-                    <div 
-                      key={`hk-${h.id || index}`} 
-                      className="kart" 
-                      style={{ 
-                        borderLeft: `6px solid ${hakedisKenarRengi}`, 
-                        backgroundColor: hakedisArkaPlan 
+                    <div
+                      key={`hk-${h.id || index}`}
+                      className="kart"
+                      style={{
+                        borderLeft: `6px solid ${hakedisKenarRengi}`,
+                        backgroundColor: hakedisArkaPlan
                       }}
                     >
                       {duzenlekte ? (
@@ -614,15 +614,15 @@ export default function CariKartlar() {
               {yonetici && (
                 <>
                   <label onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <input 
-                      type="checkbox" 
-                      checked={t.sef_gorunur || false} 
+                    <input
+                      type="checkbox"
+                      checked={t.sef_gorunur || false}
                       onChange={(e) => gorunurlukDegistir(t.id, t.sef_gorunur, e)}
                     /> Şef Görsün
                   </label>
-                  
-                  <button 
-                    onClick={(e) => taseronSil(t.id, e)} 
+
+                  <button
+                    onClick={(e) => taseronSil(t.id, e)}
                     style={{ background: '#ffe6e6', color: '#d9534f', border: 'none', padding: '4px 8px', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}
                   >
                     🗑 Sil

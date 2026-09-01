@@ -2,8 +2,8 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
-import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
-import { uploadToGoogleDrive, moveToSilinenler } from '../lib/googleDrive'
+import { uploadToGoogleDrive, moveToSilinenler, isGoogleDriveUrl, getGoogleDriveInlineImageUrl, getGoogleDriveViewUrl } from '../lib/googleDrive'
+import { paraFormatla, sadeceSayiTuslari, formatInputTutar, temizleTutar } from '../lib/format'
 import CariAramaSecici from '../components/CariAramaSecici'
 import Cekler from './Cekler'
 
@@ -150,7 +150,7 @@ export default function Gelirler() {
       malik_id: malikId || null,
       cari_id: secilenCariId || null,
       odeme_yapan_adi: odemeYapanAdi,
-      tutar: Number(tutar),
+      tutar: temizleTutar(tutar),
       tarih,
       tahsilat_noktasi: tahsilatNoktasi,
       belge_url: belgeUrl,
@@ -218,7 +218,7 @@ export default function Gelirler() {
 
   const gelirDuzenle = async (id) => {
     const { error } = await supabase.from('gelirler').update({
-      tutar: Number(duzTutar),
+      tutar: temizleTutar(duzTutar),
       tarih: duzTarih,
       not_metni: duzNot,
       odeme_yapan_adi: duzOdemeYapan,
@@ -310,8 +310,7 @@ export default function Gelirler() {
             <input type="text" placeholder="Ödeme yapanın adı" value={odemeYapanAdi} onChange={(e) => setOdemeYapanAdi(e.target.value)} />
 
             <div className="ekleme-satiri-2">
-              <input type="number" placeholder="Tutar (₺)" value={tutar} onChange={(e) => setTutar(e.target.value)} onKeyDown={sadeceSayiTuslari} />
-              
+              <input type="text" placeholder="Tahsilat tutarı (₺)..." value={tutar} onChange={(e) => setTutar(formatInputTutar(e.target.value))} onKeyDown={sadeceSayiTuslari} />
               <select value={tahsilatNoktasi} onChange={(e) => setTahsilatNoktasi(e.target.value)}>
                 {TAHSILAT_NOKTALARI.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
@@ -371,7 +370,7 @@ export default function Gelirler() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <input type="text" value={duzOdemeYapan} onChange={(e) => setDuzOdemeYapan(e.target.value)} placeholder="Ödeme yapan" />
                     <div className="ekleme-satiri-2">
-                      <input type="number" value={duzTutar} onChange={(e) => setDuzTutar(e.target.value)} placeholder="Tutar" onKeyDown={sadeceSayiTuslari} />
+                      <input type="text" value={duzTutar} onChange={(e) => setDuzTutar(formatInputTutar(e.target.value))} placeholder="Tutar" onKeyDown={sadeceSayiTuslari} />
                       <select value={duzTahsilatNoktasi} onChange={(e) => setDuzTahsilatNoktasi(e.target.value)}>
                         <option value="">Tahsilat Noktası Seç...</option>
                         {TAHSILAT_NOKTALARI.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -394,7 +393,7 @@ export default function Gelirler() {
                         {yonetici && (
                           <button className="sil-buton" onClick={() => {
                             setDuzenlenenId(g.id)
-                            setDuzTutar(g.tutar)
+                            setDuzTutar(formatInputTutar(g.tutar))
                             setDuzTarih(g.tarih)
                             setDuzNot(g.not_metni || '')
                             setDuzOdemeYapan(g.odeme_yapan_adi || '')
@@ -422,12 +421,23 @@ export default function Gelirler() {
                     {g.belge_url && (
                       <div style={{ marginTop: 8 }}>
                         {g.belge_url.toLowerCase().includes('.pdf') ? (
-                          <a href={g.belge_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', backgroundColor: '#F1EFE8', borderRadius: 6, textDecoration: 'none', color: '#2C3E50', fontWeight: 500, fontSize: 13, border: '1px solid #D3D1C7' }}>
+                          <a href={getGoogleDriveViewUrl(g.belge_url)} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', backgroundColor: '#F1EFE8', borderRadius: 6, textDecoration: 'none', color: '#2C3E50', fontWeight: 500, fontSize: 13, border: '1px solid #D3D1C7' }}>
                             📄 PDF Belgesini Aç / Görüntüle
                           </a>
                         ) : (
-                          <a href={g.belge_url} target="_blank" rel="noopener noreferrer">
-                            <img src={g.belge_url} alt="Gelir Belgesi" style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, border: '1px solid #d3d1c7' }} />
+                          <a href={getGoogleDriveViewUrl(g.belge_url)} target="_blank" rel="noopener noreferrer">
+                            <img 
+                              src={getGoogleDriveInlineImageUrl(g.belge_url)} 
+                              alt="Gelir Belgesi" 
+                              style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, border: '1px solid #d3d1c7' }} 
+                              onError={(e) => {
+                                e.target.style.display = 'none'
+                                if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex'
+                              }}
+                            />
+                            <div style={{ display: 'none', alignItems: 'center', gap: 8, padding: '8px 12px', backgroundColor: '#F1EFE8', borderRadius: 6, color: '#2C3E50', fontWeight: 500, fontSize: 13, border: '1px solid #D3D1C7' }}>
+                              📄 Belgeyi Görüntüle
+                            </div>
                           </a>
                         )}
                       </div>

@@ -3,9 +3,9 @@ import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 import Cekler from './Cekler'
-import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
+import { paraFormatla, sadeceSayiTuslari, formatInputTutar, temizleTutar } from '../lib/format'
 import CariAramaSecici from '../components/CariAramaSecici'
-import { uploadToGoogleDrive, moveToSilinenler } from '../lib/googleDrive'
+import { uploadToGoogleDrive, moveToSilinenler, getGoogleDriveInlineImageUrl, getGoogleDriveViewUrl } from '../lib/googleDrive'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -160,6 +160,7 @@ export default function Masraflar() {
         `🏗 *Şantiye:* ${santiyeAdi}\n` +
         `📁 *Kategori:* ${m.masraf_kategorileri?.ad || '—'}\n` +
         `💳 *Ödeme:* ${m.odeme_yontemleri?.ad || '—'}\n` +
+        (m.taksit_sayisi && m.taksit_sayisi > 1 ? `🔄 *Taksit:* ${m.taksit_sayisi} Taksit\n` : '') +
         (m.odenen_kisi ? `👤 *Ödenen:* ${m.odenen_kisi}\n` : '') +
         `📅 *Tarih:* ${m.harcama_tarihi ? new Date(m.harcama_tarihi).toLocaleDateString('tr-TR') : '—'}\n` +
         (m.aciklama ? `📝 *Not:* ${m.aciklama}` : '')
@@ -256,38 +257,30 @@ export default function Masraflar() {
       }
     }
 
-    const eklenecekler = []
-    const baseTutar = Number(tutar)
+    const baseTutar = temizleTutar(tutar)
     const adet = (isKrediKarti && taksitSayisi > 1) ? parseInt(taksitSayisi) : 1
-    const taksitTutari = adet > 1 ? baseTutar / adet : baseTutar
-
-    for (let i = 0; i < adet; i++) {
-      const islemTarihi = new Date(harcamaTarihi)
-      islemTarihi.setMonth(islemTarihi.getMonth() + i)
-      // Tarih ayarlarken ay geçişlerinde sorun olmaması için:
-      const formatliTarih = islemTarihi.toISOString().split('T')[0]
-      
-      let finalBaslik = baslik
-      if (adet > 1) {
-        finalBaslik = `${baslik} (${i + 1}/${adet} Taksit)`
-      }
-
-      eklenecekler.push({
-        santiye_id: secilenSantiyeId === 'genel' ? null : secilenSantiyeId,
-        kategori_id: kategoriId,
-        baslik: finalBaslik,
-        odenen_kisi: odenenKisi,
-        cari_id: finalCariId || null,
-        aciklama,
-        tutar: taksitTutari,
-        odeme_yontemi_id: odemeYontemiId,
-        harcama_tarihi: formatliTarih,
-        fotograf_url: fotografUrl,
-        ekleyen: profile?.id,
-      })
+    
+    let finalBaslik = baslik
+    if (adet > 1) {
+      finalBaslik = `${baslik} (${adet} Taksit)`
     }
 
-    const { error } = await supabase.from('masraflar').insert(eklenecekler)
+    const eklenecekMasraf = {
+      santiye_id: secilenSantiyeId === 'genel' ? null : secilenSantiyeId,
+      kategori_id: kategoriId,
+      baslik: finalBaslik,
+      odenen_kisi: odenenKisi,
+      cari_id: finalCariId || null,
+      aciklama,
+      tutar: baseTutar,
+      taksit_sayisi: adet,
+      odeme_yontemi_id: odemeYontemiId,
+      harcama_tarihi: harcamaTarihi,
+      fotograf_url: fotografUrl,
+      ekleyen: profile?.id,
+    }
+
+    const { error } = await supabase.from('masraflar').insert([eklenecekMasraf])
 
     if (error) {
       alert('Masraf eklenemedi: ' + error.message)
@@ -350,13 +343,16 @@ export default function Masraflar() {
     } catch (err) {
       alert('Görsel Google Drive\'a yüklenemedi: ' + err.message)
     }
-    setYukleniyor(false)
+    setDuzenlenenId(null)
   }
 
   const masrafDuzenle = async (id) => {
+    if (!duzBaslik.trim() || !duzTutar) return
+    const guncelTutar = temizleTutar(duzTutar)
+    
     const { error } = await supabase.from('masraflar').update({
       baslik: duzBaslik,
-      tutar: Number(duzTutar),
+      tutar: guncelTutar,
       harcama_tarihi: duzHarcamaTarihi,
       aciklama: duzAciklama,
       odenen_kisi: duzOdenenKisi,
@@ -409,7 +405,7 @@ export default function Masraflar() {
               style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical' }}
             />
             <div className="ekleme-satiri-2">
-              <input type="number" placeholder="Tutar (₺)" value={tutar} onChange={(e) => setTutar(e.target.value)} onKeyDown={sadeceSayiTuslari} />
+              <input type="text" placeholder="Tutar (₺)" value={tutar} onChange={(e) => setTutar(formatInputTutar(e.target.value))} onKeyDown={sadeceSayiTuslari} />
               <select value={kategoriId} onChange={(e) => setKategoriId(e.target.value)}>
                 {kategoriler.map((k) => <option key={k.id} value={k.id}>{k.ad}</option>)}
               </select>
@@ -430,7 +426,7 @@ export default function Masraflar() {
                 </select>
                 {taksitSayisi > 1 && tutar && (
                   <p style={{ fontSize: 11, color: '#E65100', marginTop: 4 }}>
-                    Girdiğiniz {paraFormatla(tutar)} ₺, aylık {paraFormatla(tutar / taksitSayisi)} ₺ olarak {taksitSayisi} aya bölünerek işlenecektir.
+                    Girdiğiniz işlem <b>{taksitSayisi} Taksit</b> olarak tek bir kayıt halinde işlenecektir.
                   </p>
                 )}
               </div>
@@ -530,7 +526,11 @@ export default function Masraflar() {
                       placeholder="Ödenen Kişi / Cari (opsiyonel)..."
                     />
                     <div className="ekleme-satiri-2">
-                      <input type="number" value={duzTutar} onChange={(e) => setDuzTutar(e.target.value)} placeholder="Tutar" onKeyDown={sadeceSayiTuslari} />
+                      <select value={duzKategoriId} onChange={(e) => setDuzKategoriId(e.target.value)}>
+                        <option value="">Kategori...</option>
+                        {kategoriler.map((k) => <option key={k.id} value={k.id}>{k.ad}</option>)}
+                      </select>
+                      <input type="text" placeholder="Tutar (₺)" value={duzTutar} onChange={(e) => setDuzTutar(formatInputTutar(e.target.value))} onKeyDown={sadeceSayiTuslari} />
                       <input type="date" value={duzHarcamaTarihi} onChange={(e) => setDuzHarcamaTarihi(e.target.value)} />
                     </div>
                     <div className="ekleme-satiri-2">
@@ -558,7 +558,7 @@ export default function Masraflar() {
                           <button className="sil-buton" onClick={() => {
                             setDuzenlenenId(m.id)
                             setDuzBaslik(m.baslik)
-                            setDuzTutar(m.tutar)
+                            setDuzTutar(formatInputTutar(m.tutar))
                             setDuzHarcamaTarihi(m.harcama_tarihi)
                             setDuzAciklama(m.aciklama || '')
                             setDuzOdenenKisi(m.odenen_kisi || '')
@@ -595,12 +595,26 @@ export default function Masraflar() {
                     {/* Fotoğraf/Belge Gösterimi */}
                     {m.fotograf_url && (
                       <div style={{ marginTop: 8 }}>
-                        <a href={m.fotograf_url} target="_blank" rel="noopener noreferrer">
+                        <a href={getGoogleDriveViewUrl(m.fotograf_url)} target="_blank" rel="noopener noreferrer">
                           <img
-                            src={m.fotograf_url}
-                            alt="Masraf Belgesi"
-                            style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, border: '1px solid #d3d1c7' }}
+                            src={getGoogleDriveInlineImageUrl(m.fotograf_url)}
+                            alt="Masraf Görseli"
+                            style={{
+                              width: '100%',
+                              maxHeight: 180,
+                              objectFit: 'cover',
+                              borderRadius: 8,
+                              border: '1px solid #ddd'
+                            }}
+                            onError={(e) => {
+                              // Eğer resim yüklenemezse (PDF vb.)
+                              e.target.style.display = 'none'
+                              if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex'
+                            }}
                           />
+                          <div style={{ display: 'none', alignItems: 'center', gap: 8, padding: '8px 12px', backgroundColor: '#F1EFE8', borderRadius: 6, color: '#2C3E50', fontWeight: 500, fontSize: 13, border: '1px solid #D3D1C7' }}>
+                            📄 Belgeyi Görüntüle
+                          </div>
                         </a>
                       </div>
                     )}

@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useSite } from '../../context/SiteContext'
+import { generateAndSharePDF } from '../../lib/pdfGenerator'
 
 export default function SantiyeBasinaTablo({ baslik, tablo, alanlar }) {
   const { santiyeler } = useSite()
   const [kayitlar, setKayitlar] = useState({}) // { santiyeId: row }
   const [duzenlenenSantiyeId, setDuzenlenenSantiyeId] = useState(null)
   const [taslak, setTaslak] = useState({})
+  const [seciliSantiyeler, setSeciliSantiyeler] = useState([])
 
   const yenile = async () => {
     const { data, error } = await supabase.from(tablo).select('*')
@@ -32,19 +34,64 @@ export default function SantiyeBasinaTablo({ baslik, tablo, alanlar }) {
     yenile()
   }
 
+  const santiyeSecToggle = (id) => {
+    setSeciliSantiyeler(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  const pdfPaylas = async (sadeceSecilenler = false) => {
+    const dataListesi = sadeceSecilenler ? santiyeler.filter(s => seciliSantiyeler.includes(s.id)) : santiyeler
+    if (dataListesi.length === 0) return alert('PDF için şantiye bulunamadı.')
+
+    const pdfBasliklar = ['Santiye Adi', ...alanlar.map(a => a.etiket)]
+    const satirVerileri = dataListesi.map(s => {
+      const kayit = kayitlar[s.id] || {}
+      return [s.ad, ...alanlar.map(a => kayit[a.anahtar] || '-')]
+    })
+
+    await generateAndSharePDF({
+      title: `${baslik} ${sadeceSecilenler ? '(Secilenler)' : ''}`,
+      filename: `${tablo}.pdf`,
+      columns: pdfBasliklar,
+      data: satirVerileri
+    })
+  }
+
   return (
     <div className="sayfa">
-      <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
-      <h2>{baslik}</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div>
+          <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
+          <h2>{baslik}</h2>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {seciliSantiyeler.length > 0 && (
+            <button 
+              onClick={() => pdfPaylas(true)}
+              style={{ background: '#F57F17', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              📄 Seçilenleri Paylaş ({seciliSantiyeler.length})
+            </button>
+          )}
+          <button 
+            onClick={() => pdfPaylas(false)}
+            style={{ background: '#2C3E50', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            📄 Tüm Listeyi Paylaş (PDF)
+          </button>
+        </div>
+      </div>
 
       <div className="liste">
         {santiyeler.map((s) => {
           const kayit = kayitlar[s.id]
           const duzenleniyor = duzenlenenSantiyeId === s.id
           return (
-            <div key={s.id} className="kart">
+            <div key={s.id} className="kart" style={{ border: seciliSantiyeler.includes(s.id) ? '2px solid #F57F17' : '1px solid #D3D1C7' }}>
               <div className="kart-ust">
-                <span className="kart-baslik">{s.ad}</span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={seciliSantiyeler.includes(s.id)} onChange={() => santiyeSecToggle(s.id)} style={{ width: 18, height: 18, accentColor: '#F57F17' }} />
+                  <span className="kart-baslik" style={{ margin: 0 }}>{s.ad}</span>
+                </label>
                 {!duzenleniyor && (
                   <button className="sil-buton" onClick={() => duzenlemeyiAc(s.id)} aria-label="Düzenle">✎</button>
                 )}

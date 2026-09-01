@@ -2,6 +2,13 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
+import {
+  uploadToGoogleDrive,
+  getGoogleDriveInlineImageUrl,
+  getGoogleDriveViewUrl,
+  moveToSilinenler,
+  isGoogleDriveUrl
+} from '../lib/googleDrive'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 const gunEkle = (t, n) => {
@@ -80,12 +87,22 @@ export default function GunlukRapor() {
 
     if (error) { alert('Rapor eklenemedi: ' + error.message); setYukleniyor(false); return }
 
-    for (const dosya of yeniFotograflar) {
-      const dosyaAdi = `${data.id}/${Date.now()}_${dosya.name}`
-      const { data: yuklenen, error: yuklemeHata } = await supabase.storage.from('gunluk-rapor-fotograflari').upload(dosyaAdi, dosya)
-      if (!yuklemeHata) {
-        const { data: url } = supabase.storage.from('gunluk-rapor-fotograflari').getPublicUrl(yuklenen.path)
-        await supabase.from('gunluk_rapor_fotograflari').insert({ rapor_id: data.id, url: url.publicUrl })
+    for (let i = 0; i < yeniFotograflar.length; i++) {
+      const dosya = yeniFotograflar[i]
+      const seciliSantiye = santiyeler.find((s) => s.id === yeniSantiyeId)
+      const folderName = `GunlukRapor/${seciliSantiye ? seciliSantiye.ad : 'Genel'}`
+      
+      try {
+        const driveSonuc = await uploadToGoogleDrive({
+          file: dosya,
+          folderName,
+          adSoyad: `RaporFoto-${i + 1}`,
+          date: yeniTarih,
+        })
+        await supabase.from('gunluk_rapor_fotograflari').insert({ rapor_id: data.id, url: driveSonuc.url })
+      } catch (err) {
+        console.error('Fotoğraf yükleme hatası:', err)
+        alert('Bazı fotoğraflar Google Drive\'a yüklenemedi: ' + err.message)
       }
     }
 
@@ -99,6 +116,21 @@ export default function GunlukRapor() {
 
   const raporSil = async (id) => {
     if (!window.confirm('Bu raporu silmek istediğinize emin misiniz?')) return
+    
+    // Fotoğrafları silinenlere taşı
+    const { data: fotolar } = await supabase.from('gunluk_rapor_fotograflari').select('*').eq('rapor_id', id)
+    if (fotolar && fotolar.length > 0) {
+      const r = raporlar.find((x) => x.id === id)
+      const s = santiyeler.find((x) => x.id === (r ? r.santiye_id : null))
+      const folderName = `GunlukRapor/${s ? s.ad : 'Genel'}`
+      
+      for (const foto of fotolar) {
+        if (isGoogleDriveUrl(foto.url) || String(foto.url).match(/^[a-zA-Z0-9_-]{25,}$/)) {
+          await moveToSilinenler(foto.url, folderName)
+        }
+      }
+    }
+
     await supabase.from('gunluk_raporlar').delete().eq('id', id)
     raporlariYukle()
   }
@@ -214,8 +246,8 @@ export default function GunlukRapor() {
                   {(fotograflar[r.id] || []).length > 0 && (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                       {fotograflar[r.id].map((f) => (
-                        <a key={f.id} href={f.url} target="_blank" rel="noreferrer">
-                          <img src={f.url} alt="Rapor fotoğrafı" style={{ width: 70, height: 70, objectFit: 'cover', borderRadius: 8 }} />
+                        <a key={f.id} href={getGoogleDriveViewUrl(f.url)} target="_blank" rel="noreferrer">
+                          <img src={getGoogleDriveInlineImageUrl(f.url)} alt="Rapor fotoğrafı" style={{ width: 70, height: 70, objectFit: 'cover', borderRadius: 8 }} />
                         </a>
                       ))}
                     </div>

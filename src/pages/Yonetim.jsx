@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { paraFormatla } from '../lib/format'
+import { uploadToGoogleDrive } from '../lib/googleDrive'
 
 const SAYFALAR = [
   { yol: '/yonetim/santiyeler', ad: 'Şantiye Yönetimi', aciklama: 'Ekleme / düzenleme / silme' },
@@ -31,6 +32,8 @@ export default function Yonetim() {
 
   // Gider Datası
   const [masraflar, setMasraflar] = useState([])
+  
+  const [migrationDurum, setMigrationDurum] = useState('')
 
   useEffect(() => {
     if (profile?.sistem_yoneticisi) {
@@ -54,6 +57,87 @@ export default function Yonetim() {
         <p className="bos-mesaj">Bu sayfaya erişim yetkiniz yok.</p>
       </div>
     )
+  }
+
+  const runMigration = async () => {
+    if (!window.confirm('Eski görseller Google Drive\'a taşınacak. Emin misiniz? Tarayıcıyı işlem bitene kadar kapatmayın.')) return;
+    setMigrationDurum('Başlıyor...');
+    
+    // GELİRLER
+    setMigrationDurum('Gelirler taşınıyor...');
+    const { data: gList } = await supabase.from('gelirler').select('id, belge_url, odeme_yapan_adi, tarih, tahsilat_noktasi, not_metni, malik_id, malikler(ad_soyad), santiyeler(ad)')
+    for (const g of (gList || [])) {
+      if (g.belge_url && g.belge_url.includes('supabase.co')) {
+        try {
+          const res = await fetch(g.belge_url);
+          const blob = await res.blob();
+          const file = new File([blob], 'belge.jpg', { type: blob.type || 'image/jpeg' });
+          const folderName = `Gelirler/${g.santiyeler?.ad || 'Genel'}/${g.tahsilat_noktasi || 'Diger'}`;
+          const kisaNot = g.not_metni ? g.not_metni.substring(0, 20) : 'Tahsilat';
+          const odenenAdi = g.odeme_yapan_adi || g.malikler?.ad_soyad || 'ISIMSIZ';
+          
+          const uploadRes = await uploadToGoogleDrive({ file, folderName, adSoyad: `${kisaNot}-${odenenAdi}`, date: g.tarih, compress: false });
+          await supabase.from('gelirler').update({ belge_url: uploadRes.url }).eq('id', g.id);
+        } catch (e) { console.error('Gelir hata:', e); setMigrationDurum('Hata oluştu, konsola bakınız.'); }
+      }
+    }
+
+    // MASRAFLAR
+    setMigrationDurum('Masraflar taşınıyor...');
+    const { data: mList } = await supabase.from('masraflar').select('id, fotograf_url, baslik, odenen_kisi, harcama_tarihi, santiyeler(ad), odeme_yontemleri(ad)')
+    for (const m of (mList || [])) {
+      if (m.fotograf_url && m.fotograf_url.includes('supabase.co')) {
+        try {
+          const res = await fetch(m.fotograf_url);
+          const blob = await res.blob();
+          const file = new File([blob], 'belge.jpg', { type: blob.type || 'image/jpeg' });
+          const folderName = `Masraflar/${m.santiyeler?.ad || 'Genel'}/${m.odeme_yontemleri?.ad || 'Diger'}`;
+          const kisaBaslik = m.baslik ? m.baslik.substring(0, 30) : 'Masraf';
+          
+          const uploadRes = await uploadToGoogleDrive({ file, folderName, adSoyad: `${kisaBaslik}-${m.odenen_kisi || 'ISIMSIZ'}`, date: m.harcama_tarihi, compress: false });
+          await supabase.from('masraflar').update({ fotograf_url: uploadRes.url }).eq('id', m.id);
+        } catch (e) { console.error('Masraf hata:', e); setMigrationDurum('Hata oluştu, konsola bakınız.'); }
+      }
+    }
+
+    // CEKLER
+    setMigrationDurum('Çekler taşınıyor...');
+    const { data: cList } = await supabase.from('cekler').select('id, belge_url, odeme_konusu, odeyen, odenen, verilis_tarihi, yon, santiyeler(ad)')
+    for (const c of (cList || [])) {
+      if (c.belge_url && c.belge_url.includes('supabase.co')) {
+        try {
+          const res = await fetch(c.belge_url);
+          const blob = await res.blob();
+          const file = new File([blob], 'belge.jpg', { type: blob.type || 'image/jpeg' });
+          const folderName = `Cekler/${c.santiyeler?.ad || 'Genel'}/${c.yon === 'alinan' ? 'Alınan Çek' : 'Verilen Çek'}`;
+          const kisaKonu = c.odeme_konusu ? c.odeme_konusu.substring(0, 20) : 'Cek';
+          
+          const uploadRes = await uploadToGoogleDrive({ file, folderName, adSoyad: `${kisaKonu}-${c.odenen || c.odeyen || 'Bilinmiyor'}`, date: c.verilis_tarihi, compress: false });
+          await supabase.from('cekler').update({ belge_url: uploadRes.url }).eq('id', c.id);
+        } catch (e) { console.error('Cek hata:', e); setMigrationDurum('Hata oluştu, konsola bakınız.'); }
+      }
+    }
+
+    // GÜNLÜK RAPORLAR
+    setMigrationDurum('Günlük Raporlar taşınıyor...');
+    const { data: rList } = await supabase.from('gunluk_rapor_fotograflari').select('id, rapor_id, url, gunluk_raporlar(santiye_id, tarih, santiyeler(ad))')
+    for (const r of (rList || [])) {
+      if (r.url && r.url.includes('supabase.co')) {
+        try {
+          const res = await fetch(r.url);
+          const blob = await res.blob();
+          const file = new File([blob], 'rapor.jpg', { type: blob.type || 'image/jpeg' });
+          const rapor = r.gunluk_raporlar;
+          const santiyeAdi = rapor?.santiyeler?.ad || 'Genel';
+          const folderName = `GunlukRapor/${santiyeAdi}`;
+          
+          const uploadRes = await uploadToGoogleDrive({ file, folderName, adSoyad: `RaporFoto-Eski`, date: rapor?.tarih, compress: false });
+          await supabase.from('gunluk_rapor_fotograflari').update({ url: uploadRes.url }).eq('id', r.id);
+        } catch (e) { console.error('Rapor foto hata:', e); setMigrationDurum('Hata oluştu, konsola bakınız.'); }
+      }
+    }
+
+    setMigrationDurum('TÜM TAŞIMA TAMAMLANDI! 🎉');
   }
 
   const suAn = new Date()
@@ -119,19 +203,40 @@ export default function Yonetim() {
   const giderBuAy = masrafBuAyListe.reduce((acc, c) => acc + (c.tutar || 0), 0)
   const giderToplam = masraflar.reduce((acc, c) => acc + (c.tutar || 0), 0)
 
-  // Taksit Hesaplamaları
-  const taksitBuAy = masrafBuAyListe
-    .filter(m => (m.baslik || '').includes('Taksit)') && (m.odeme_yontemleri?.ad || '').toLowerCase().includes('kart'))
-    .reduce((acc, c) => acc + (c.tutar || 0), 0)
+  // Taksit Hesaplamaları (Yeni Mantık: Tek Kayıt Üzerinden)
+  let taksitBuAy = 0
+  let taksitGelecekAylar = 0
+  const aktifTaksitliIslemler = []
 
-  const taksitGelecekAylar = masraflar
-    .filter(m => {
-       const tarihStr = m.harcama_tarihi || m.kayit_tarihi
-       if (!tarihStr) return false
-       const tarih = new Date(tarihStr)
-       return tarih >= gelecekAyinBasi && (m.baslik || '').includes('Taksit)') && (m.odeme_yontemleri?.ad || '').toLowerCase().includes('kart')
-    })
-    .reduce((acc, c) => acc + (c.tutar || 0), 0)
+  masraflar.forEach(m => {
+    if (m.taksit_sayisi && m.taksit_sayisi > 1) {
+      const islemTarihi = new Date(m.harcama_tarihi || m.kayit_tarihi)
+      if (!islemTarihi || isNaN(islemTarihi.getTime())) return
+
+      const aylikTutar = m.tutar / m.taksit_sayisi
+      const ayFarki = (simdi.getFullYear() - islemTarihi.getFullYear()) * 12 + (simdi.getMonth() - islemTarihi.getMonth())
+      
+      // İlk taksit harcama ayında ödeniyor varsayıyoruz, o yüzden ayFarki + 1
+      const odenenTaksitSayisi = Math.min(Math.max(ayFarki + 1, 0), m.taksit_sayisi)
+      const kalanTaksitSayisi = m.taksit_sayisi - odenenTaksitSayisi
+
+      // Bu ay taksit ödendi mi? (Eğer işlem gelecekte değilse ve kalan taksit bitmemişse veya tam bu ay bitiyorsa)
+      if (ayFarki >= 0 && ayFarki < m.taksit_sayisi) {
+        taksitBuAy += aylikTutar
+      }
+
+      if (kalanTaksitSayisi > 0) {
+        taksitGelecekAylar += aylikTutar * kalanTaksitSayisi
+        aktifTaksitliIslemler.push({
+          baslik: m.baslik,
+          aylikTutar,
+          kalanTaksitSayisi,
+          toplamTaksit: m.taksit_sayisi,
+          kalanBorc: aylikTutar * kalanTaksitSayisi
+        })
+      }
+    }
+  })
 
   // Gider detayları (Ödeme Yöntemine göre bu ay)
   const giderBuAyDetay = {}
@@ -164,7 +269,17 @@ export default function Yonetim() {
       </div>
 
       {sekme === 'menu' && (
-        <div className="liste">
+        <div className="yonetim-menu-grid">
+          
+          <div style={{ gridColumn: '1 / -1', marginBottom: 12 }}>
+            <button 
+              onClick={runMigration} 
+              style={{ width: '100%', padding: '12px', background: '#D64545', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              🔄 Eski Görselleri Google Drive'a Taşı {migrationDurum ? `(${migrationDurum})` : ''}
+            </button>
+          </div>
+
           {SAYFALAR.map((s) => (
             <Link key={s.yol} to={s.yol} className="kart taseron-satir" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div style={{ flex: 1 }}>
@@ -248,8 +363,21 @@ export default function Yonetim() {
             <div className="info-row" style={{ borderBottom: '2px solid #f0cdcd', paddingBottom: 8, marginBottom: 8 }}><span className="info-label" style={{ fontWeight: 700 }}>Bu ayki tüm harcamalar (Toplam)</span> <strong className="info-value" style={{ color: '#D64545', fontSize: 16 }}><GizlenebilirDeger deger={giderBuAy} /></strong></div>
             <div className="info-row" style={{ paddingLeft: 12 }}><span className="info-label">↳ Bu ayki taksit ödemeleri toplamı</span> <strong className="info-value"><GizlenebilirDeger deger={taksitBuAy} /></strong></div>
             
-            <div className="info-row" style={{ marginTop: 12, borderTop: '2px solid #f0cdcd', paddingTop: 12, marginBottom: 8 }}><span className="info-label" style={{ fontWeight: 700, color: '#E65100' }}>Geriye kalan taksitler toplamı (Gelecek Aylar)</span> <strong className="info-value" style={{ color: '#E65100', fontSize: 16 }}><GizlenebilirDeger deger={taksitGelecekAylar} /></strong></div>
+            <div className="info-row" style={{ marginTop: 12, borderTop: '2px solid #f0cdcd', paddingTop: 12, marginBottom: 8 }}><span className="info-label" style={{ fontWeight: 700, color: '#E65100' }}>Kalan taksitler toplamı (Gelecek Aylar)</span> <strong className="info-value" style={{ color: '#E65100', fontSize: 16 }}><GizlenebilirDeger deger={taksitGelecekAylar} /></strong></div>
             
+            {/* DEVAM EDEN TAKSİTLER DETAY LİSTESİ */}
+            {aktifTaksitliIslemler.length > 0 && (
+              <div style={{ padding: '8px 12px', background: '#FFF3E0', borderRadius: 8, marginBottom: 12 }}>
+                <h4 style={{ margin: '0 0 8px 0', fontSize: 13, color: '#E65100' }}>Kalan Taksit Detayları:</h4>
+                {aktifTaksitliIslemler.map((t, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4, borderBottom: '1px solid #FFE0B2', paddingBottom: 4 }}>
+                    <span style={{ color: '#5F5E5A', width: '50%' }}>{t.baslik}</span>
+                    <span style={{ color: '#E65100', fontWeight: 600 }}>{t.kalanTaksitSayisi}/{t.toplamTaksit} Taksit</span>
+                    <span style={{ fontFamily: 'monospace' }}><GizlenebilirDeger deger={t.kalanBorc} /></span>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="info-row" style={{ marginTop: 12, borderTop: '1px dashed #f0cdcd', paddingTop: 8 }}><span className="info-label">Tüm zamanlar harcamalar (Genel Toplam)</span> <strong className="info-value"><GizlenebilirDeger deger={giderToplam} /></strong></div>
 
             <div className="info-row" style={{ marginTop: 16, borderTop: '2px solid #e0e0e0', paddingTop: 12, marginBottom: 8 }}><span className="info-label" style={{ fontWeight: 700 }}>Ödeme Yöntemlerine Göre Giderler (Bu Ay)</span></div>

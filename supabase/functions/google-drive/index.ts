@@ -84,37 +84,44 @@ async function getGoogleAccessToken(serviceAccount: ServiceAccountKey): Promise<
  * Belirtilen üst klasör altında isimle klasör bulur veya oluşturur
  */
 async function getOrCreateFolder(folderName: string, parentId: string, accessToken: string): Promise<string> {
-  const query = `'${parentId}' in parents and name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-  const searchUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)&spaces=drive&supportsAllDrives=true&includeItemsFromAllDrives=true`
+  const parts = folderName.split('/').map(p => p.trim()).filter(Boolean)
+  let currentParentId = parentId
 
-  const searchRes = await fetch(searchUrl, {
-    headers: { Authorization: `Bearer ${accessToken}` }
-  })
-  const searchData = await searchRes.json()
+  for (const part of parts) {
+    const query = `'${currentParentId}' in parents and name = '${part}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+    const searchUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)&spaces=drive&supportsAllDrives=true&includeItemsFromAllDrives=true`
 
-  if (searchData.files && searchData.files.length > 0) {
-    return searchData.files[0].id
-  }
-
-  // Klasör yoksa oluştur
-  const createRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id,name&supportsAllDrives=true', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      name: folderName,
-      mimeType: 'application/vnd.google-apps.folder',
-      parents: [parentId]
+    const searchRes = await fetch(searchUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` }
     })
-  })
+    const searchData = await searchRes.json()
 
-  const createData = await createRes.json()
-  if (!createRes.ok) {
-    throw new Error(`Klasör oluşturulamadı (${folderName}): ${JSON.stringify(createData)}`)
+    if (searchData.files && searchData.files.length > 0) {
+      currentParentId = searchData.files[0].id
+    } else {
+      // Klasör yoksa oluştur
+      const createRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id,name&supportsAllDrives=true', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: part,
+          mimeType: 'application/vnd.google-apps.folder',
+          parents: [currentParentId]
+        })
+      })
+
+      const createData = await createRes.json()
+      if (!createRes.ok) {
+        throw new Error(`Klasör oluşturulamadı (${part}): ${JSON.stringify(createData)}`)
+      }
+      currentParentId = createData.id
+    }
   }
-  return createData.id
+
+  return currentParentId
 }
 
 serve(async (req) => {
@@ -292,9 +299,9 @@ serve(async (req) => {
   } catch (error) {
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || error.toString()
+      error: error.message || 'Bilinmeyen hata'
     }), {
-      status: 400,
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }

@@ -9,10 +9,11 @@ Uygulamada önceden Supabase Storage bucket'larına yüklenen dosya ve görselle
 
 ## 🏗️ Mimari & Çalışma Prensibi
 
-### 1. Supabase Edge Function Katmanı (`google-drive`)
-- Frontend (React / Vite) doğrudan Supabase Client üzerinden `supabase.functions.invoke('google-drive', { body: ... })` çağrısı yapar.
-- Supabase Edge Function, **Google Cloud Service Account** yetkisiyle resmi **Google Drive REST API v3** ile güvenli ve atomik konuşur.
-- İstemci tarafında hiçbir gizli anahtar barındırılmaz.
+### 1. Google Apps Script Katmanı (`Code.gs`)
+- Frontend (React / Vite) doğrudan `fetch` üzerinden Google Apps Script Web App URL'sine (`VITE_GOOGLE_SCRIPT_URL`) çağrı yapar.
+- Supabase Edge Function (Service Account) ücretsiz Google hesaplarında kotalara takıldığı için iptal edilmiştir.
+- İşlemler kullanıcının kendi Drive kotası (15GB/100GB) üzerinden güvenle gerçekleştirilir.
+- İstemci tarafında hiçbir gizli anahtar barındırılmaz, sadece Web App URL ile iletişim kurulur.
 
 ### 2. Dosya İsimlendirme Kuralı
 Yüklenen tüm belgeler şu formatta kaydedilir:

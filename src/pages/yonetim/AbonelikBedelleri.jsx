@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { paraFormatla, sadeceSayiTuslari } from '../../lib/format'
+import { generateAndSharePDF } from '../../lib/pdfGenerator'
 
 export default function AbonelikBedelleri() {
   const [sutunlar, setSutunlar] = useState([])
   const [satirlar, setSatirlar] = useState([])
   const [yeniSutunAcik, setYeniSutunAcik] = useState(false)
   const [yeniSutunAdi, setYeniSutunAdi] = useState('')
+  const [seciliSatirlar, setSeciliSatirlar] = useState([])
 
   const yenile = async () => {
     const { data: s, error: e1 } = await supabase.from('abonelik_sutunlari').select('*').order('sira')
@@ -71,15 +73,69 @@ export default function AbonelikBedelleri() {
   const toplamOdenmis = satirlar.filter((s) => s.odendi).reduce((t, s) => t + Number(s.tutar || 0), 0)
   const toplamOdenmemis = satirlar.filter((s) => !s.odendi).reduce((t, s) => t + Number(s.tutar || 0), 0)
 
+  const tumunuSecToggle = () => {
+    if (seciliSatirlar.length === satirlar.length) setSeciliSatirlar([])
+    else setSeciliSatirlar(satirlar.map(s => s.id))
+  }
+
+  const satirSecToggle = (id) => {
+    setSeciliSatirlar(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  const pdfPaylas = async (sadeceSecilenler = false) => {
+    const dataListesi = sadeceSecilenler ? satirlar.filter(s => seciliSatirlar.includes(s.id)) : satirlar
+    if (dataListesi.length === 0) return alert('PDF için kayıt bulunamadı.')
+
+    const basliklar = [...sutunlar.map(s => s.ad), 'Tutar', 'Durum']
+    const satirVerileri = dataListesi.map(satir => [
+      ...sutunlar.map(s => satir.ekstra?.[s.ad] || '-'),
+      `${paraFormatla(satir.tutar || 0)} TL`,
+      satir.odendi ? 'Odendi' : 'Odenmedi'
+    ])
+
+    const toplamTutar = dataListesi.reduce((acc, s) => acc + Number(s.tutar || 0), 0)
+    const toplamSatir = Array(basliklar.length).fill('')
+    toplamSatir[toplamSatir.length - 3] = 'TOPLAM:'
+    toplamSatir[toplamSatir.length - 2] = `${paraFormatla(toplamTutar)} TL`
+    satirVerileri.push(toplamSatir)
+
+    await generateAndSharePDF({
+      title: `Abonelik Bedelleri ${sadeceSecilenler ? '(Secilenler)' : ''}`,
+      filename: 'abonelik-bedelleri.pdf',
+      columns: basliklar,
+      data: satirVerileri
+    })
+  }
+
   const hucreStil = { padding: '6px 8px', fontSize: 12, whiteSpace: 'nowrap', borderBottom: '1px solid #F1EFE8' }
   const baslikStil = { ...hucreStil, fontWeight: 700, color: '#5F5E5A', fontSize: 11, borderBottom: '1px solid #D3D1C7' }
   const hucreInput = { border: 'none', background: 'transparent', fontSize: 12, width: '100%', padding: 2 }
 
   return (
     <div className="sayfa">
-      <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
-      <h2>Abonelik Bedelleri</h2>
-      <p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 0 }}>Elektrik / Su / Doğalgaz vb. abonelik ödemeleri — satır ve sütun serbestçe eklenebilir.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div>
+          <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
+          <h2>Abonelik Bedelleri</h2>
+          <p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 0 }}>Elektrik / Su / Doğalgaz vb. abonelik ödemeleri — satır ve sütun serbestçe eklenebilir.</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {seciliSatirlar.length > 0 && (
+            <button 
+              onClick={() => pdfPaylas(true)}
+              style={{ background: '#F57F17', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              📄 Seçilenleri Paylaş ({seciliSatirlar.length})
+            </button>
+          )}
+          <button 
+            onClick={() => pdfPaylas(false)}
+            style={{ background: '#2C3E50', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            📄 Tüm Tabloyu Paylaş (PDF)
+          </button>
+        </div>
+      </div>
 
       <div className="ozet-satiri">
         <div className="ozet-kart">
@@ -96,6 +152,9 @@ export default function AbonelikBedelleri() {
         <table style={{ borderCollapse: 'collapse', width: '100%' }}>
           <thead>
             <tr>
+              <th style={{ ...baslikStil, width: 40, textAlign: 'center' }}>
+                <input type="checkbox" checked={satirlar.length > 0 && seciliSatirlar.length === satirlar.length} onChange={tumunuSecToggle} />
+              </th>
               {sutunlar.map((s) => (
                 <th key={s.id} style={{ ...baslikStil, minWidth: 110 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -111,7 +170,10 @@ export default function AbonelikBedelleri() {
           </thead>
           <tbody>
             {satirlar.map((satir) => (
-              <tr key={satir.id} style={{ background: satir.odendi ? '#F8F7F2' : undefined }}>
+              <tr key={satir.id} style={{ background: seciliSatirlar.includes(satir.id) ? '#F3F8FF' : (satir.odendi ? '#F8F7F2' : undefined) }}>
+                <td style={{ ...hucreStil, textAlign: 'center' }}>
+                  <input type="checkbox" checked={seciliSatirlar.includes(satir.id)} onChange={() => satirSecToggle(satir.id)} />
+                </td>
                 {sutunlar.map((s) => (
                   <td key={s.id} style={hucreStil}>
                     <input

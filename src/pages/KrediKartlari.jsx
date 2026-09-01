@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 
 const addDaysAndFindNextBusinessDay = (date, addDays) => {
   let result = new Date(date)
@@ -52,11 +53,19 @@ export default function KrediKartlari() {
     }
   ]
 
+  const navigate = useNavigate()
+
   return (
     <div className="sayfa">
       <div style={{ marginBottom: 20 }}>
-        <h2>Kredi Kartı Ödeme Tarihleri</h2>
-        <p style={{ color: '#5F5E5A', fontSize: 13 }}>
+        <button 
+          onClick={() => navigate('/yonetim')} 
+          style={{ marginBottom: 12, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#F1EFE8', border: '1px solid #D3D1C7', borderRadius: 6, cursor: 'pointer', fontSize: 13, color: '#5F5E5A', fontWeight: 600 }}
+        >
+          ‹ Yönetim Menüsüne Dön
+        </button>
+        <h2 style={{ margin: 0, marginBottom: 8 }}>Kredi Kartı Ödeme Tarihleri</h2>
+        <p style={{ color: '#5F5E5A', fontSize: 13, margin: 0 }}>
           Kartlarınızın bir sonraki kesim ve son ödeme tarihlerini buradan takip edebilirsiniz.
           Son ödeme tarihleri otomatik olarak hafta sonuna denk geldiğinde ilk iş gününe (Pazartesi) kaydırılmaktadır.
         </p>

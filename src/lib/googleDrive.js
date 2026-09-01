@@ -194,6 +194,24 @@ export function isGoogleDriveUrl(url) {
   return url.includes('googleusercontent.com') || url.includes('drive.google.com')
 }
 
+/**
+ * Bir Google Drive linkini HTML <img> etiketinde güvenli şekilde gösterecek Thumbnail (CDN) linkine çevirir
+ */
+export function getGoogleDriveInlineImageUrl(url) {
+  const fileId = extractGoogleDriveFileId(url)
+  if (!fileId) return url
+  return `https://lh3.googleusercontent.com/d/${fileId}`
+}
+
+/**
+ * Bir Google Drive linkini tarayıcıda doğrudan (yeni sekmede) açılabilir linke çevirir
+ */
+export function getGoogleDriveViewUrl(url) {
+  const fileId = extractGoogleDriveFileId(url)
+  if (!fileId) return url
+  return `https://drive.google.com/uc?export=view&id=${fileId}`
+}
+
 import { supabase } from './supabase'
 
 /**
@@ -234,22 +252,47 @@ export async function uploadToGoogleDrive({
   // 3. Dosyayı Base64 formatına çevir
   const base64Data = await fileToBase64(processedFile)
 
+  let finalMimeType = processedFile.type || file.type || 'image/jpeg'
+  if (!finalMimeType.startsWith('image/') && !finalMimeType.includes('pdf')) {
+    const ext = fileName.split('.').pop().toLowerCase()
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'].includes(ext)) {
+      finalMimeType = `image/${ext === 'jpg' ? 'jpeg' : ext}`
+    } else {
+      finalMimeType = 'image/jpeg'
+    }
+  }
+
   const payload = {
     action: 'upload',
     folderName,
     fileName,
     base64Data,
-    mimeType: processedFile.type || file.type || 'image/jpeg',
+    mimeType: finalMimeType,
     rootFolderId: rootFolderId || undefined
   }
 
-  // Supabase Edge Function çağrısı
-  const { data, error } = await supabase.functions.invoke('google-drive', {
-    body: payload
+  // Supabase Edge Function çağrısı yerine Google Apps Script kullanıyoruz (Quota sorunu nedeniyle)
+  const scriptUrl = GOOGLE_SCRIPT_URL
+  if (!scriptUrl || scriptUrl.includes('supabase.co')) {
+    // Eğer Vite önbelleği nedeniyle eski Supabase Edge Function URL'si kalmışsa, doğrudan fallback'i kullan
+    throw new Error('Lütfen terminalde çalışan sunucuyu durdurup (Ctrl+C) tekrar `npm run dev` yazarak başlatın. Eski önbellek temizlenmeli.')
+  }
+
+  const response = await fetch(scriptUrl, {
+    method: 'POST',
+    body: JSON.stringify(payload)
   })
 
-  if (error) {
-    throw new Error(`Google Drive yükleme hatası: ${error.message || JSON.stringify(error)}`)
+  let data
+  try {
+    data = await response.json()
+  } catch (err) {
+    const text = await response.text()
+    throw new Error('Google Apps Script geçersiz yanıt döndü: ' + text)
+  }
+
+  if (data.error) {
+    throw new Error(`Google Drive yükleme hatası: ${data.error}`)
   }
 
   if (!data || !data.success) {
@@ -296,13 +339,19 @@ export async function moveToSilinenler(
   }
 
   try {
-    const { data, error } = await supabase.functions.invoke('google-drive', {
-      body: payload
-    })
+    const scriptUrl = GOOGLE_SCRIPT_URL
+    if (!scriptUrl || scriptUrl.includes('supabase.co')) return { success: false, message: 'Google Script URL yok veya eski önbellek kalmış.' }
 
-    if (error) {
-      console.warn('Silinenlere taşıma Edge Function hatası:', error)
-      return { success: false, error: error.message }
+    const response = await fetch(scriptUrl, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+    
+    const data = await response.json()
+    
+    if (data.error) {
+      console.warn('Silinenlere taşıma Script hatası:', data.error)
+      return { success: false, error: data.error }
     }
 
     return data || { success: true }

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useSite } from '../../context/SiteContext'
-import { useAuth } from '../../context/AuthContext'
 import { paraFormatla, sadeceSayiTuslari } from '../../lib/format'
+import { generateAndSharePDF } from '../../lib/pdfGenerator'
 
 const BASLIKLAR = {
   banka_teminat_mektubu: 'Banka Teminat Mektupları',
@@ -15,6 +15,7 @@ export default function Teminatlar({ tur }) {
   const { santiyeler } = useSite()
   const { profile } = useAuth()
   const [kayitlar, setKayitlar] = useState([])
+  const [seciliKayitlar, setSeciliKayitlar] = useState([])
   const [ekleAcik, setEkleAcik] = useState(false)
   const [tutar, setTutar] = useState('')
   const [santiyeId, setSantiyeId] = useState('')
@@ -55,10 +56,59 @@ export default function Teminatlar({ tur }) {
   const aktifOlanlar = kayitlar.filter((k) => !k.geri_alindi)
   const toplamTutar = aktifOlanlar.reduce((t, k) => t + Number(k.tutar), 0)
 
+  const kayitSecToggle = (id) => {
+    setSeciliKayitlar(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  const pdfPaylas = async (sadeceSecilenler = false) => {
+    const dataListesi = sadeceSecilenler ? kayitlar.filter(k => seciliKayitlar.includes(k.id)) : aktifOlanlar
+    if (dataListesi.length === 0) return alert('PDF için kayıt bulunamadı.')
+
+    const basliklar = ['Santiye', 'Verildigi Kurum', 'Verilis Tarihi', 'Geri Alis Kosulu', 'Durum', 'Tutar']
+    const satirVerileri = dataListesi.map(k => [
+      k.santiyeler?.ad || '-',
+      k.verildigi_kurum || '-',
+      k.verilis_tarihi ? new Date(k.verilis_tarihi).toLocaleDateString('tr-TR') : '-',
+      k.geri_alis_kosulu || '-',
+      k.geri_alindi ? 'Geri Alindi' : 'Aktif',
+      `${paraFormatla(k.tutar)} TL`
+    ])
+
+    const toplam = dataListesi.reduce((acc, k) => acc + Number(k.tutar), 0)
+    satirVerileri.push(['', '', '', '', 'TOPLAM:', `${paraFormatla(toplam)} TL`])
+
+    await generateAndSharePDF({
+      title: `${BASLIKLAR[tur]} (${sadeceSecilenler ? 'Secilenler' : 'Aktif Olanlar'})`,
+      filename: `teminatlar-${tur}.pdf`,
+      columns: basliklar,
+      data: satirVerileri
+    })
+  }
+
   return (
     <div className="sayfa">
-      <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
-      <h2>{BASLIKLAR[tur]}</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div>
+          <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
+          <h2>{BASLIKLAR[tur]}</h2>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {seciliKayitlar.length > 0 && (
+            <button 
+              onClick={() => pdfPaylas(true)}
+              style={{ background: '#F57F17', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              📄 Seçilenleri Paylaş ({seciliKayitlar.length})
+            </button>
+          )}
+          <button 
+            onClick={() => pdfPaylas(false)}
+            style={{ background: '#2C3E50', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            📄 Aktif Olanları Paylaş (PDF)
+          </button>
+        </div>
+      </div>
 
       <div className="ozet-satiri">
         <div className="ozet-kart">
@@ -73,12 +123,21 @@ export default function Teminatlar({ tur }) {
 
       <div className="liste">
         {kayitlar.map((k) => (
-          <div key={k.id} className="kart" style={{ opacity: k.geri_alindi ? 0.6 : 1 }}>
-            <div className="kart-ust">
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, cursor: 'pointer' }}>
-                <input type="checkbox" checked={k.geri_alindi} onChange={() => tikle(k)} style={{ width: 16, height: 16 }} />
-                <span className="kart-baslik">{paraFormatla(k.tutar)} ₺ {k.geri_alindi && '· Geri alındı'}</span>
-              </label>
+          <div key={k.id} className="kart" style={{ opacity: k.geri_alindi ? 0.6 : 1, border: seciliKayitlar.includes(k.id) ? '2px solid #F57F17' : '1px solid #D3D1C7' }}>
+            <div className="kart-ust" style={{ marginBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <input 
+                  type="checkbox" 
+                  checked={seciliKayitlar.includes(k.id)} 
+                  onChange={() => kayitSecToggle(k.id)} 
+                  style={{ width: 18, height: 18, accentColor: '#F57F17', cursor: 'pointer' }}
+                  title="PDF'e eklemek için seç"
+                />
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={k.geri_alindi} onChange={() => tikle(k)} style={{ width: 16, height: 16 }} />
+                  <span className="kart-baslik" style={{ margin: 0 }}>{paraFormatla(k.tutar)} ₺ {k.geri_alindi && '· Geri alındı'}</span>
+                </label>
+              </div>
               <button className="sil-buton" onClick={() => sil(k.id)} aria-label="Sil">🗑</button>
             </div>
             <div className="etiket-satiri">

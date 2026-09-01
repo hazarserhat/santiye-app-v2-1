@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
-import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
+import { paraFormatla, sadeceSayiTuslari, formatInputTutar, temizleTutar } from '../lib/format'
 import CariAramaSecici from '../components/CariAramaSecici'
-import { uploadToGoogleDrive, moveToSilinenler } from '../lib/googleDrive'
+import { uploadToGoogleDrive, moveToSilinenler, getGoogleDriveInlineImageUrl, getGoogleDriveViewUrl } from '../lib/googleDrive'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -180,9 +180,10 @@ export default function Cekler({ yon = 'verilen' }) {
     setSecilenCariId(c.cari_id || null)
     setCekSeriNo(c.cek_seri_no || '')
     setBanka(c.banka || (bankalar[0]?.ad ?? ''))
+    setYeniBankaAcik(false)
     setVerilisTarihi(c.verilis_tarihi ? c.verilis_tarihi.slice(0, 10) : bugun())
     setCekVadesi(c.cek_vadesi ? c.cek_vadesi.slice(0, 10) : '')
-    setTutar(c.tutar ? String(c.tutar) : '')
+    setTutar(formatInputTutar(c.tutar))
     setAciklama(c.aciklama || '')
     setBelge(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -253,7 +254,7 @@ export default function Cekler({ yon = 'verilen' }) {
       banka,
       verilis_tarihi: verilisTarihi,
       cek_vadesi: cekVadesi || null,
-      tutar: Number(tutar),
+      tutar: temizleTutar(tutar),
       aciklama: islemTuru === 'ciro' ? (aciklama ? `(Ciro Edildi) ${aciklama}` : '(Ciro Edildi)') : aciklama,
       yon,
       ...(belgeUrl ? { belge_url: belgeUrl } : {}),
@@ -446,9 +447,8 @@ export default function Cekler({ yon = 'verilen' }) {
                 if (secilenCek) {
                   setOdemeKonusu('Ödeme')
                   setCekSeriNo(secilenCek.cek_seri_no || '')
-                  setBanka(secilenCek.banka || '')
                   setCekVadesi(secilenCek.cek_vadesi ? secilenCek.cek_vadesi.slice(0, 10) : '')
-                  setTutar(secilenCek.tutar ? String(secilenCek.tutar) : '')
+                  setTutar(secilenCek.tutar ? formatInputTutar(secilenCek.tutar) : '')
                   setSecilenCiroBelgeUrl(secilenCek.belge_url || '')
                 } else {
                   formuSifirla()
@@ -535,7 +535,7 @@ export default function Cekler({ yon = 'verilen' }) {
           </div>
         </div>
 
-        <input type="number" placeholder="Tutar (₺)" value={tutar} onChange={(e) => setTutar(e.target.value)} onKeyDown={sadeceSayiTuslari} />
+        <input type="text" placeholder="Tutar (₺)" value={tutar} onChange={(e) => setTutar(formatInputTutar(e.target.value))} onKeyDown={sadeceSayiTuslari} />
 
         <textarea
           placeholder="Açıklama / Not (opsiyonel)..."
@@ -693,12 +693,19 @@ export default function Cekler({ yon = 'verilen' }) {
             {/* Belge / Fotoğraf Önizlemesi */}
             {c.belge_url && (
               <div style={{ marginTop: 8 }}>
-                <a href={c.belge_url} target="_blank" rel="noopener noreferrer">
+                <a href={getGoogleDriveViewUrl(c.belge_url)} target="_blank" rel="noopener noreferrer">
                   <img 
-                    src={c.belge_url} 
+                    src={getGoogleDriveInlineImageUrl(c.belge_url)} 
                     alt="Çek Belgesi" 
                     style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 6, border: '1px solid #d3d1c7' }} 
+                    onError={(e) => {
+                      e.target.style.display = 'none'
+                      if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex'
+                    }}
                   />
+                  <div style={{ display: 'none', alignItems: 'center', gap: 8, padding: '8px 12px', backgroundColor: '#F1EFE8', borderRadius: 6, color: '#2C3E50', fontWeight: 500, fontSize: 13, border: '1px solid #D3D1C7' }}>
+                    📄 Belgeyi Görüntüle
+                  </div>
                 </a>
               </div>
             )}
