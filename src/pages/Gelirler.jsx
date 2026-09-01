@@ -230,7 +230,11 @@ export default function Gelirler() {
   }
 
   const muhasebePaylasimGuncelle = async (id, deger) => {
-    await supabase.from('gelirler').update({ muhasebe_paylasim: deger }).eq('id', id)
+    const { error } = await supabase.from('gelirler').update({ muhasebe_paylasim: deger }).eq('id', id)
+    if (error) {
+      alert("Durum güncellenirken veritabanı hatası oluştu. Lütfen sayfayı yenileyin.\nDetay: " + error.message)
+      return
+    }
     setGelirler((onceki) => onceki.map((g) => g.id === id ? { ...g, muhasebe_paylasim: deger } : g))
   }
 

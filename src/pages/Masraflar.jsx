@@ -194,7 +194,11 @@ export default function Masraflar() {
   }
 
   const muhasebePaylasimGuncelle = async (id, deger) => {
-    await supabase.from('masraflar').update({ muhasebe_paylasim: deger }).eq('id', id)
+    const { error } = await supabase.from('masraflar').update({ muhasebe_paylasim: deger }).eq('id', id)
+    if (error) {
+      alert("Durum güncellenirken veritabanı hatası oluştu. Lütfen sayfayı yenileyin.\nDetay: " + error.message)
+      return
+    }
     setMasraflar((onceki) => onceki.map((m) => m.id === id ? { ...m, muhasebe_paylasim: deger } : m))
   }
 

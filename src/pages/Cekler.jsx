@@ -370,7 +370,11 @@ export default function Cekler({ yon = 'verilen' }) {
   }
 
   const muhasebePaylasimGuncelle = async (id, deger) => {
-    await supabase.from('cekler').update({ muhasebe_paylasim: deger }).eq('id', id)
+    const { error } = await supabase.from('cekler').update({ muhasebe_paylasim: deger }).eq('id', id)
+    if (error) {
+      alert("Durum güncellenirken veritabanı hatası oluştu. Lütfen sayfayı yenileyin.\nDetay: " + error.message)
+      return
+    }
     setCekler((onceki) => onceki.map((c) => c.id === id ? { ...c, muhasebe_paylasim: deger } : c))
   }
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useSite } from '../../context/SiteContext'
+import { useAuth } from '../../context/AuthContext'
 import { paraFormatla, sadeceSayiTuslari } from '../../lib/format'
 import { generateAndSharePDF } from '../../lib/pdfGenerator'
 
