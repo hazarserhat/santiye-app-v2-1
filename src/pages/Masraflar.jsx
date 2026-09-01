@@ -764,7 +764,7 @@ export default function Masraflar() {
                     <div className="etiket-satiri">
                       <span className="etiket etiket-vurgu">
                         {m.santiye_dagilimi && m.santiye_dagilimi.length > 0 
-                          ? 'Çoklu Şantiye (Paylaşımlı)' 
+                          ? m.santiye_dagilimi.map(d => `${santiyeler.find(s => s.id === d.santiye_id)?.ad || 'Bilinmeyen'} (%${d.yuzde})`).join(', ')
                           : (m.santiye_id ? (santiyeler.find((s) => s.id === m.santiye_id)?.ad || 'Şantiye') : 'Genel Gider')}
                       </span>
                       <span className="etiket">{m.masraf_kategorileri?.ad}</span>

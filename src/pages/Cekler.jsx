@@ -815,7 +815,7 @@ export default function Cekler({ yon = 'verilen' }) {
             <div className="etiket-satiri">
               <span className="etiket etiket-vurgu">
                 {c.santiye_dagilimi && c.santiye_dagilimi.length > 0
-                  ? 'Çoklu Şantiye (Paylaşımlı)'
+                  ? c.santiye_dagilimi.map(d => `${santiyeler.find(s => s.id === d.santiye_id)?.ad || 'Bilinmeyen'} (%${d.yuzde})`).join(', ')
                   : (c.santiye_id ? (santiyeler.find((s) => s.id === c.santiye_id)?.ad || 'Şantiye') : 'Genel')}
               </span>
               <span className="etiket">{c.banka}</span>
