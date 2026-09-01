@@ -22,6 +22,13 @@ function oncelikBul(deger) {
   return ONCELIKLER.find((o) => o.deger === deger)
 }
 
+function guvenliTarih(tarihStr) {
+  if (!tarihStr) return '—'
+  const d = new Date(tarihStr)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('tr-TR')
+}
+
 function GorevKarti({ gorev, seviye, ctx }) {
   const {
     filtreSantiye, kullanicilar, numaraHaritasi, altGorevleriBul,
@@ -148,7 +155,7 @@ function GorevKarti({ gorev, seviye, ctx }) {
         </select>
 
         <div className="gorev-alt-bilgi">
-          {gorev.profiles?.ad_soyad || 'Bilinmiyor'} · {new Date(gorev.created_at).toLocaleDateString('tr-TR')}
+          {gorev.profiles?.ad_soyad || 'Bilinmiyor'} · {guvenliTarih(gorev.created_at)}
         </div>
 
         {seviye < 2 && (
@@ -373,11 +380,12 @@ export default function Gorevler() {
   if (!aktifSantiye) return <p className="bos-mesaj">Şantiye yükleniyor...</p>
 
   const numaraHaritasi = {}
-  const kokTumTarihSirali = gorevler.filter((g) => !g.ust_gorev_id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-  const numarala = (gorev, prefix) => {
+  const kokTumTarihSirali = gorevler.filter((g) => !g.ust_gorev_id).sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0))
+  const numarala = (gorev, prefix, derinlik = 0) => {
+    if (derinlik > 20) return // Sonsuz döngü koruması
     numaraHaritasi[gorev.id] = prefix
-    const altlar = gorevler.filter((g) => g.ust_gorev_id === gorev.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-    altlar.forEach((alt, i) => numarala(alt, `${prefix}.${i + 1}`))
+    const altlar = gorevler.filter((g) => g.ust_gorev_id === gorev.id).sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0))
+    altlar.forEach((alt, i) => numarala(alt, `${prefix}.${i + 1}`, derinlik + 1))
   }
   kokTumTarihSirali.forEach((kok, i) => numarala(kok, String(i + 1)))
 
@@ -395,7 +403,7 @@ export default function Gorevler() {
       { durum: 'devam_ediyor', baslik: '🔵 DEVAM EDEN GÖREVLER' },
       { durum: 'gecikti', baslik: '🔴 GECİKEN GÖREVLER' },
     ]
-    let metin = `📋 GÖREV RAPORU — ${new Date().toLocaleDateString('tr-TR')}\n\n`
+    let metin = `📋 GÖREV RAPORU — ${guvenliTarih(new Date().toISOString())}\n\n`
     const kaynakListe = (!hepsi && seciliGorevler.length > 0) ? gorevler.filter((g) => seciliGorevler.includes(g.id)) : gorevler.filter(g => g.durum !== 'tamamlandi')
     bolumler.forEach((b) => {
       const liste = kaynakListe
@@ -407,7 +415,7 @@ export default function Gorevler() {
         metin += `${numaraHaritasi[g.id] || '?'}. ${g.baslik}\n`
         metin += `   Şantiye: ${g.santiyeler?.ad || '—'}\n`
         metin += `   Kişi: ${kisiListesiMetni(g)}\n`
-        metin += `   Ekleyen: ${g.profiles?.ad_soyad || 'Bilinmiyor'}, ${new Date(g.created_at).toLocaleDateString('tr-TR')}\n\n`
+        metin += `   Ekleyen: ${g.profiles?.ad_soyad || 'Bilinmiyor'}, ${guvenliTarih(g.created_at)}\n\n`
       })
     })
     return metin
@@ -438,7 +446,7 @@ export default function Gorevler() {
 
   const kokGorevler = durumaGoreFiltreli
     .filter((g) => !g.ust_gorev_id)
-    .sort((a, b) => siralamaYonu === 'yeni' ? new Date(b.created_at) - new Date(a.created_at) : new Date(a.created_at) - new Date(b.created_at))
+    .sort((a, b) => siralamaYonu === 'yeni' ? new Date(b.created_at || 0) - new Date(a.created_at || 0) : new Date(a.created_at || 0) - new Date(b.created_at || 0))
   const gosterilenKokGorevler = kokGorevler.slice(0, gosterilenSayisi)
 
   const altGorevleriBul = (ustId) => durumaGoreFiltreli.filter((g) => g.ust_gorev_id === ustId)
@@ -678,7 +686,7 @@ export default function Gorevler() {
                 <div key={g.id} style={{ padding: 10, background: '#f9f9f8', borderRadius: 8, border: '1px solid #e2e0d8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: 13 }}>{g.baslik}</p>
-                    <span style={{ fontSize: 11, color: '#666' }}>{g.santiyeler?.ad || 'Genel'} · {new Date(g.created_at).toLocaleDateString('tr-TR')}</span>
+                    <span style={{ fontSize: 11, color: '#666' }}>{g.santiyeler?.ad || 'Genel'} · {guvenliTarih(g.created_at)}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button
