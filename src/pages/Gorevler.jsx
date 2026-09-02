@@ -248,6 +248,9 @@ export default function Gorevler() {
   const [siralamaYonu, setSiralamaYonu] = useState('yeni') // 'yeni' | 'eski'
   const [gosterilenSayisi, setGosterilenSayisi] = useState(10)
 
+  const [yazdirModaliAcik, setYazdirModaliAcik] = useState(false)
+  const [yazdirmaTasarimi, setYazdirmaTasarimi] = useState('tablo') // 'tablo' | 'kart'
+
   useEffect(() => {
     if (aktifSantiye) setYeniSantiyeId(aktifSantiye.id)
   }, [aktifSantiye])
@@ -505,6 +508,9 @@ export default function Gorevler() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, color: '#1D9596', letterSpacing: '-0.2px' }}>Görevler</h2>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => setYazdirModaliAcik(true)} style={{ fontSize: 12, padding: '8px 12px', borderRadius: 10, background: 'linear-gradient(to bottom, #ffffff, #f4f3ed)', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 2px 6px rgba(0,0,0,0.04)', fontWeight: 700, color: '#555', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 4 }}>
+            🖨️ A4 Çıktı / Önizleme
+          </button>
           <button onClick={() => paylas(true)} style={{ fontSize: 12, padding: '8px 12px', borderRadius: 10, background: 'linear-gradient(to bottom, #ffffff, #f4f3ed)', border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 2px 6px rgba(0,0,0,0.04)', fontWeight: 700, color: '#555', cursor: 'pointer', transition: 'all 0.2s' }}>📤 Tümünü paylaş</button>
           {seciliGorevler.length > 0 && (
             <button onClick={() => paylas(false)} style={{ fontSize: 12, padding: '8px 12px', borderRadius: 10, background: 'linear-gradient(135deg, #24b8b9, #1D9596)', border: 'none', boxShadow: '0 3px 8px rgba(29, 149, 150, 0.3)', fontWeight: 700, color: 'white', cursor: 'pointer', textShadow: '0 1px 2px rgba(0,0,0,0.1)', transition: 'all 0.2s' }}>
@@ -779,6 +785,166 @@ export default function Gorevler() {
           </div>
         </div>
       )}
+
+      {/* YAZDIRILACAK ALAN (A4) - Ekranda gizli, printte görünür */}
+      <div id="printable-a4" className={yazdirmaTasarimi === 'tablo' ? 'print-tasarim-tablo' : 'print-tasarim-kart'}>
+        <h1 style={{ fontSize: 24, textAlign: 'center', marginBottom: 20 }}>GÜNLÜK GÖREV ÇİZELGESİ</h1>
+        <p style={{ textAlign: 'center', color: '#555', marginBottom: 30 }}>Tarih: {guvenliTarih(new Date().toISOString())}</p>
+        
+        {Object.entries((seciliGorevler.length > 0 ? gorevler.filter(g => seciliGorevler.includes(g.id)) : aktifGorevler)
+          .sort((a, b) => (numaraHaritasi[a.id] || '').localeCompare(numaraHaritasi[b.id] || '', undefined, { numeric: true }))
+          .reduce((acc, g) => {
+            const sAd = g.santiyeler?.ad || 'Genel / Belirtilmemiş';
+            if (!acc[sAd]) acc[sAd] = [];
+            acc[sAd].push(g);
+            return acc;
+          }, {})
+        ).map(([santiyeAd, liste]) => (
+          <div key={santiyeAd} style={{ marginBottom: 40, pageBreakInside: 'avoid' }}>
+            <h2 style={{ fontSize: 18, borderBottom: '2px solid #333', paddingBottom: 5, marginBottom: 15 }}>🏗️ {santiyeAd}</h2>
+            
+            {/* TABLO TASARIMI */}
+            <table className="print-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '5%' }}>No</th>
+                  <th style={{ width: '45%' }}>Görev Başlığı</th>
+                  <th style={{ width: '20%' }}>Sorumlu Kişi</th>
+                  <th style={{ width: '15%' }}>Öncelik</th>
+                  <th style={{ width: '15%' }}>Durum</th>
+                </tr>
+              </thead>
+              <tbody>
+                {liste.map(g => {
+                  const oncelikEtiketi = g.gorev_etiketleri?.find((e) => e.etiket_turu === 'oncelik')
+                  const oncelik = oncelikEtiketi ? oncelikBul(oncelikEtiketi.deger) : null
+                  return (
+                    <tr key={g.id}>
+                      <td>{numaraHaritasi[g.id] || '-'}</td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{g.baslik}</div>
+                        {g.ust_gorev_id && <div style={{ fontSize: 10, color: '#666', marginTop: 4 }}>↳ Alt görev</div>}
+                      </td>
+                      <td>{kisiListesiMetni(g)}</td>
+                      <td>
+                        <span 
+                          className="print-oncelik-rozet"
+                          style={{ background: oncelik?.renk || '#eee', color: oncelik ? 'white' : 'black' }}
+                        >
+                          {oncelik?.etiket || 'Belirtilmemiş'}
+                        </span>
+                      </td>
+                      <td>{DURUMLAR.find(d => d.deger === g.durum)?.etiket || 'Bilinmiyor'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+
+            {/* KART TASARIMI */}
+            <div className="kart-grid">
+              {liste.map(g => {
+                const oncelikEtiketi = g.gorev_etiketleri?.find((e) => e.etiket_turu === 'oncelik')
+                const oncelik = oncelikEtiketi ? oncelikBul(oncelikEtiketi.deger) : null
+                return (
+                  <div key={g.id} className="print-gorev-kart">
+                    <div className="kart-baslik">
+                      <span style={{ color: '#888', marginRight: 6 }}>#{numaraHaritasi[g.id] || '-'}</span>
+                      {g.baslik}
+                    </div>
+                    {g.ust_gorev_id && <div style={{ fontSize: 10, color: '#666', marginBottom: 4 }}>↳ Alt görev</div>}
+                    
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+                      <span className="print-oncelik-rozet" style={{ background: oncelik?.renk || '#eee', color: oncelik ? 'white' : 'black' }}>
+                        {oncelik?.etiket || 'Öncelik Yok'}
+                      </span>
+                      <span style={{ padding: '2px 8px', borderRadius: 4, background: '#e0e0e0', fontSize: 11, fontWeight: 'bold' }}>
+                        {DURUMLAR.find(d => d.deger === g.durum)?.etiket || 'Bilinmiyor'}
+                      </span>
+                    </div>
+
+                    <div className="kart-alt-bilgi">
+                      <span>👤 {kisiListesiMetni(g)}</span>
+                      <span>📅 {guvenliTarih(g.created_at)}</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* YAZDIRMA ÖNİZLEME MODALI */}
+      {yazdirModaliAcik && (
+        <div className="print-onizleme-modal">
+          <div className="print-onizleme-kutu">
+            <div className="print-onizleme-baslik">
+              <h3 style={{ margin: 0, fontSize: 18 }}>Tasarım Seç ve Yazdır</h3>
+              <button onClick={() => setYazdirModaliAcik(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: 24, cursor: 'pointer' }}>✕</button>
+            </div>
+            
+            <div className="print-onizleme-icerik">
+              {/* SOL SÜTUN - TABLO TASARIMI */}
+              <div className="print-onizleme-sutun">
+                <div className="print-onizleme-kontrol">
+                  <button 
+                    onClick={() => { setYazdirmaTasarimi('tablo'); setTimeout(() => window.print(), 100); }}
+                    style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #24b8b9, #1D9596)', color: 'white', border: 'none', borderRadius: 8, fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 10px rgba(29, 149, 150, 0.3)' }}
+                  >
+                    🖨️ BU TASARIMI YAZDIR (Tablo)
+                  </button>
+                </div>
+                <div className="print-onizleme-sayfa">
+                  <div className="print-a4-kağıt print-tasarim-tablo" style={{ transform: 'scale(0.7)' }}>
+                    <h2 style={{ textAlign: 'center', marginBottom: 10 }}>GÜNLÜK GÖREV ÇİZELGESİ</h2>
+                    <h3 style={{ borderBottom: '2px solid #333' }}>🏗️ Örnek Şantiye</h3>
+                    <table className="print-table">
+                      <thead><tr><th>No</th><th>Görev Başlığı</th><th>Kişi</th></tr></thead>
+                      <tbody>
+                        <tr><td>1</td><td>Malzemelerin sayımı yapılacak</td><td>Ahmet Yılmaz</td></tr>
+                        <tr><td>2</td><td>Günlük rapor hazırlanacak</td><td>Mehmet Can</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* SAĞ SÜTUN - KART TASARIMI */}
+              <div className="print-onizleme-sutun" style={{ borderLeft: '2px solid #ccc' }}>
+                <div className="print-onizleme-kontrol">
+                  <button 
+                    onClick={() => { setYazdirmaTasarimi('kart'); setTimeout(() => window.print(), 100); }}
+                    style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #E08A2E, #C77522)', color: 'white', border: 'none', borderRadius: 8, fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 10px rgba(224, 138, 46, 0.3)' }}
+                  >
+                    🖨️ BU TASARIMI YAZDIR (Kartlar)
+                  </button>
+                </div>
+                <div className="print-onizleme-sayfa">
+                  <div className="print-a4-kağıt print-tasarim-kart" style={{ transform: 'scale(0.7)' }}>
+                    <h2 style={{ textAlign: 'center', marginBottom: 10 }}>GÜNLÜK GÖREV ÇİZELGESİ</h2>
+                    <h3 style={{ borderBottom: '2px solid #333' }}>🏗️ Örnek Şantiye</h3>
+                    <div className="kart-grid">
+                      <div className="print-gorev-kart">
+                        <div className="kart-baslik">#1 Malzemelerin sayımı yapılacak</div>
+                        <span className="print-oncelik-rozet" style={{ background: '#D64545', color: 'white' }}>Kritik</span>
+                        <div className="kart-alt-bilgi"><span>👤 Ahmet Yılmaz</span></div>
+                      </div>
+                      <div className="print-gorev-kart">
+                        <div className="kart-baslik">#2 Günlük rapor hazırlanacak</div>
+                        <span className="print-oncelik-rozet" style={{ background: '#D9B429', color: 'white' }}>Orta</span>
+                        <div className="kart-alt-bilgi"><span>👤 Mehmet Can</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
