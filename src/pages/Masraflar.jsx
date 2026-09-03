@@ -155,8 +155,18 @@ export default function Masraflar() {
       setKategoriler(data || [])
       if (data?.length) setKategoriId(data[0].id)
     })
-    supabase.from('odeme_yontemleri').select('*').order('sira').then(({ data }) => {
-      const tumu = data || []
+    supabase.from('odeme_yontemleri').select('*').order('sira').then(async ({ data }) => {
+      let tumu = data || []
+      
+      // 'Malikler Ödedi.' yoksa otomatik ekle
+      const varMi = tumu.find(o => o.ad === 'Malikler Ödedi.')
+      if (!varMi) {
+        const { data: yeniData, error } = await supabase.from('odeme_yontemleri').insert([{ ad: 'Malikler Ödedi.', yonetici_gorebilir: true, sef_gorebilir: true, sira: 99 }]).select()
+        if (yeniData && !error) {
+          tumu = [...tumu, ...yeniData]
+        }
+      }
+
       const filtreli = profile?.rol === 'santiye_sefi' ? tumu.filter((o) => o.sef_gorebilir) : tumu.filter((o) => o.yonetici_gorebilir)
       setOdemeYontemleri(filtreli)
       if (filtreli.length) setOdemeYontemiId(filtreli[0].id)
