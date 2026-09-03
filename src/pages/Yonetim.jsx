@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { paraFormatla } from '../lib/format'
-import { uploadToGoogleDrive } from '../lib/googleDrive'
 
 const SAYFALAR = [
   { yol: '/yonetim/santiyeler', ad: 'Şantiye Yönetimi', aciklama: 'Ekleme / düzenleme / silme' },
@@ -32,8 +31,6 @@ export default function Yonetim() {
 
   // Gider Datası
   const [masraflar, setMasraflar] = useState([])
-  
-  const [migrationDurum, setMigrationDurum] = useState('')
 
   useEffect(() => {
     if (profile?.sistem_yoneticisi) {
@@ -57,87 +54,6 @@ export default function Yonetim() {
         <p className="bos-mesaj">Bu sayfaya erişim yetkiniz yok.</p>
       </div>
     )
-  }
-
-  const runMigration = async () => {
-    if (!window.confirm('Eski görseller Google Drive\'a taşınacak. Emin misiniz? Tarayıcıyı işlem bitene kadar kapatmayın.')) return;
-    setMigrationDurum('Başlıyor...');
-    
-    // GELİRLER
-    setMigrationDurum('Gelirler taşınıyor...');
-    const { data: gList } = await supabase.from('gelirler').select('id, belge_url, odeme_yapan_adi, tarih, tahsilat_noktasi, not_metni, malik_id, malikler(ad_soyad), santiyeler(ad)')
-    for (const g of (gList || [])) {
-      if (g.belge_url && g.belge_url.includes('supabase.co')) {
-        try {
-          const res = await fetch(g.belge_url);
-          const blob = await res.blob();
-          const file = new File([blob], 'belge.jpg', { type: blob.type || 'image/jpeg' });
-          const folderName = `Gelirler/${g.santiyeler?.ad || 'Genel'}/${g.tahsilat_noktasi || 'Diger'}`;
-          const kisaNot = g.not_metni ? g.not_metni.substring(0, 20) : 'Tahsilat';
-          const odenenAdi = g.odeme_yapan_adi || g.malikler?.ad_soyad || 'ISIMSIZ';
-          
-          const uploadRes = await uploadToGoogleDrive({ file, folderName, adSoyad: `${kisaNot}-${odenenAdi}`, date: g.tarih, compress: false });
-          await supabase.from('gelirler').update({ belge_url: uploadRes.url }).eq('id', g.id);
-        } catch (e) { console.error('Gelir hata:', e); setMigrationDurum('Hata oluştu, konsola bakınız.'); }
-      }
-    }
-
-    // MASRAFLAR
-    setMigrationDurum('Masraflar taşınıyor...');
-    const { data: mList } = await supabase.from('masraflar').select('id, fotograf_url, baslik, odenen_kisi, harcama_tarihi, santiyeler(ad), odeme_yontemleri(ad)')
-    for (const m of (mList || [])) {
-      if (m.fotograf_url && m.fotograf_url.includes('supabase.co')) {
-        try {
-          const res = await fetch(m.fotograf_url);
-          const blob = await res.blob();
-          const file = new File([blob], 'belge.jpg', { type: blob.type || 'image/jpeg' });
-          const folderName = `Masraflar/${m.santiyeler?.ad || 'Genel'}/${m.odeme_yontemleri?.ad || 'Diger'}`;
-          const kisaBaslik = m.baslik ? m.baslik.substring(0, 30) : 'Masraf';
-          
-          const uploadRes = await uploadToGoogleDrive({ file, folderName, adSoyad: `${kisaBaslik}-${m.odenen_kisi || 'ISIMSIZ'}`, date: m.harcama_tarihi, compress: false });
-          await supabase.from('masraflar').update({ fotograf_url: uploadRes.url }).eq('id', m.id);
-        } catch (e) { console.error('Masraf hata:', e); setMigrationDurum('Hata oluştu, konsola bakınız.'); }
-      }
-    }
-
-    // CEKLER
-    setMigrationDurum('Çekler taşınıyor...');
-    const { data: cList } = await supabase.from('cekler').select('id, belge_url, odeme_konusu, odeyen, odenen, verilis_tarihi, yon, santiyeler(ad)')
-    for (const c of (cList || [])) {
-      if (c.belge_url && c.belge_url.includes('supabase.co')) {
-        try {
-          const res = await fetch(c.belge_url);
-          const blob = await res.blob();
-          const file = new File([blob], 'belge.jpg', { type: blob.type || 'image/jpeg' });
-          const folderName = `Cekler/${c.santiyeler?.ad || 'Genel'}/${c.yon === 'alinan' ? 'Alınan Çek' : 'Verilen Çek'}`;
-          const kisaKonu = c.odeme_konusu ? c.odeme_konusu.substring(0, 20) : 'Cek';
-          
-          const uploadRes = await uploadToGoogleDrive({ file, folderName, adSoyad: `${kisaKonu}-${c.odenen || c.odeyen || 'Bilinmiyor'}`, date: c.verilis_tarihi, compress: false });
-          await supabase.from('cekler').update({ belge_url: uploadRes.url }).eq('id', c.id);
-        } catch (e) { console.error('Cek hata:', e); setMigrationDurum('Hata oluştu, konsola bakınız.'); }
-      }
-    }
-
-    // GÜNLÜK RAPORLAR
-    setMigrationDurum('Günlük Raporlar taşınıyor...');
-    const { data: rList } = await supabase.from('gunluk_rapor_fotograflari').select('id, rapor_id, url, gunluk_raporlar(santiye_id, tarih, santiyeler(ad))')
-    for (const r of (rList || [])) {
-      if (r.url && r.url.includes('supabase.co')) {
-        try {
-          const res = await fetch(r.url);
-          const blob = await res.blob();
-          const file = new File([blob], 'rapor.jpg', { type: blob.type || 'image/jpeg' });
-          const rapor = r.gunluk_raporlar;
-          const santiyeAdi = rapor?.santiyeler?.ad || 'Genel';
-          const folderName = `GunlukRapor/${santiyeAdi}`;
-          
-          const uploadRes = await uploadToGoogleDrive({ file, folderName, adSoyad: `RaporFoto-Eski`, date: rapor?.tarih, compress: false });
-          await supabase.from('gunluk_rapor_fotograflari').update({ url: uploadRes.url }).eq('id', r.id);
-        } catch (e) { console.error('Rapor foto hata:', e); setMigrationDurum('Hata oluştu, konsola bakınız.'); }
-      }
-    }
-
-    setMigrationDurum('TÜM TAŞIMA TAMAMLANDI! 🎉');
   }
 
   const suAn = new Date()
@@ -270,15 +186,6 @@ export default function Yonetim() {
 
       {sekme === 'menu' && (
         <div className="yonetim-menu-grid">
-          
-          <div style={{ gridColumn: '1 / -1', marginBottom: 12 }}>
-            <button 
-              onClick={runMigration} 
-              style={{ width: '100%', padding: '12px', background: '#D64545', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 'bold', cursor: 'pointer' }}
-            >
-              🔄 Eski Görselleri Google Drive'a Taşı {migrationDurum ? `(${migrationDurum})` : ''}
-            </button>
-          </div>
 
           {SAYFALAR.map((s) => (
             <Link key={s.yol} to={s.yol} className="kart taseron-satir" style={{ textDecoration: 'none', color: 'inherit' }}>
