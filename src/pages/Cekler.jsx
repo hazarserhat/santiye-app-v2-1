@@ -31,6 +31,9 @@ export default function Cekler({ yon = 'verilen' }) {
   // Filtre ve Sıralama State'leri
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreBanka, setFiltreBanka] = useState('hepsi')
+  const [filtreCari, setFiltreCari] = useState('hepsi')
+  const [filtreBaslangic, setFiltreBaslangic] = useState('')
+  const [filtreBitis, setFiltreBitis] = useState('')
   const [filtrelerAcik, setFiltrelerAcik] = useState(false)
   const [siralamaYonu, setSiralamaYonu] = useState('eklenme_yeni') // 'eklenme_yeni' | 'vade_yakin' | 'vade_uzak'
 
@@ -462,11 +465,17 @@ export default function Cekler({ yon = 'verilen' }) {
   }
 
   // Filtreleme ve Sıralama Mantığı
-  const filtrelenmisCekler = cekler.filter((c) => {
-    const santiyeUyar = filtreSantiye === 'hepsi' || c.santiye_id === filtreSantiye
-    const bankaUyar = filtreBanka === 'hepsi' || c.banka === filtreBanka
-    return santiyeUyar && bankaUyar
-  })
+  const filtrelenmisCekler = cekler
+    .filter(c => filtreSantiye === 'hepsi' || c.santiye_id === filtreSantiye)
+    .filter(c => filtreBanka === 'hepsi' || c.banka === filtreBanka)
+    .filter(c => filtreCari === 'hepsi' || (filtreCari === 'yok' ? !c.cari_id : c.cari_id === filtreCari))
+    .filter(c => {
+      if (!filtreBaslangic && !filtreBitis) return true
+      if (!c.verilis_tarihi) return false
+      if (filtreBaslangic && c.verilis_tarihi < filtreBaslangic) return false
+      if (filtreBitis && c.verilis_tarihi > filtreBitis) return false
+      return true
+    })
 
   const siraliCekler = [...filtrelenmisCekler].sort((a, b) => {
     if (siralamaYonu === 'eklenme_yeni') {
@@ -713,84 +722,60 @@ export default function Cekler({ yon = 'verilen' }) {
         </button>
       </div>
 
-      {/* AÇILIR - KAPANIR FİLTRE PANELİ */}
-      <div style={{ marginBottom: 12 }}>
-        <button
-          onClick={() => setFiltrelerAcik(!filtrelerAcik)}
-          style={{
-            width: '100%',
-            padding: '10px 14px',
-            background: filtrelerAcik ? '#0F6E56' : '#f0f0ed',
-            color: filtrelerAcik ? '#fff' : '#333',
-            border: '1px solid #d3d1c7',
-            borderRadius: 8,
-            fontWeight: 600,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            cursor: 'pointer',
-            fontSize: 13
-          }}
-        >
-          <span>🔍 Filtreler {aktifFiltreSayisi > 0 ? `(${aktifFiltreSayisi} aktif)` : ''}</span>
-          <span>{filtrelerAcik ? '▲ Gizle' : '▼ Göster'}</span>
+      {/* FİLTRE VE SIRALAMA ALANI */}
+      <div style={{ marginBottom: 14 }}>
+        <button className="ekle-buton-genis" onClick={() => setFiltrelerAcik(!filtrelerAcik)}>
+          {filtrelerAcik ? 'Filtreleri Gizle' : 'Filtreleri & Sıralamayı Göster'}
         </button>
+      </div>
 
-        {filtrelerAcik && (
-          <div style={{ background: '#faf9f5', padding: '12px', borderRadius: 8, border: '1px solid #d3d1c7', marginTop: 6 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px', color: '#555' }}>Şantiye</p>
-            <div className="filtre-satiri" style={{ marginBottom: 8 }}>
-              <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tümü</button>
-              {santiyeler.map((s) => (
-                <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
-              ))}
-            </div>
+      {filtrelerAcik && (
+        <div className="ekleme-kutusu" style={{ marginBottom: 15, background: '#fdfdfd' }}>
+          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Sıralama</p>
+          <select value={siralamaYonu} onChange={(e) => setSiralamaYonu(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+            <option value="eklenme_yeni">Eklenme Tarihi (Yeni → Eski)</option>
+            <option value="vade_yakin">Vade (Yakından Uzağa)</option>
+            <option value="vade_uzak">Vade (Uzaktan Yakına)</option>
+          </select>
 
-            <p style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px', color: '#555' }}>Banka</p>
-            <div className="filtre-satiri" style={{ marginBottom: 4 }}>
-              <button className={`filtre-chip ${filtreBanka === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreBanka('hepsi')}>Tümü</button>
-              {bankalar.map((b) => (
-                <button key={b.id} className={`filtre-chip ${filtreBanka === b.ad ? 'secili' : ''}`} onClick={() => setFiltreBanka(b.ad)}>{b.ad}</button>
-              ))}
-            </div>
+          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Şantiye Filtresi</p>
+          <select value={filtreSantiye} onChange={(e) => setFiltreSantiye(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+            <option value="hepsi">Tüm Şantiyeler</option>
+            {santiyeler.map(s => <option key={s.id} value={s.id}>{s.ad}</option>)}
+          </select>
 
-            {aktifFiltreSayisi > 0 && (
-              <button
-                onClick={() => { setFiltreSantiye('hepsi'); setFiltreBanka('hepsi') }}
-                style={{ fontSize: 11, marginTop: 8, background: 'none', border: 'none', color: '#D64545', cursor: 'pointer', padding: 0, fontWeight: 600 }}
-              >
-                ✕ Filtreleri Temizle
-              </button>
-            )}
+          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Banka Filtresi</p>
+          <select value={filtreBanka} onChange={(e) => setFiltreBanka(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+            <option value="hepsi">Tüm Bankalar</option>
+            {bankalar.map((b) => (
+              <option key={b.id} value={b.ad}>{b.ad}</option>
+            ))}
+          </select>
+
+          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Cari Hesap Filtresi</p>
+          <select value={filtreCari} onChange={(e) => setFiltreCari(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+            <option value="hepsi">Tüm Cari Hesaplar</option>
+            {[...taseronlar].sort((a, b) => a.ad.localeCompare(b.ad)).map(t => (
+              <option key={t.id} value={t.id}>{t.ad}</option>
+            ))}
+            <option value="yok">Cari Hesabı Olmayanlar</option>
+          </select>
+
+          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Tarih Aralığı (Veriliş Tarihi)</p>
+          <div className="ekleme-satiri-2">
+            <input type="date" value={filtreBaslangic} onChange={(e) => setFiltreBaslangic(e.target.value)} />
+            <input type="date" value={filtreBitis} onChange={(e) => setFiltreBitis(e.target.value)} />
           </div>
-        )}
-      </div>
-
-      {/* DÖNGÜSEL SIRALAMA BUTONU */}
-      <div style={{ marginBottom: 12 }}>
-        <button
-          onClick={() => {
-            setSiralamaYonu((onceki) => {
-              if (onceki === 'eklenme_yeni') return 'vade_yakin'
-              if (onceki === 'vade_yakin') return 'vade_uzak'
-              return 'eklenme_yeni'
-            })
-          }}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            background: '#fff',
-            border: '1px solid #d3d1c7',
-            borderRadius: 8,
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-            textAlign: 'center'
-          }}
-        >
-          {siralamaMetni}
-        </button>
-      </div>
+          {(filtreBaslangic || filtreBitis) && (
+            <button
+              onClick={() => { setFiltreBaslangic(''); setFiltreBitis('') }}
+              style={{ marginTop: 8, fontSize: 12, background: 'transparent', border: 'none', color: '#0F6E56', cursor: 'pointer', padding: 0 }}
+            >
+              Tarih filtresini temizle
+            </button>
+          )}
+        </div>
+      )}
 
       {/* LİSTE / AKIŞ ALANI (ALTTA) */}
       <div className="liste">

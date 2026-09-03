@@ -17,7 +17,15 @@ export default function Gelirler() {
 
   const [gelirler, setGelirler] = useState([])
   const [malikler, setMalikler] = useState([])
+
+  // Filtre ve Sıralama State'leri
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
+  const [filtreTahsilat, setFiltreTahsilat] = useState('hepsi')
+  const [filtreMalik, setFiltreMalik] = useState('hepsi')
+  const [filtreBaslangic, setFiltreBaslangic] = useState('')
+  const [filtreBitis, setFiltreBitis] = useState('')
+  const [filtreAcik, setFiltreAcik] = useState(false)
+  const [siralama, setSiralama] = useState('islem_yeni')
 
   const [santiyeId, setSantiyeId] = useState('')
   const [malikId, setMalikId] = useState('')
@@ -312,7 +320,24 @@ export default function Gelirler() {
     }
   }
 
-  const gorunenler = filtreSantiye === 'hepsi' ? gelirler : gelirler.filter((g) => g.santiye_id === filtreSantiye)
+  // Filtreleme ve Sıralama İşlemi
+  let gorunenler = [...gelirler]
+    .filter(g => filtreSantiye === 'hepsi' || g.santiye_id === filtreSantiye)
+    .filter(g => filtreTahsilat === 'hepsi' || g.tahsilat_noktasi === filtreTahsilat)
+    .filter(g => filtreMalik === 'hepsi' || (filtreMalik === 'yok' ? !g.malik_id : g.malik_id === filtreMalik))
+    .filter(g => {
+      if (!filtreBaslangic && !filtreBitis) return true
+      if (!g.tarih) return false
+      if (filtreBaslangic && g.tarih < filtreBaslangic) return false
+      if (filtreBitis && g.tarih > filtreBitis) return false
+      return true
+    })
+
+  gorunenler.sort((a, b) => {
+    if (siralama === 'islem_yeni') return new Date(b.tarih || 0) - new Date(a.tarih || 0)
+    if (siralama === 'islem_eski') return new Date(a.tarih || 0) - new Date(b.tarih || 0)
+    return 0
+  })
 
   return (
     <div className="sayfa">
@@ -415,12 +440,59 @@ export default function Gelirler() {
             </button>
           </div>
 
-          <div className="filtre-satiri">
-            <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
-            {santiyeler.map((s) => (
-              <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
-            ))}
+          {/* FİLTRE VE SIRALAMA ALANI */}
+          <div style={{ marginBottom: 14 }}>
+            <button className="ekle-buton-genis" onClick={() => setFiltreAcik(!filtreAcik)}>
+              {filtreAcik ? 'Filtreleri Gizle' : 'Filtreleri & Sıralamayı Göster'}
+            </button>
           </div>
+
+          {filtreAcik && (
+            <div className="ekleme-kutusu" style={{ marginBottom: 15, background: '#fdfdfd' }}>
+              <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Sıralama</p>
+              <select value={siralama} onChange={(e) => setSiralama(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+                <option value="islem_yeni">İşlem Tarihi (Yakından → Uzağa)</option>
+                <option value="islem_eski">İşlem Tarihi (Uzaktan → Yakına)</option>
+              </select>
+
+              <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Şantiye Filtresi</p>
+              <select value={filtreSantiye} onChange={(e) => setFiltreSantiye(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+                <option value="hepsi">Tüm Şantiyeler</option>
+                {santiyeler.map(s => <option key={s.id} value={s.id}>{s.ad}</option>)}
+              </select>
+
+              <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Tahsilat Noktası Filtresi</p>
+              <select value={filtreTahsilat} onChange={(e) => setFiltreTahsilat(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+                <option value="hepsi">Tüm Noktalar</option>
+                {TAHSILAT_NOKTALARI.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+
+              <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Malik Filtresi</p>
+              <select value={filtreMalik} onChange={(e) => setFiltreMalik(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+                <option value="hepsi">Tüm Malikler</option>
+                {[...malikler].sort((a, b) => a.ad_soyad.localeCompare(b.ad_soyad)).map(m => (
+                  <option key={m.id} value={m.id}>{m.ad_soyad}</option>
+                ))}
+                <option value="yok">Malik Belirtilmeyenler</option>
+              </select>
+
+              <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Tarih Aralığı</p>
+              <div className="ekleme-satiri-2">
+                <input type="date" value={filtreBaslangic} onChange={(e) => setFiltreBaslangic(e.target.value)} />
+                <input type="date" value={filtreBitis} onChange={(e) => setFiltreBitis(e.target.value)} />
+              </div>
+              {(filtreBaslangic || filtreBitis) && (
+                <button
+                  onClick={() => { setFiltreBaslangic(''); setFiltreBitis('') }}
+                  style={{ marginTop: 8, fontSize: 12, background: 'transparent', border: 'none', color: '#0F6E56', cursor: 'pointer', padding: 0 }}
+                >
+                  Tarih filtresini temizle
+                </button>
+              )}
+            </div>
+          )}
 
           {/* LİSTE */}
           <div className="liste">
