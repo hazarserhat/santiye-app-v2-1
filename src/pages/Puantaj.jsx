@@ -36,6 +36,7 @@ function PuantajTakvim() {
   const [gorunum, setGorunum] = useState('gunluk')
   const [tarih, setTarih] = useState(bugun())
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
+  const [filtreAcik, setFiltreAcik] = useState(false)
 
   const [taseronlar, setTaseronlar] = useState([])
   const [calisanlar, setCalisanlar] = useState([]) // tüm taşeronların tüm çalışanları
@@ -169,12 +170,21 @@ function PuantajTakvim() {
 
   return (
     <>
-      <div className="filtre-satiri">
-        <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
-        {santiyeler.map((s) => (
-          <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
-        ))}
+      <div style={{ marginBottom: 14 }}>
+        <button className="ekle-buton-genis" onClick={() => setFiltreAcik(!filtreAcik)}>
+          {filtreAcik ? 'Filtreleri Gizle' : 'Filtreleri Göster'}
+        </button>
       </div>
+
+      {filtreAcik && (
+        <div className="ekleme-kutusu" style={{ marginBottom: 15, background: '#fdfdfd' }}>
+          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Şantiye Filtresi</p>
+          <select value={filtreSantiye} onChange={(e) => setFiltreSantiye(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+            <option value="hepsi">Tüm Şantiyeler</option>
+            {santiyeler.map(s => <option key={s.id} value={s.id}>{s.ad}</option>)}
+          </select>
+        </div>
+      )}
 
       <div className="gorunum-secici">
         <button className={gorunum === 'gunluk' ? 'secili-tab' : ''} onClick={() => setGorunum('gunluk')}>Günlük</button>
@@ -316,6 +326,7 @@ function PuantajToplam() {
   const [tarih, setTarih] = useState(bugun())
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreTaseron, setFiltreTaseron] = useState('hepsi')
+  const [filtreAcik, setFiltreAcik] = useState(false)
 
   const [kayitlar, setKayitlar] = useState([])
   const [calisanSayilari, setCalisanSayilari] = useState({}) // { "santiyeId_taseronId_tarih": sayi }
@@ -378,19 +389,29 @@ function PuantajToplam() {
 
   return (
     <>
-      <div className="filtre-satiri">
-        <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
-        {santiyeler.map((s) => (
-          <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
-        ))}
+      <div style={{ marginBottom: 14 }}>
+        <button className="ekle-buton-genis" onClick={() => setFiltreAcik(!filtreAcik)}>
+          {filtreAcik ? 'Filtreleri Gizle' : 'Filtreleri Göster'}
+        </button>
       </div>
 
-      <div className="filtre-satiri">
-        <button className={`filtre-chip ${filtreTaseron === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreTaseron('hepsi')}>Tüm taşeronlar</button>
-        {taseronlar.map((t) => (
-          <button key={t.id} className={`filtre-chip ${filtreTaseron === t.id ? 'secili' : ''}`} onClick={() => setFiltreTaseron(t.id)}>{t.ad}</button>
-        ))}
-      </div>
+      {filtreAcik && (
+        <div className="ekleme-kutusu" style={{ marginBottom: 15, background: '#fdfdfd' }}>
+          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Şantiye Filtresi</p>
+          <select value={filtreSantiye} onChange={(e) => setFiltreSantiye(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+            <option value="hepsi">Tüm Şantiyeler</option>
+            {santiyeler.map(s => <option key={s.id} value={s.id}>{s.ad}</option>)}
+          </select>
+
+          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Taşeron Filtresi</p>
+          <select value={filtreTaseron} onChange={(e) => setFiltreTaseron(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+            <option value="hepsi">Tüm Taşeronlar</option>
+            {taseronlar.map((t) => (
+              <option key={t.id} value={t.id}>{t.ad}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="gorunum-secici" style={{ marginBottom: 14 }}>
         <button className={donem === 'gunluk' ? 'secili-tab' : ''} onClick={() => setDonem('gunluk')}>Günlük</button>
@@ -454,6 +475,7 @@ function PuantajCalisanKayit() {
   const [taseronlar, setTaseronlar] = useState([])
   const [santiyeId, setSantiyeId] = useState('hepsi')
   const [taseronId, setTaseronId] = useState('')
+  const [filtreAcik, setFiltreAcik] = useState(false)
   const [calisanlar, setCalisanlar] = useState([])
   const [yeniAd, setYeniAd] = useState('')
   const [eklenecekSantiyeId, setEklenecekSantiyeId] = useState('')
@@ -527,12 +549,21 @@ function PuantajCalisanKayit() {
         Aynı taşeron farklı şantiyelerde farklı çalışanlarla bulunabilir — "Tümü" ile hepsini bir arada, şantiye şantiye gruplanmış görebilirsiniz.
       </p>
 
-      <div className="filtre-satiri">
-        <button className={`filtre-chip ${santiyeId === 'hepsi' ? 'secili' : ''}`} onClick={() => setSantiyeId('hepsi')}>Tümü</button>
-        {santiyeler.map((s) => (
-          <button key={s.id} className={`filtre-chip ${santiyeId === s.id ? 'secili' : ''}`} onClick={() => setSantiyeId(s.id)}>{s.ad}</button>
-        ))}
+      <div style={{ marginBottom: 14 }}>
+        <button className="ekle-buton-genis" onClick={() => setFiltreAcik(!filtreAcik)}>
+          {filtreAcik ? 'Filtreleri Gizle' : 'Filtreleri Göster'}
+        </button>
       </div>
+
+      {filtreAcik && (
+        <div className="ekleme-kutusu" style={{ marginBottom: 15, background: '#fdfdfd' }}>
+          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Şantiye Filtresi</p>
+          <select value={santiyeId} onChange={(e) => setSantiyeId(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+            <option value="hepsi">Tüm Şantiyeler</option>
+            {santiyeler.map(s => <option key={s.id} value={s.id}>{s.ad}</option>)}
+          </select>
+        </div>
+      )}
 
       <select value={taseronId} onChange={(e) => setTaseronId(e.target.value)} style={{ marginBottom: 14 }}>
         <option value="">Taşeron seç...</option>
