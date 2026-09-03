@@ -30,6 +30,9 @@ export default function GunlukRapor() {
   const { profile } = useAuth()
   const [gorunum, setGorunum] = useState('liste') // 'liste' | 'takvim' | 'ekle'
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
+  const [filtreEkleyen, setFiltreEkleyen] = useState('hepsi')
+  const [filtreAcik, setFiltreAcik] = useState(false)
+  
   const [raporlar, setRaporlar] = useState([])
   const [takvimAyi, setTakvimAyi] = useState(bugun())
   const [detayAcikId, setDetayAcikId] = useState(null)
@@ -196,8 +199,19 @@ export default function GunlukRapor() {
   const ayAdi = ilkGunTarih.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })
   const ayinGunSayisi = new Date(ilkGunTarih.getFullYear(), ilkGunTarih.getMonth() + 1, 0).getDate()
   const ilkGunHaftaIndeksi = (ilkGunTarih.getDay() + 6) % 7
+
+  const ekleyenler = Array.from(new Set(raporlar.map((r) => r.olusturan))).map((id) => {
+    const p = raporlar.find((r) => r.olusturan === id)?.profiles
+    return { id, ad: p ? p.ad_soyad : 'Bilinmiyor' }
+  }).filter((e) => e.id)
+
+  const filtrelenmisRaporlar = raporlar.filter((r) => {
+    if (filtreEkleyen !== 'hepsi' && r.olusturan !== filtreEkleyen) return false
+    return true
+  })
+
   const gunRaporSayisi = {}
-  raporlar.forEach((r) => { gunRaporSayisi[r.tarih] = (gunRaporSayisi[r.tarih] || 0) + 1 })
+  filtrelenmisRaporlar.forEach((r) => { gunRaporSayisi[r.tarih] = (gunRaporSayisi[r.tarih] || 0) + 1 })
 
   return (
     <div className="sayfa">
@@ -213,19 +227,27 @@ export default function GunlukRapor() {
 
       {gorunum !== 'ekle' && (
         <>
-          <div style={{ background: '#f8f7f2', padding: '12px', borderRadius: 12, boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.03)', marginBottom: 14 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>Şantiye</label>
-              <select 
-                value={filtreSantiye} 
-                onChange={(e) => setFiltreSantiye(e.target.value)} 
-                style={{ padding: '8px 10px', fontSize: 13, borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.03)', outline: 'none', cursor: 'pointer' }}
-              >
+          <div style={{ marginBottom: 14 }}>
+            <button className="ekle-buton-genis" onClick={() => setFiltreAcik(!filtreAcik)}>
+              {filtreAcik ? 'Filtreleri Gizle' : 'Filtreleri Göster'}
+            </button>
+          </div>
+
+          {filtreAcik && (
+            <div className="ekleme-kutusu" style={{ marginBottom: 15, background: '#fdfdfd' }}>
+              <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Şantiye Filtresi</p>
+              <select value={filtreSantiye} onChange={(e) => setFiltreSantiye(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
                 <option value="hepsi">Tüm şantiyeler</option>
                 {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
               </select>
+
+              <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Ekleyen Kişi</p>
+              <select value={filtreEkleyen} onChange={(e) => setFiltreEkleyen(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+                <option value="hepsi">Tümü</option>
+                {ekleyenler.map(e => <option key={e.id} value={e.id}>{e.ad}</option>)}
+              </select>
             </div>
-          </div>
+          )}
 
           <div style={{ display: 'flex', background: '#f4f3ed', padding: 4, borderRadius: 10, marginBottom: 16, boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.05)' }}>
             <button 
@@ -246,7 +268,7 @@ export default function GunlukRapor() {
 
       {gorunum === 'liste' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {raporlar.map((r) => (
+          {filtrelenmisRaporlar.map((r) => (
             <div key={r.id} style={{ background: 'linear-gradient(to bottom, #ffffff, #fcfcf9)', border: '1px solid rgba(0,0,0,0.03)', borderRadius: 16, padding: '12px 16px', boxShadow: '0 6px 16px rgba(0, 0, 0, 0.04), inset 0 2px 4px rgba(255,255,255,0.8)' }}>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => detayAc(r.id)}>
@@ -259,9 +281,10 @@ export default function GunlukRapor() {
                       {new Date(r.tarih).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 18, flexWrap: 'wrap', marginTop: 2 }}>
                     <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: '#f0efeb', color: '#555', fontWeight: 600, border: '1px solid rgba(0,0,0,0.03)' }}>{r.santiyeler?.ad}</span>
                     <span style={{ fontSize: 10, color: '#888780' }}>· Ekleyen: {r.profiles?.ad_soyad?.split(' ')[0] || 'Bilinmiyor'}</span>
+                    <span style={{ fontSize: 10, color: '#a0a0a0' }}>· Eklenme: {new Date(r.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
                 </div>
 
@@ -336,7 +359,7 @@ export default function GunlukRapor() {
               )}
             </div>
           ))}
-          {raporlar.length === 0 && <p className="bos-mesaj">Bu filtrede rapor yok.</p>}
+          {filtrelenmisRaporlar.length === 0 && <p className="bos-mesaj">Bu filtrede rapor yok.</p>}
         </div>
       )}
 
