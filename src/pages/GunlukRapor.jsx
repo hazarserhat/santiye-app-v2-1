@@ -153,9 +153,14 @@ export default function GunlukRapor() {
       for (let i = 0; i < raporFotolari.length; i++) {
         const foto = raporFotolari[i]
         try {
-          const response = await fetch(foto.url)
+          const fetchUrl = isGoogleDriveUrl(foto.url) ? getGoogleDriveInlineImageUrl(foto.url) : foto.url
+          const response = await fetch(fetchUrl)
           const blob = await response.blob()
-          const file = new File([blob], `rapor_foto_${i + 1}.jpg`, { type: blob.type })
+          let finalMimeType = blob.type
+          if (!finalMimeType || finalMimeType.includes('octet-stream') || finalMimeType.includes('binary')) {
+            finalMimeType = 'image/jpeg'
+          }
+          const file = new File([blob], `rapor_foto_${i + 1}.jpg`, { type: finalMimeType })
           dosyalar.push(file)
         } catch (e) {
           console.error('Fotoğraf indirilemedi:', e)

@@ -286,12 +286,21 @@ export default function Gelirler() {
     try {
       let dosyalar = []
       if (g.belge_url) {
-        const response = await fetch(g.belge_url)
-        const blob = await response.blob()
-        const ext = blob.type.includes('pdf') ? 'pdf' : (blob.type.includes('png') ? 'png' : 'jpg')
-        const dosyaAdi = g.odeme_yapan_adi ? `${g.odeme_yapan_adi.replace(/[^a-zA-Z0-9]/gi, '_').toLowerCase()}.${ext}` : `gelir_belgesi.${ext}`
-        const file = new File([blob], dosyaAdi, { type: blob.type })
-        dosyalar.push(file)
+        try {
+          const fetchUrl = getGoogleDriveInlineImageUrl(g.belge_url)
+          const response = await fetch(fetchUrl)
+          const blob = await response.blob()
+          let finalMimeType = blob.type
+          if (!finalMimeType || finalMimeType.includes('octet-stream') || finalMimeType.includes('binary')) {
+            finalMimeType = fetchUrl.toLowerCase().includes('pdf') ? 'application/pdf' : 'image/jpeg'
+          }
+          const ext = finalMimeType.includes('pdf') ? 'pdf' : 'jpg'
+          const dosyaAdi = g.odeme_yapan_adi ? `${g.odeme_yapan_adi.replace(/[^a-zA-Z0-9]/gi, '_').toLowerCase()}.${ext}` : `gelir_belgesi.${ext}`
+          const file = new File([blob], dosyaAdi, { type: finalMimeType })
+          dosyalar.push(file)
+        } catch (fetchErr) {
+          console.warn('Görsel fetch edilemedi, link ile paylaşılacak:', fetchErr)
+        }
       }
 
       const yatanKisi = g.odeme_yapan_adi || g.malikler?.ad_soyad || 'İsimsiz'

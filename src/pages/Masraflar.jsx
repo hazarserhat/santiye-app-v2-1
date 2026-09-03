@@ -232,24 +232,32 @@ export default function Masraflar() {
         `📅 *Tarih:* ${m.harcama_tarihi ? new Date(m.harcama_tarihi).toLocaleDateString('tr-TR') : '—'}\n` +
         (m.aciklama ? `📝 *Not:* ${m.aciklama}` : '')
 
-      // Mobilse: görsel varsa dosya + metin birlikte paylaş (OS share sheet destekliyor)
-      if (mobilCihaz() && m.fotograf_url && navigator.canShare) {
-        const response = await fetch(m.fotograf_url)
-        const blob = await response.blob()
-        const uzanti = blob.type.includes('pdf') ? 'pdf' : 'jpg'
-        const dosyaAdi = m.baslik ? `${m.baslik.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${uzanti}` : `masraf_belgesi.${uzanti}`
-        const file = new File([blob], dosyaAdi, { type: blob.type })
-        if (navigator.canShare({ files: [file], text: metin })) {
-          await navigator.share({ title: 'Masraf Belgesi', text: metin, files: [file] })
-          return
+      let dosyalar = []
+      if (m.fotograf_url) {
+        try {
+          const fetchUrl = getGoogleDriveInlineImageUrl(m.fotograf_url)
+          const response = await fetch(fetchUrl)
+          const blob = await response.blob()
+          let finalMimeType = blob.type
+          if (!finalMimeType || finalMimeType.includes('octet-stream') || finalMimeType.includes('binary')) {
+            finalMimeType = fetchUrl.toLowerCase().includes('pdf') ? 'application/pdf' : 'image/jpeg'
+          }
+          const uzanti = finalMimeType.includes('pdf') ? 'pdf' : 'jpg'
+          const dosyaAdi = m.baslik ? `${m.baslik.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${uzanti}` : `masraf_belgesi.${uzanti}`
+          const file = new File([blob], dosyaAdi, { type: finalMimeType })
+          dosyalar.push(file)
+        } catch (fetchErr) {
+          console.warn('Görsel fetch edilemedi, link ile paylaşılacak:', fetchErr)
         }
       }
 
-      // Masaüstü veya görsel yoksa: metin + link olarak paylaş
-      const metinVeLink = metin + (m.fotograf_url ? `\n🔗 Belge: ${m.fotograf_url}` : '')
-      if (navigator.share) {
+      if (dosyalar.length > 0 && navigator.canShare && navigator.canShare({ files: dosyalar })) {
+        await navigator.share({ title: 'Masraf Belgesi', text: metin, files: dosyalar })
+      } else if (navigator.share) {
+        const metinVeLink = metin + (m.fotograf_url ? `\n🔗 Belge: ${m.fotograf_url}` : '')
         await navigator.share({ title: 'Masraf Belgesi', text: metinVeLink })
       } else {
+        const metinVeLink = metin + (m.fotograf_url ? `\n🔗 Belge: ${m.fotograf_url}` : '')
         window.open('https://wa.me/?text=' + encodeURIComponent(metinVeLink), '_blank')
       }
     } catch (err) {
