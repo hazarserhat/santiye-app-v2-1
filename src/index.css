@@ -76,18 +76,57 @@ input, select, button { font-family: inherit; max-width: 100%; }
 
 /* Alt menü: iPhone home indicator alanı için ekstra dolgu */
 .alt-menu {
-  position: fixed; bottom: 0; left: 0; right: 0;
+  position: fixed; 
+  bottom: 0; 
+  left: 0; 
+  right: 0;
   display: flex;
-  background: white;
-  border-top: 1px solid #D3D1C7;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.05);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   padding-bottom: env(safe-area-inset-bottom);
   z-index: 20;
+  padding-top: 6px;
 }
-.alt-menu-oge { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; text-decoration: none; color: #888780; font-size: 10px; min-width: 58px; }
-.alt-menu-oge.aktif { color: #1D9596; }
-.alt-menu-simge { font-size: 16px; }
+.alt-menu::-webkit-scrollbar {
+  display: none;
+}
+.alt-menu-oge { 
+  flex: 1 0 auto; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center;
+  gap: 4px; 
+  padding: 8px 4px 10px 4px; 
+  text-decoration: none; 
+  color: #8E8D88; 
+  font-size: 10px; 
+  font-weight: 500;
+  min-width: 58px; 
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin: 0 4px;
+}
+.alt-menu-oge:active {
+  transform: scale(0.92);
+}
+.alt-menu-oge.aktif { 
+  color: #1D9596; 
+  font-weight: 700;
+  background: rgba(29, 149, 150, 0.08);
+}
+.alt-menu-simge { 
+  font-size: 18px; 
+  transition: transform 0.3s ease;
+}
+.alt-menu-oge.aktif .alt-menu-simge {
+  transform: translateY(-2px);
+}
 
 .modal-arka-plan { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 100; }
 .modal-kutu { background: white; border-radius: 12px; padding: 16px; width: 100%; max-width: 320px; max-height: 80vh; overflow-y: auto; }
