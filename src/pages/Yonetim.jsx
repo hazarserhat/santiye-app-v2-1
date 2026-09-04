@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { paraFormatla } from '../lib/format'
 
-const SAYFALAR = [
+const DEFAULT_SAYFALAR = [
   { yol: '/yonetim/proje-dosyalari', ad: 'Proje & Yönetim Dosyaları', aciklama: 'Sözleşme, vekalet, harita arşivi', ikon: '📁' },
   { yol: '/yonetim/santiyeler', ad: 'Şantiye Yönetimi', aciklama: 'Ekleme / düzenleme / silme', ikon: '🏗️' },
   { yol: '/yonetim/cek-takip', ad: 'Çek Takip Sayfası', aciklama: 'Sıralanabilir/filtrelenebilir tablo', ikon: '🏦' },
@@ -25,6 +25,42 @@ export default function Yonetim() {
   const { profile } = useAuth()
   const [sekme, setSekme] = useState('menu') // 'menu', 'gelirler', 'giderler'
   const [gizli, setGizli] = useState(true)
+
+  // DRAG & DROP İÇİN STATE VE REFLER
+  const [sayfalar, setSayfalar] = useState(() => {
+    try {
+      const kayitli = localStorage.getItem('yonetimSiralama')
+      if (kayitli) {
+        const yollar = JSON.parse(kayitli)
+        const sirali = []
+        yollar.forEach(yol => {
+          const bul = DEFAULT_SAYFALAR.find(s => s.yol === yol)
+          if (bul) sirali.push(bul)
+        })
+        DEFAULT_SAYFALAR.forEach(s => {
+          if (!yollar.includes(s.yol)) sirali.push(s)
+        })
+        return sirali
+      }
+    } catch(e) {}
+    return DEFAULT_SAYFALAR
+  })
+
+  const dragItem = useRef(null)
+  const dragOverItem = useRef(null)
+
+  const handleSort = () => {
+    if (dragItem.current === null || dragOverItem.current === null) return
+    let _sayfalar = [...sayfalar]
+    const draggedItemContent = _sayfalar.splice(dragItem.current, 1)[0]
+    _sayfalar.splice(dragOverItem.current, 0, draggedItemContent)
+    
+    dragItem.current = null
+    dragOverItem.current = null
+    
+    setSayfalar(_sayfalar)
+    localStorage.setItem('yonetimSiralama', JSON.stringify(_sayfalar.map(s => s.yol)))
+  }
 
   // Gelir Datası
   const [gelirler, setGelirler] = useState([])
@@ -221,6 +257,10 @@ export default function Yonetim() {
           color: inherit;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+          cursor: grab;
+        }
+        .premium-menu-card:active {
+          cursor: grabbing;
         }
         .premium-menu-card:hover {
           transform: translateY(-4px);
@@ -250,15 +290,15 @@ export default function Yonetim() {
           font-size: 13px;
           color: #64748b;
         }
-        .menu-card-arrow {
+        .menu-card-drag-icon {
           color: #cbd5e1;
-          font-size: 24px;
-          font-weight: 300;
+          font-size: 20px;
+          font-weight: 900;
           transition: all 0.2s;
+          cursor: grab;
         }
-        .premium-menu-card:hover .menu-card-arrow {
-          color: #0f172a;
-          transform: translateX(4px);
+        .premium-menu-card:hover .menu-card-drag-icon {
+          color: #94a3b8;
         }
 
         .stat-card-gelir {
@@ -329,14 +369,23 @@ export default function Yonetim() {
 
       {sekme === 'menu' && (
         <div className="premium-menu-grid">
-          {SAYFALAR.map((s) => (
-            <Link key={s.yol} to={s.yol} className="premium-menu-card">
+          {sayfalar.map((s, index) => (
+            <Link 
+              key={s.yol} 
+              to={s.yol} 
+              className="premium-menu-card"
+              draggable
+              onDragStart={(e) => { dragItem.current = index; e.target.style.opacity = '0.5' }}
+              onDragEnter={(e) => { dragOverItem.current = index }}
+              onDragEnd={(e) => { handleSort(); e.target.style.opacity = '1' }}
+              onDragOver={(e) => e.preventDefault()}
+            >
               <div className="menu-card-icon">{s.ikon}</div>
               <div className="menu-card-content">
                 <h4 className="menu-card-title">{s.ad}</h4>
                 {s.aciklama && <p className="menu-card-desc">{s.aciklama}</p>}
               </div>
-              <span className="menu-card-arrow">›</span>
+              <span className="menu-card-drag-icon">⋮⋮</span>
             </Link>
           ))}
         </div>
