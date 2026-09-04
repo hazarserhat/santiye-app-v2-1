@@ -2,13 +2,13 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 const OGELER = [
-  { yol: '/saha-dosyalari', etiket: 'Drive', simge: '📁' },
   { yol: '/gorevler', etiket: 'Görevler', simge: '✓' },
   { yol: '/masraflar', etiket: 'Giderler', simge: '₺' },
   { yol: '/gelirler', etiket: 'Gelirler', simge: '💰', ozelRol: true },
   { yol: '/cari-kartlar', etiket: 'Rehber', simge: '👤', yolIsmi: 'cari' },
   { yol: '/puantaj', etiket: 'Puantaj', simge: '📅' },
   { yol: '/gunluk-rapor', etiket: 'Rapor', simge: '📝' },
+  { yol: '/saha-dosyalari', etiket: 'Drive', simge: '📁' },
   { yol: '/animsaticilar', etiket: 'Uyarı', simge: '🔔' },
   { yol: '/notlarim', etiket: 'Notlarım', simge: '📌' },
 ]
