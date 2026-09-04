@@ -105,7 +105,7 @@ export default function SahaDosyalari() {
   const dosyaPaylas = async (d) => {
     try {
       const gDriveLink = getGoogleDriveViewUrl(d.dosya_url)
-      const metin = `📄 *Saha Dosyası*\n*Dosya:* ${d.dosya_adi}\n*Bağlantı:* ${gDriveLink}`
+      const metin = `📄 *Şantiye Dosyası*\n*Dosya:* ${d.dosya_adi}\n*Bağlantı:* ${gDriveLink}`
       if (navigator.share) await navigator.share({ title: d.dosya_adi, text: metin })
       else window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
     } catch (err) {}
@@ -332,7 +332,7 @@ export default function SahaDosyalari() {
       `}</style>
 
       <div className="drv-header">
-        <h2 className="drv-title">Saha Dosyaları</h2>
+        <h2 className="drv-title">Şantiye Dosyaları</h2>
       </div>
 
       <div className="drv-tabs">
