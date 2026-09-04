@@ -63,6 +63,16 @@ export default function Animsaticilar() {
     if (b.gorev_id) navigate('/gorevler')
   }
 
+  const tumunuOkunduIsaretle = async () => {
+    if (!profile?.id) return
+    const { error } = await supabase.from('bildirimler')
+      .update({ okundu: true })
+      .eq('kullanici_id', profile.id)
+      .eq('okundu', false)
+    if (error) alert('Hata: ' + error.message)
+    else bildirimleriYukle()
+  }
+
   const yorumlariYukle = async (animsaticiId) => {
     const { data } = await supabase.from('animsatici_yorumlari').select('*, profiles(ad_soyad)').eq('animsatici_id', animsaticiId).order('created_at')
     setYorumlar((onceki) => ({ ...onceki, [animsaticiId]: data || [] }))
@@ -118,6 +128,14 @@ export default function Animsaticilar() {
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <p className="alt-baslik" style={{ margin: 0 }}>Bildirimlerim {yeniBildirimler.length > 0 && <span className="etiket" style={{ background: '#D64545', color: 'white' }}>{yeniBildirimler.length} yeni</span>}</p>
+            {yeniBildirimler.length > 0 && (
+              <button 
+                onClick={tumunuOkunduIsaretle} 
+                style={{ fontSize: 12, padding: '4px 10px', borderRadius: 6, border: '1px solid #cbd5e1', background: '#f8fafc', color: '#475569', cursor: 'pointer', fontWeight: 600 }}
+              >
+                ✓ Tümünü Okundu Say
+              </button>
+            )}
           </div>
 
           <div className="gorunum-secici" style={{ marginBottom: 12 }}>
