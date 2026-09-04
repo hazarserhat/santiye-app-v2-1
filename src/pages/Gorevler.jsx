@@ -225,6 +225,7 @@ export default function Gorevler() {
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreKisi, setFiltreKisi] = useState('hepsi')
   const [filtreEkleyen, setFiltreEkleyen] = useState('hepsi')
+  const [arama, setArama] = useState('')
   const [filtrelerAcik, setFiltrelerAcik] = useState(false)
   const [arsivAcik, setArsivAcik] = useState(false)
   
@@ -478,13 +479,17 @@ export default function Gorevler() {
     ? kisiyeGoreFiltreli
     : kisiyeGoreFiltreli.filter((g) => g.olusturan === filtreEkleyen)
   const durumaGoreFiltreli = filtreDurum === 'hepsi' ? ekleyeneGoreFiltreli : ekleyeneGoreFiltreli.filter((g) => g.durum === filtreDurum)
+  const aramayaGoreFiltreli = durumaGoreFiltreli.filter((g) => {
+    if (!arama) return true
+    return (g.baslik || '').toLowerCase().includes(arama.toLowerCase())
+  })
 
-  const kokGorevler = durumaGoreFiltreli
+  const kokGorevler = aramayaGoreFiltreli
     .filter((g) => !g.ust_gorev_id)
     .sort((a, b) => siralamaYonu === 'yeni' ? new Date(b.created_at || 0) - new Date(a.created_at || 0) : new Date(a.created_at || 0) - new Date(b.created_at || 0))
   const gosterilenKokGorevler = kokGorevler.slice(0, gosterilenSayisi)
 
-  const altGorevleriBul = (ustId) => durumaGoreFiltreli.filter((g) => g.ust_gorev_id === ustId)
+  const altGorevleriBul = (ustId) => aramayaGoreFiltreli.filter((g) => g.ust_gorev_id === ustId)
 
   const ctx = {
     filtreSantiye, kullanicilar, numaraHaritasi, altGorevleriBul,
@@ -597,6 +602,17 @@ export default function Gorevler() {
         </div>
 
         <button className="ekle-buton-genis" onClick={gorevEkle}>Görevi kaydet</button>
+      </div>
+
+      {/* ARAMA KUTUSU */}
+      <div style={{ marginBottom: 12 }}>
+        <input 
+          type="text" 
+          placeholder="Görevlerde ara..." 
+          value={arama} 
+          onChange={(e) => setArama(e.target.value)} 
+          style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.04)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)', fontSize: 14, outline: 'none' }} 
+        />
       </div>
 
       {/* FİLTRE PANELİ */}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { uploadToGoogleDrive } from '../lib/googleDrive'
 
 export default function Notlar() {
   const { profile } = useAuth()
@@ -17,12 +18,15 @@ export default function Notlar() {
   const [yeniBaslik, setYeniBaslik] = useState('')
   const [yeniKategori, setYeniKategori] = useState('')
   const [yeniIcerik, setYeniIcerik] = useState('')
+  const [yeniDosya, setYeniDosya] = useState(null)
+  const [yukleniyor, setYukleniyor] = useState(false)
   const [dinliyor, setDinliyor] = useState(false)
 
   const [duzenlenenId, setDuzenlenenId] = useState(null)
   const [duzBaslik, setDuzBaslik] = useState('')
   const [duzKategori, setDuzKategori] = useState('')
   const [duzIcerik, setDuzIcerik] = useState('')
+  const [duzDosya, setDuzDosya] = useState(null)
 
   useEffect(() => {
     if (profile) { notlariYukle(); kategorileriYukle() }
@@ -40,38 +44,78 @@ export default function Notlar() {
   }
 
   const notEkle = async () => {
-    if (!yeniIcerik.trim()) return
+    if (!yeniIcerik.trim() && !yeniDosya) return
+    setYukleniyor(true)
+    let eklenenIcerik = yeniIcerik
+
+    if (yeniDosya) {
+      try {
+        const result = await uploadToGoogleDrive({
+          file: yeniDosya,
+          folderName: 'Notlar',
+          adSoyad: profile?.ad_soyad || 'Kullanici'
+        })
+        const dosyaLink = result.directUrl || result.url
+        eklenenIcerik += `\n\n![Görsel](${dosyaLink})`
+      } catch (err) {
+        alert('Görsel yüklenemedi: ' + err.message)
+        setYukleniyor(false)
+        return
+      }
+    }
+
     const kategoriTemiz = yeniKategori.trim() || null
 
     const { error } = await supabase.from('kisisel_notlar').insert({
-      kullanici_id: profile.id, baslik: yeniBaslik || null, kategori: kategoriTemiz, icerik: yeniIcerik,
+      kullanici_id: profile.id, baslik: yeniBaslik || null, kategori: kategoriTemiz, icerik: eklenenIcerik,
     })
-    if (error) { alert('Not eklenemedi: ' + error.message); return }
+    if (error) { alert('Not eklenemedi: ' + error.message); setYukleniyor(false); return }
 
-    // Yeni yazılan kategori daha sonra tekrar seçilebilsin diye listeye kaydediliyor
     if (kategoriTemiz && !kategoriler.find((k) => k.ad.toLowerCase() === kategoriTemiz.toLowerCase())) {
       await supabase.from('not_kategorileri').insert({ kullanici_id: profile.id, ad: kategoriTemiz })
       kategorileriYukle()
     }
 
-    setYeniBaslik(''); setYeniIcerik(''); setYeniKategori(''); setEkleAcik(false)
+    setYeniBaslik(''); setYeniIcerik(''); setYeniKategori(''); setYeniDosya(null); setEkleAcik(false)
+    setYukleniyor(false)
     notlariYukle()
   }
 
   const duzenlemeyiAc = (n) => {
-    setDuzenlenenId(n.id); setDuzBaslik(n.baslik || ''); setDuzKategori(n.kategori || ''); setDuzIcerik(n.icerik)
+    setDuzenlenenId(n.id); setDuzBaslik(n.baslik || ''); setDuzKategori(n.kategori || ''); setDuzIcerik(n.icerik); setDuzDosya(null)
   }
 
   const notGuncelle = async (id) => {
-    if (!duzIcerik.trim()) return
+    if (!duzIcerik.trim() && !duzDosya) return
+    setYukleniyor(true)
+    let eklenenIcerik = duzIcerik
+
+    if (duzDosya) {
+      try {
+        const result = await uploadToGoogleDrive({
+          file: duzDosya,
+          folderName: 'Notlar',
+          adSoyad: profile?.ad_soyad || 'Kullanici'
+        })
+        const dosyaLink = result.directUrl || result.url
+        eklenenIcerik += `\n\n![Görsel](${dosyaLink})`
+      } catch (err) {
+        alert('Görsel yüklenemedi: ' + err.message)
+        setYukleniyor(false)
+        return
+      }
+    }
+
     const kategoriTemiz = duzKategori.trim() || null
-    const { error } = await supabase.from('kisisel_notlar').update({ baslik: duzBaslik || null, kategori: kategoriTemiz, icerik: duzIcerik }).eq('id', id)
-    if (error) { alert('Güncellenemedi: ' + error.message); return }
+    const { error } = await supabase.from('kisisel_notlar').update({ baslik: duzBaslik || null, kategori: kategoriTemiz, icerik: eklenenIcerik }).eq('id', id)
+    if (error) { alert('Güncellenemedi: ' + error.message); setYukleniyor(false); return }
     if (kategoriTemiz && !kategoriler.find((k) => k.ad.toLowerCase() === kategoriTemiz.toLowerCase())) {
       await supabase.from('not_kategorileri').insert({ kullanici_id: profile.id, ad: kategoriTemiz })
       kategorileriYukle()
     }
     setDuzenlenenId(null)
+    setDuzDosya(null)
+    setYukleniyor(false)
     notlariYukle()
   }
 
@@ -120,8 +164,8 @@ export default function Notlar() {
 
   const ctx = {
     acikId, setAcikId, duzenlenenId, setDuzenlenenId,
-    duzBaslik, setDuzBaslik, duzKategori, setDuzKategori, duzIcerik, setDuzIcerik,
-    duzenlemeyiAc, notGuncelle, notPaylas, notSil, arsivle, kategoriler,
+    duzBaslik, setDuzBaslik, duzKategori, setDuzKategori, duzIcerik, setDuzIcerik, duzDosya, setDuzDosya,
+    duzenlemeyiAc, notGuncelle, notPaylas, notSil, arsivle, kategoriler, yukleniyor,
   }
 
   return (
@@ -150,9 +194,15 @@ export default function Notlar() {
               rows={3}
               style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical' }}
             />
-            <button className="mikrofon-buton" onClick={sesleYaz}>{dinliyor ? '●' : '🎤'}</button>
+            <button className="mikrofon-buton" onClick={sesleYaz} type="button">{dinliyor ? '●' : '🎤'}</button>
           </div>
-          <button className="ekle-buton-genis" onClick={notEkle}>Notu kaydet</button>
+          
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 8 }}>
+            <input type="file" accept="image/*" onChange={(e) => setYeniDosya(e.target.files[0])} style={{ fontSize: 12, flex: 1 }} />
+            <button className="ekle-buton-genis" onClick={notEkle} disabled={yukleniyor} style={{ opacity: yukleniyor ? 0.7 : 1 }}>
+              {yukleniyor ? 'Yükleniyor...' : 'Notu kaydet'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -210,8 +260,8 @@ export default function Notlar() {
 function NotKarti({ n, ctx }) {
   const {
     acikId, setAcikId, duzenlenenId, setDuzenlenenId,
-    duzBaslik, setDuzBaslik, duzKategori, setDuzKategori, duzIcerik, setDuzIcerik,
-    duzenlemeyiAc, notGuncelle, notPaylas, notSil, arsivle, kategoriler,
+    duzBaslik, setDuzBaslik, duzKategori, setDuzKategori, duzIcerik, setDuzIcerik, duzDosya, setDuzDosya,
+    duzenlemeyiAc, notGuncelle, notPaylas, notSil, arsivle, kategoriler, yukleniyor,
   } = ctx
 
   return (
@@ -225,9 +275,15 @@ function NotKarti({ n, ctx }) {
           </datalist>
           <textarea value={duzIcerik} onChange={(e) => setDuzIcerik(e.target.value)} rows={3}
             style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', marginBottom: 6 }} />
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 12 }}>
+            <span style={{ fontSize: 12 }}>Görsel Ekle:</span>
+            <input type="file" accept="image/*" onChange={(e) => setDuzDosya(e.target.files[0])} style={{ fontSize: 12, flex: 1 }} />
+          </div>
           <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={() => setDuzenlenenId(null)} style={{ fontSize: 12 }}>Vazgeç</button>
-            <button onClick={() => notGuncelle(n.id)} style={{ fontSize: 12 }}>Kaydet</button>
+            <button onClick={() => setDuzenlenenId(null)} style={{ fontSize: 12 }} disabled={yukleniyor}>Vazgeç</button>
+            <button onClick={() => notGuncelle(n.id)} style={{ fontSize: 12, opacity: yukleniyor ? 0.7 : 1 }} disabled={yukleniyor}>
+              {yukleniyor ? 'Kaydediliyor...' : 'Kaydet'}
+            </button>
           </div>
         </div>
       ) : (
@@ -246,8 +302,25 @@ function NotKarti({ n, ctx }) {
           </div>
           {acikId === n.id && (
             <>
-              <p className="not-icerik" style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>{n.icerik}</p>
-              <button onClick={() => arsivle(n.id, !n.arsivlendi)} style={{ marginTop: 8, fontSize: 12, padding: '6px 10px' }}>
+              {(() => {
+                const textIcerik = n.icerik.replace(/!\[.*?\]\((.*?)\)/g, '').trim()
+                const gorselUrller = [...n.icerik.matchAll(/!\[.*?\]\((.*?)\)/g)].map(m => m[1])
+                return (
+                  <div style={{ marginTop: 8 }}>
+                    {textIcerik && <p className="not-icerik" style={{ whiteSpace: 'pre-wrap', marginBottom: gorselUrller.length > 0 ? 12 : 0 }}>{textIcerik}</p>}
+                    {gorselUrller.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                        {gorselUrller.map((url, i) => (
+                          <a key={i} href={url} target="_blank" rel="noreferrer">
+                            <img src={url} alt="Not Görseli" style={{ maxHeight: 200, maxWidth: '100%', borderRadius: 8, objectFit: 'contain', border: '1px solid #eee' }} />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+              <button onClick={() => arsivle(n.id, !n.arsivlendi)} style={{ marginTop: 12, fontSize: 12, padding: '6px 10px' }}>
                 {n.arsivlendi ? '↩ Arşivden çıkar' : '📦 Arşivle'}
               </button>
             </>
