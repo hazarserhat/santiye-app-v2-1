@@ -18,7 +18,7 @@ export default function Notlar() {
   const [yeniBaslik, setYeniBaslik] = useState('')
   const [yeniKategori, setYeniKategori] = useState('')
   const [yeniIcerik, setYeniIcerik] = useState('')
-  const [yeniDosya, setYeniDosya] = useState(null)
+  const [yeniDosyalar, setYeniDosyalar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(false)
   const [dinliyor, setDinliyor] = useState(false)
 
@@ -26,7 +26,7 @@ export default function Notlar() {
   const [duzBaslik, setDuzBaslik] = useState('')
   const [duzKategori, setDuzKategori] = useState('')
   const [duzIcerik, setDuzIcerik] = useState('')
-  const [duzDosya, setDuzDosya] = useState(null)
+  const [duzDosyalar, setDuzDosyalar] = useState([])
 
   useEffect(() => {
     if (profile) { notlariYukle(); kategorileriYukle() }
@@ -44,23 +44,25 @@ export default function Notlar() {
   }
 
   const notEkle = async () => {
-    if (!yeniIcerik.trim() && !yeniDosya) return
+    if (!yeniIcerik.trim() && yeniDosyalar.length === 0) return
     setYukleniyor(true)
     let eklenenIcerik = yeniIcerik
 
-    if (yeniDosya) {
-      try {
-        const result = await uploadToGoogleDrive({
-          file: yeniDosya,
-          folderName: 'Notlar',
-          adSoyad: profile?.ad_soyad || 'Kullanici'
-        })
-        const dosyaLink = result.directUrl || result.url
-        eklenenIcerik += `\n\n![Görsel](${dosyaLink})`
-      } catch (err) {
-        alert('Görsel yüklenemedi: ' + err.message)
-        setYukleniyor(false)
-        return
+    if (yeniDosyalar.length > 0) {
+      for (const dosya of yeniDosyalar) {
+        try {
+          const result = await uploadToGoogleDrive({
+            file: dosya,
+            folderName: 'Notlar',
+            adSoyad: profile?.ad_soyad || 'Kullanici'
+          })
+          const dosyaLink = result.directUrl || result.url
+          eklenenIcerik += `\n\n![Görsel](${dosyaLink})`
+        } catch (err) {
+          alert('Görsel yüklenemedi: ' + err.message)
+          setYukleniyor(false)
+          return
+        }
       }
     }
 
@@ -76,33 +78,35 @@ export default function Notlar() {
       kategorileriYukle()
     }
 
-    setYeniBaslik(''); setYeniIcerik(''); setYeniKategori(''); setYeniDosya(null); setEkleAcik(false)
+    setYeniBaslik(''); setYeniIcerik(''); setYeniKategori(''); setYeniDosyalar([]); setEkleAcik(false)
     setYukleniyor(false)
     notlariYukle()
   }
 
   const duzenlemeyiAc = (n) => {
-    setDuzenlenenId(n.id); setDuzBaslik(n.baslik || ''); setDuzKategori(n.kategori || ''); setDuzIcerik(n.icerik); setDuzDosya(null)
+    setDuzenlenenId(n.id); setDuzBaslik(n.baslik || ''); setDuzKategori(n.kategori || ''); setDuzIcerik(n.icerik); setDuzDosyalar([])
   }
 
   const notGuncelle = async (id) => {
-    if (!duzIcerik.trim() && !duzDosya) return
+    if (!duzIcerik.trim() && duzDosyalar.length === 0) return
     setYukleniyor(true)
     let eklenenIcerik = duzIcerik
 
-    if (duzDosya) {
-      try {
-        const result = await uploadToGoogleDrive({
-          file: duzDosya,
-          folderName: 'Notlar',
-          adSoyad: profile?.ad_soyad || 'Kullanici'
-        })
-        const dosyaLink = result.directUrl || result.url
-        eklenenIcerik += `\n\n![Görsel](${dosyaLink})`
-      } catch (err) {
-        alert('Görsel yüklenemedi: ' + err.message)
-        setYukleniyor(false)
-        return
+    if (duzDosyalar.length > 0) {
+      for (const dosya of duzDosyalar) {
+        try {
+          const result = await uploadToGoogleDrive({
+            file: dosya,
+            folderName: 'Notlar',
+            adSoyad: profile?.ad_soyad || 'Kullanici'
+          })
+          const dosyaLink = result.directUrl || result.url
+          eklenenIcerik += `\n\n![Görsel](${dosyaLink})`
+        } catch (err) {
+          alert('Görsel yüklenemedi: ' + err.message)
+          setYukleniyor(false)
+          return
+        }
       }
     }
 
@@ -114,7 +118,7 @@ export default function Notlar() {
       kategorileriYukle()
     }
     setDuzenlenenId(null)
-    setDuzDosya(null)
+    setDuzDosyalar([])
     setYukleniyor(false)
     notlariYukle()
   }
@@ -164,7 +168,7 @@ export default function Notlar() {
 
   const ctx = {
     acikId, setAcikId, duzenlenenId, setDuzenlenenId,
-    duzBaslik, setDuzBaslik, duzKategori, setDuzKategori, duzIcerik, setDuzIcerik, duzDosya, setDuzDosya,
+    duzBaslik, setDuzBaslik, duzKategori, setDuzKategori, duzIcerik, setDuzIcerik, duzDosyalar, setDuzDosyalar,
     duzenlemeyiAc, notGuncelle, notPaylas, notSil, arsivle, kategoriler, yukleniyor,
   }
 
@@ -198,7 +202,7 @@ export default function Notlar() {
           </div>
           
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 8 }}>
-            <input type="file" accept="image/*" onChange={(e) => setYeniDosya(e.target.files[0])} style={{ fontSize: 12, flex: 1 }} />
+            <input type="file" accept="image/*" multiple onChange={(e) => setYeniDosyalar(Array.from(e.target.files))} style={{ fontSize: 12, flex: 1 }} />
             <button className="ekle-buton-genis" onClick={notEkle} disabled={yukleniyor} style={{ opacity: yukleniyor ? 0.7 : 1 }}>
               {yukleniyor ? 'Yükleniyor...' : 'Notu kaydet'}
             </button>
@@ -260,7 +264,7 @@ export default function Notlar() {
 function NotKarti({ n, ctx }) {
   const {
     acikId, setAcikId, duzenlenenId, setDuzenlenenId,
-    duzBaslik, setDuzBaslik, duzKategori, setDuzKategori, duzIcerik, setDuzIcerik, duzDosya, setDuzDosya,
+    duzBaslik, setDuzBaslik, duzKategori, setDuzKategori, duzIcerik, setDuzIcerik, duzDosyalar, setDuzDosyalar,
     duzenlemeyiAc, notGuncelle, notPaylas, notSil, arsivle, kategoriler, yukleniyor,
   } = ctx
 
@@ -277,7 +281,7 @@ function NotKarti({ n, ctx }) {
             style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', marginBottom: 6 }} />
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 12 }}>
             <span style={{ fontSize: 12 }}>Görsel Ekle:</span>
-            <input type="file" accept="image/*" onChange={(e) => setDuzDosya(e.target.files[0])} style={{ fontSize: 12, flex: 1 }} />
+            <input type="file" accept="image/*" multiple onChange={(e) => setDuzDosyalar(Array.from(e.target.files))} style={{ fontSize: 12, flex: 1 }} />
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={() => setDuzenlenenId(null)} style={{ fontSize: 12 }} disabled={yukleniyor}>Vazgeç</button>
