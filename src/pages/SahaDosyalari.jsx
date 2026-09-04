@@ -8,13 +8,6 @@ import {
   moveToSilinenler,
 } from '../lib/googleDrive'
 
-const KATEGORILER = [
-  { id: 'projeler', ad: 'Projeler ve Çizimler' },
-  { id: 'metrajlar', ad: 'Metraj ve Hesaplar' },
-  { id: 'resmi', ad: 'Resmi Evraklar' },
-  { id: 'diger', ad: 'Diğer Saha Dosyaları' }
-]
-
 export default function SahaDosyalari() {
   const { santiyeler } = useSite()
   const { profile } = useAuth()
@@ -29,12 +22,10 @@ export default function SahaDosyalari() {
   
   // Form State (Yükleme için)
   const [hedefSantiye, setHedefSantiye] = useState('')
-  const [hedefKategori, setHedefKategori] = useState('')
   
   // Filtre ve Arama State (Tüm Evraklar)
   const [arama, setArama] = useState('')
   const [filtreSantiye, setFiltreSantiye] = useState('')
-  const [filtreKategori, setFiltreKategori] = useState('')
 
   // Klasör State (Şantiyelere Göre Klasörler)
   const [seciliSantiyeKlasoru, setSeciliSantiyeKlasoru] = useState(null)
@@ -87,15 +78,15 @@ export default function SahaDosyalari() {
   const dosyalariSistemeEkle = async (yeniDosyalar) => {
     const yuklenecekSantiye = aktifSekme === 'klasorler' && seciliSantiyeKlasoru ? seciliSantiyeKlasoru : hedefSantiye
     
-    if (!yuklenecekSantiye || !hedefKategori) {
-      alert('Lütfen dosya yüklemeden önce hedef Şantiye ve Kategori seçiniz.')
+    if (!yuklenecekSantiye) {
+      alert('Lütfen dosya yüklemeden önce hedef Şantiye seçiniz.')
       return
     }
 
     setYukleniyor(true)
     const santiyeAdi = santiyeler.find(s => s.id === yuklenecekSantiye)?.ad || 'Santiye'
-    const kategoriAdi = KATEGORILER.find(k => k.id === hedefKategori)?.ad || hedefKategori
-    const driveFolderName = `SahaDosyalari/${santiyeAdi}/${kategoriAdi}`
+    // Artık kategori yok, doğrudan şantiye klasörüne yüklüyoruz
+    const driveFolderName = `SahaDosyalari/${santiyeAdi}`
 
     let basariliSayisi = 0
 
@@ -113,7 +104,7 @@ export default function SahaDosyalari() {
         await supabase.from('drive_dosyalar').insert({
           santiye_id: yuklenecekSantiye,
           sayfa_turu: 'saha',
-          klasor_yolu: hedefKategori, // Kategori bilgisini klasör yolu olarak tutuyoruz
+          klasor_yolu: 'Genel', // Kategori kaldırıldı, DB boş kalmasın diye 'Genel' atıyoruz
           dosya_adi: file.name,
           dosya_url: driveSonuc.url,
           dosya_tipi: ext,
@@ -143,8 +134,7 @@ export default function SahaDosyalari() {
 
     try {
       const santiyeAdi = santiyeler.find(s => s.id === dosya.santiye_id)?.ad || 'Santiye'
-      const kategoriAdi = KATEGORILER.find(k => k.id === dosya.klasor_yolu)?.ad || dosya.klasor_yolu
-      await moveToSilinenler(dosya.dosya_url, `Silinenler/SahaDosyalari/${santiyeAdi}/${kategoriAdi}`)
+      await moveToSilinenler(dosya.dosya_url, `Silinenler/SahaDosyalari/${santiyeAdi}`)
 
       const { error } = await supabase.from('drive_dosyalar').delete().eq('id', dosya.id)
       if (error) throw error
@@ -179,16 +169,6 @@ export default function SahaDosyalari() {
     return '📄'
   }
 
-  const kategoriDegistir = async (dosyaId, yeniKategori) => {
-    try {
-      const { error } = await supabase.from('drive_dosyalar').update({ klasor_yolu: yeniKategori }).eq('id', dosyaId)
-      if (error) throw error
-      dosyalariYukle()
-    } catch (err) {
-      alert('Kategori güncellenirken hata oluştu: ' + err.message)
-    }
-  }
-
   // --- LİSTE FİLTRELEME ---
   let gosterilecekDosyalar = dosyalar
 
@@ -196,7 +176,6 @@ export default function SahaDosyalari() {
     gosterilecekDosyalar = gosterilecekDosyalar.filter(d => {
       let uyuyor = true
       if (filtreSantiye && d.santiye_id !== filtreSantiye) uyuyor = false
-      if (filtreKategori && d.klasor_yolu !== filtreKategori) uyuyor = false
       if (arama && !d.dosya_adi.toLowerCase().includes(arama.toLowerCase())) uyuyor = false
       return uyuyor
     })
@@ -238,17 +217,8 @@ export default function SahaDosyalari() {
                   value={hedefSantiye} onChange={(e) => setHedefSantiye(e.target.value)}
                   style={{ width: '100%', padding: '10px 12px', fontSize: 13, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', outline: 'none' }}
                 >
-                  <option value="">1. Şantiye Seçin...</option>
+                  <option value="">Hedef Şantiye Seçin...</option>
                   {santiyeler.map(s => <option key={s.id} value={s.id}>{s.ad}</option>)}
-                </select>
-              </div>
-              <div style={{ flex: '1 1 200px' }}>
-                <select 
-                  value={hedefKategori} onChange={(e) => setHedefKategori(e.target.value)}
-                  style={{ width: '100%', padding: '10px 12px', fontSize: 13, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', outline: 'none' }}
-                >
-                  <option value="">2. Kategori Seçin...</option>
-                  {KATEGORILER.map(k => <option key={k.id} value={k.id}>{k.ad}</option>)}
                 </select>
               </div>
             </div>
@@ -261,7 +231,7 @@ export default function SahaDosyalari() {
                 borderRadius: 12, padding: '24px 16px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s'
               }}
               onClick={() => {
-                if (!hedefSantiye || !hedefKategori) alert('Lütfen önce şantiye ve kategori seçin.')
+                if (!hedefSantiye) alert('Lütfen önce şantiye seçin.')
                 else if (!yukleniyor) dosyaInputRef.current?.click()
               }}
             >
@@ -289,10 +259,6 @@ export default function SahaDosyalari() {
             <select value={filtreSantiye} onChange={(e) => setFiltreSantiye(e.target.value)} style={{ flex: '1 1 140px', padding: '10px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 13 }}>
               <option value="">Tüm Şantiyeler</option>
               {santiyeler.map(s => <option key={s.id} value={s.id}>{s.ad}</option>)}
-            </select>
-            <select value={filtreKategori} onChange={(e) => setFiltreKategori(e.target.value)} style={{ flex: '1 1 140px', padding: '10px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 13 }}>
-              <option value="">Tüm Kategoriler</option>
-              {KATEGORILER.map(k => <option key={k.id} value={k.id}>{k.ad}</option>)}
             </select>
           </div>
         </>
@@ -332,15 +298,6 @@ export default function SahaDosyalari() {
             <>
               <div style={{ background: '#f8f9fa', border: '1px solid #e5e7eb', borderRadius: 12, padding: '16px', marginBottom: 20 }}>
                 <p style={{ margin: '0 0 12px 0', fontSize: 14, fontWeight: 700, color: '#374151' }}>Bu Şantiyeye Dosya Yükle</p>
-                <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                  <select 
-                    value={hedefKategori} onChange={(e) => setHedefKategori(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', fontSize: 13, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', outline: 'none' }}
-                  >
-                    <option value="">Yükleme Kategorisi Seçin...</option>
-                    {KATEGORILER.map(k => <option key={k.id} value={k.id}>{k.ad}</option>)}
-                  </select>
-                </div>
                 <div 
                   onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}
                   style={{ 
@@ -349,8 +306,7 @@ export default function SahaDosyalari() {
                     borderRadius: 12, padding: '24px 16px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s'
                   }}
                   onClick={() => {
-                    if (!hedefKategori) alert('Lütfen kategori seçin.')
-                    else if (!yukleniyor) dosyaInputRef.current?.click()
+                    if (!yukleniyor) dosyaInputRef.current?.click()
                   }}
                 >
                   {yukleniyor ? (
@@ -388,7 +344,6 @@ export default function SahaDosyalari() {
           >
             {gosterilecekDosyalar.map((d) => {
               const bSantiye = santiyeler.find(s => s.id === d.santiye_id)?.ad || 'Bilinmeyen'
-              const bKategori = KATEGORILER.find(k => k.id === d.klasor_yolu)?.ad || d.klasor_yolu
               
               return (
                 <div key={d.id} style={{ background: '#fff', border: '1px solid #f3f4f6', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
@@ -399,7 +354,6 @@ export default function SahaDosyalari() {
                       
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 4 }}>
                         <span style={{ fontSize: 10, fontWeight: 600, background: '#EFF6FF', color: '#2563EB', padding: '2px 8px', borderRadius: 10 }}>📍 {bSantiye}</span>
-                        <span style={{ fontSize: 10, fontWeight: 600, background: '#F3F4F6', color: '#4B5563', padding: '2px 8px', borderRadius: 10 }}>🏷️ {bKategori}</span>
                       </div>
                       
                       <p style={{ margin: 0, fontSize: 11, color: '#9CA3AF' }}>
@@ -414,15 +368,8 @@ export default function SahaDosyalari() {
                       <button onClick={() => dosyaPaylas(d)} style={{ background: '#ECFDF5', color: '#10B981', border: 'none', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Paylaş</button>
                     </div>
                     {yonetici && (
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <select 
-                          value={d.klasor_yolu} 
-                          onChange={(e) => kategoriDegistir(d.id, e.target.value)}
-                          style={{ flex: 1, padding: '4px', fontSize: 11, borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', maxWidth: 90 }}
-                        >
-                          {KATEGORILER.map(k => <option key={k.id} value={k.id}>{k.ad}</option>)}
-                        </select>
-                        <button onClick={(e) => dosyaSil(d, e)} style={{ background: '#FEF2F2', color: '#EF4444', border: 'none', padding: '4px 8px', borderRadius: 6, fontSize: 11, cursor: 'pointer', flexShrink: 0 }}>Sil</button>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <button onClick={(e) => dosyaSil(d, e)} style={{ background: '#FEF2F2', color: '#EF4444', border: 'none', padding: '4px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer', flexShrink: 0 }}>Sil</button>
                       </div>
                     )}
                   </div>
