@@ -44,6 +44,9 @@ export default function GunlukRapor() {
   const [yeniFotograflar, setYeniFotograflar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(false)
 
+  const [duzenlenenId, setDuzenlenenId] = useState(null)
+  const [duzAlanlar, setDuzAlanlar] = useState({ malzeme: '', ekipman: '', yapilan_is: '', diger: '', sorunlar: '' })
+
   useEffect(() => {
     if (aktifSantiye) setYeniSantiyeId(aktifSantiye.id)
   }, [aktifSantiye])
@@ -117,25 +120,40 @@ export default function GunlukRapor() {
     raporlariYukle()
   }
 
-  const raporSil = async (id) => {
-    if (!window.confirm('Bu raporu silmek istediğinize emin misiniz?')) return
-    
-    // Fotoğrafları silinenlere taşı
-    const { data: fotolar } = await supabase.from('gunluk_rapor_fotograflari').select('*').eq('rapor_id', id)
-    if (fotolar && fotolar.length > 0) {
-      const r = raporlar.find((x) => x.id === id)
-      const s = santiyeler.find((x) => x.id === (r ? r.santiye_id : null))
-      const folderName = `GunlukRapor/${s ? s.ad : 'Genel'}`
-      
-      for (const foto of fotolar) {
-        if (isGoogleDriveUrl(foto.url) || String(foto.url).match(/^[a-zA-Z0-9_-]{25,}$/)) {
-          await moveToSilinenler(foto.url, folderName)
-        }
-      }
-    }
+  const raporDuzenlemeyiAc = (r) => {
+    setDuzenlenenId(r.id)
+    setDuzAlanlar({
+      malzeme: r.malzeme || '',
+      ekipman: r.ekipman || '',
+      yapilan_is: r.yapilan_is || '',
+      diger: r.diger || '',
+      sorunlar: r.sorunlar || ''
+    })
+  }
 
-    await supabase.from('gunluk_raporlar').delete().eq('id', id)
+  const raporGuncelle = async (id) => {
+    setYukleniyor(true)
+    const { error } = await supabase.from('gunluk_raporlar').update({
+      malzeme: duzAlanlar.malzeme,
+      ekipman: duzAlanlar.ekipman,
+      yapilan_is: duzAlanlar.yapilan_is,
+      diger: duzAlanlar.diger,
+      sorunlar: duzAlanlar.sorunlar,
+    }).eq('id', id)
+    
+    if (error) { alert('Rapor güncellenemedi: ' + error.message); setYukleniyor(false); return }
+    
+    setDuzenlenenId(null)
+    setYukleniyor(false)
     raporlariYukle()
+  }
+
+  const canEdit = (r) => {
+    if (profile?.sistem_yoneticisi || profile?.rol === 'yonetici') return true;
+    const raporTarihGunu = new Date(r.tarih).getTime();
+    const bugunGunu = new Date(bugun()).getTime();
+    const farkGun = Math.floor((bugunGunu - raporTarihGunu) / (1000 * 3600 * 24));
+    return farkGun >= 0 && farkGun <= 2;
   }
 
   // WhatsApp ile Çoklu Görsel ve Metin Paylaşım Fonksiyonu
@@ -315,35 +333,33 @@ export default function GunlukRapor() {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
                     Paylaş
                   </button>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); raporSil(r.id) }} 
-                    style={{ 
-                      padding: '6px 10px', 
-                      background: '#fff', 
-                      border: '1px solid rgba(214, 69, 69, 0.2)', 
-                      borderRadius: 8, 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: 4, 
-                      cursor: 'pointer', 
-                      color: '#D64545', 
-                      fontWeight: 700,
-                      fontSize: 11,
-                      boxShadow: '0 2px 4px rgba(214, 69, 69, 0.05)', 
-                      transition: 'all 0.2s' 
-                    }}
-                    title="Sil"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                    Sil
-                  </button>
+                  {canEdit(r) && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); raporDuzenlemeyiAc(r) }} 
+                      style={{ 
+                        padding: '6px 10px', 
+                        background: '#fff', 
+                        border: '1px solid rgba(29, 149, 150, 0.2)', 
+                        borderRadius: 8, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 4, 
+                        cursor: 'pointer', 
+                        color: '#1D9596', 
+                        fontWeight: 700,
+                        fontSize: 11,
+                        boxShadow: '0 2px 4px rgba(29, 149, 150, 0.05)', 
+                        transition: 'all 0.2s' 
+                      }}
+                      title="Düzenle"
+                    >
+                      ✎ Düzenle
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {detayAcikId === r.id && (
+              {detayAcikId === r.id && duzenlenenId !== r.id && (
                 <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.04)' }}>
                   {ALANLAR.map((a) => r[a.anahtar] && (
                     <div key={a.anahtar} style={{ marginBottom: 12, background: '#f8f7f2', padding: 10, borderRadius: 8, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.02)' }}>
@@ -360,6 +376,37 @@ export default function GunlukRapor() {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {duzenlenenId === r.id && (
+                <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.04)' }}>
+                  {ALANLAR.map((a) => (
+                    <div key={a.anahtar} style={{ marginBottom: 12 }}>
+                      <label style={{ fontSize: 12, color: '#555', fontWeight: 600 }}>{a.simge} {a.etiket}</label>
+                      <textarea
+                        value={duzAlanlar[a.anahtar]}
+                        onChange={(e) => setDuzAlanlar((o) => ({ ...o, [a.anahtar]: e.target.value }))}
+                        rows={2}
+                        style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', marginTop: 4, outline: 'none' }}
+                      />
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
+                    <button 
+                      onClick={() => setDuzenlenenId(null)}
+                      style={{ padding: '8px 12px', background: '#f4f3ed', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 8, color: '#555', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      İptal
+                    </button>
+                    <button 
+                      onClick={() => raporGuncelle(r.id)} 
+                      disabled={yukleniyor}
+                      style={{ padding: '8px 12px', background: 'linear-gradient(135deg, #24b8b9, #1D9596)', color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', opacity: yukleniyor ? 0.7 : 1 }}
+                    >
+                      {yukleniyor ? 'Kaydediliyor...' : 'Kaydet'}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
