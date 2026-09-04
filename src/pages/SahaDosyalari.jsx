@@ -30,6 +30,10 @@ export default function SahaDosyalari() {
   // Klasör State (Şantiyelere Göre Klasörler)
   const [seciliSantiyeKlasoru, setSeciliSantiyeKlasoru] = useState(null)
   
+  // Not Ekleme State
+  const [duzenlenenNotId, setDuzenlenenNotId] = useState(null)
+  const [geciciNot, setGeciciNot] = useState('')
+  
   const dosyaInputRef = useRef(null)
   
   const yonetici = profile?.rol === 'yonetici' || profile?.rol === 'koordinator' || profile?.sistem_yoneticisi
@@ -160,13 +164,11 @@ export default function SahaDosyalari() {
     }
   }
 
-  const notDuzenle = async (dosya) => {
-    const yeniNot = window.prompt('Dosya için not/açıklama giriniz:', dosya.aciklama || '')
-    if (yeniNot === null) return
-    
+  const notKaydet = async (dosyaId) => {
     try {
-      const { error } = await supabase.from('drive_dosyalar').update({ aciklama: yeniNot }).eq('id', dosya.id)
+      const { error } = await supabase.from('drive_dosyalar').update({ aciklama: geciciNot }).eq('id', dosyaId)
       if (error) throw error
+      setDuzenlenenNotId(null)
       dosyalariYukle()
     } catch (err) {
       alert('Not kaydedilirken bir hata oluştu: ' + err.message)
@@ -372,10 +374,24 @@ export default function SahaDosyalari() {
                       <p style={{ margin: 0, fontSize: 11, color: '#9CA3AF' }}>
                         Yükleyen: <strong style={{ color: '#6B7280' }}>{d.profiles?.ad_soyad}</strong> · {new Date(d.created_at).toLocaleDateString('tr-TR')}
                       </p>
-                      {d.aciklama && (
-                        <p style={{ margin: '6px 0 0', fontSize: 12, color: '#4B5563', fontStyle: 'italic', background: '#F9FAFB', padding: '6px 8px', borderRadius: 6, borderLeft: '3px solid #1D9596' }}>
-                          {d.aciklama}
-                        </p>
+                      {duzenlenenNotId === d.id ? (
+                        <div style={{ marginTop: 8, display: 'flex', gap: 6, width: '100%' }}>
+                          <input 
+                            type="text" value={geciciNot} onChange={(e) => setGeciciNot(e.target.value)} 
+                            placeholder="Notunuzu yazın..."
+                            style={{ flex: 1, padding: '6px 10px', fontSize: 12, borderRadius: 6, border: '1px solid #1D9596', outline: 'none' }}
+                            autoFocus
+                            onKeyDown={(e) => { if (e.key === 'Enter') notKaydet(d.id) }}
+                          />
+                          <button onClick={() => notKaydet(d.id)} style={{ background: '#1D9596', color: '#fff', border: 'none', padding: '4px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>Kaydet</button>
+                          <button onClick={() => setDuzenlenenNotId(null)} style={{ background: '#F3F4F6', color: '#4B5563', border: 'none', padding: '4px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>İptal</button>
+                        </div>
+                      ) : (
+                        d.aciklama && (
+                          <p style={{ margin: '6px 0 0', fontSize: 12, color: '#4B5563', fontStyle: 'italic', background: '#F9FAFB', padding: '6px 8px', borderRadius: 6, borderLeft: '3px solid #1D9596' }}>
+                            {d.aciklama}
+                          </p>
+                        )
                       )}
                     </div>
                   </div>
@@ -387,7 +403,11 @@ export default function SahaDosyalari() {
                     </div>
                     {yonetici && (
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        <button onClick={() => notDuzenle(d)} style={{ background: '#FFFBEB', color: '#D97706', border: 'none', padding: '4px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer', flexShrink: 0 }}>Not Ekle</button>
+                        {duzenlenenNotId !== d.id && (
+                          <button onClick={() => { setDuzenlenenNotId(d.id); setGeciciNot(d.aciklama || '') }} style={{ background: '#FFFBEB', color: '#D97706', border: 'none', padding: '4px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer', flexShrink: 0 }}>
+                            {d.aciklama ? 'Notu Düzenle' : 'Not Ekle'}
+                          </button>
+                        )}
                         <button onClick={(e) => dosyaSil(d, e)} style={{ background: '#FEF2F2', color: '#EF4444', border: 'none', padding: '4px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer', flexShrink: 0 }}>Sil</button>
                       </div>
                     )}
