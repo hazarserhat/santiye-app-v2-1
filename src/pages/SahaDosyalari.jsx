@@ -177,6 +177,16 @@ export default function SahaDosyalari() {
     return '📄'
   }
 
+  const kategoriDegistir = async (dosyaId, yeniKategori) => {
+    try {
+      const { error } = await supabase.from('drive_dosyalar').update({ klasor_yolu: yeniKategori }).eq('id', dosyaId)
+      if (error) throw error
+      dosyalariYukle()
+    } catch (err) {
+      alert('Kategori güncellenirken hata oluştu: ' + err.message)
+    }
+  }
+
   // --- LİSTE FİLTRELEME ---
   let gosterilecekDosyalar = dosyalar
 
@@ -323,7 +333,19 @@ export default function SahaDosyalari() {
             />
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div 
+            onDragOver={aktifSekme === 'tum' ? handleDragOver : undefined}
+            onDragLeave={aktifSekme === 'tum' ? handleDragLeave : undefined}
+            onDrop={aktifSekme === 'tum' ? handleDrop : undefined}
+            style={{ 
+              display: 'flex', flexDirection: 'column', gap: 10, 
+              minHeight: 200, 
+              background: surukleniyor && aktifSekme === 'tum' ? '#E0F2FE' : 'transparent',
+              borderRadius: 12,
+              padding: surukleniyor && aktifSekme === 'tum' ? 10 : 0,
+              transition: 'all 0.2s'
+            }}
+          >
             {gosterilecekDosyalar.map((d) => {
               const bSantiye = santiyeler.find(s => s.id === d.santiye_id)?.ad || 'Bilinmeyen'
               const bKategori = KATEGORILER.find(k => k.id === d.klasor_yolu)?.ad || d.klasor_yolu
@@ -352,7 +374,16 @@ export default function SahaDosyalari() {
                       <button onClick={() => dosyaPaylas(d)} style={{ background: '#ECFDF5', color: '#10B981', border: 'none', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Paylaş</button>
                     </div>
                     {yonetici && (
-                      <button onClick={(e) => dosyaSil(d, e)} style={{ background: '#FEF2F2', color: '#EF4444', border: 'none', padding: '4px', borderRadius: 6, fontSize: 11, cursor: 'pointer', width: '100%' }}>Sil</button>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <select 
+                          value={d.klasor_yolu} 
+                          onChange={(e) => kategoriDegistir(d.id, e.target.value)}
+                          style={{ flex: 1, padding: '4px', fontSize: 11, borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', maxWidth: 90 }}
+                        >
+                          {KATEGORILER.map(k => <option key={k.id} value={k.id}>{k.ad}</option>)}
+                        </select>
+                        <button onClick={(e) => dosyaSil(d, e)} style={{ background: '#FEF2F2', color: '#EF4444', border: 'none', padding: '4px 8px', borderRadius: 6, fontSize: 11, cursor: 'pointer', flexShrink: 0 }}>Sil</button>
+                      </div>
                     )}
                   </div>
                 </div>
