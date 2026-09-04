@@ -20,7 +20,6 @@ export default function Notlar() {
   const [yeniIcerik, setYeniIcerik] = useState('')
   const [yeniDosyalar, setYeniDosyalar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(false)
-  const [dinliyor, setDinliyor] = useState(false)
 
   const [duzenlenenId, setDuzenlenenId] = useState(null)
   const [duzBaslik, setDuzBaslik] = useState('')
@@ -144,17 +143,6 @@ export default function Notlar() {
     }
   }
 
-  const sesleYaz = () => {
-    const Tanima = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!Tanima) { alert('Tarayıcınız sesli girişi desteklemiyor.'); return }
-    const tanima = new Tanima()
-    tanima.lang = 'tr-TR'
-    tanima.onresult = (e) => setYeniIcerik((onceki) => onceki + e.results[0][0].transcript)
-    tanima.onstart = () => setDinliyor(true)
-    tanima.onend = () => setDinliyor(false)
-    tanima.start()
-  }
-
   const kullanilanKategoriler = [...new Set(notlar.map((n) => n.kategori).filter(Boolean))]
 
   const gorunenler = notlar
@@ -198,12 +186,22 @@ export default function Notlar() {
               rows={3}
               style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical' }}
             />
-            <button className="mikrofon-buton" onClick={sesleYaz} type="button">{dinliyor ? '●' : '🎤'}</button>
           </div>
           
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 8 }}>
-            <input type="file" accept="image/*" multiple onChange={(e) => setYeniDosyalar(Array.from(e.target.files))} style={{ fontSize: 12, flex: 1 }} />
-            <button className="ekle-buton-genis" onClick={notEkle} disabled={yukleniyor} style={{ opacity: yukleniyor ? 0.7 : 1 }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flex: 1 }}>
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 12px', background: '#e2e0d8', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#333' }}>
+                📷 Görsel Ekle
+                <input type="file" accept="image/*" multiple onChange={(e) => setYeniDosyalar(Array.from(e.target.files))} style={{ display: 'none' }} />
+              </label>
+              {yeniDosyalar.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#555' }}>
+                  <span>{yeniDosyalar.length} dosya</span>
+                  <button onClick={() => setYeniDosyalar([])} style={{ background: 'none', border: 'none', color: '#D64545', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+                </div>
+              )}
+            </div>
+            <button className="ekle-buton-genis" onClick={notEkle} disabled={yukleniyor} style={{ opacity: yukleniyor ? 0.7 : 1, margin: 0, width: 'auto' }}>
               {yukleniyor ? 'Yükleniyor...' : 'Notu kaydet'}
             </button>
           </div>
@@ -279,9 +277,17 @@ function NotKarti({ n, ctx }) {
           </datalist>
           <textarea value={duzIcerik} onChange={(e) => setDuzIcerik(e.target.value)} rows={3}
             style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', marginBottom: 6 }} />
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 12 }}>
-            <span style={{ fontSize: 12 }}>Görsel Ekle:</span>
-            <input type="file" accept="image/*" multiple onChange={(e) => setDuzDosyalar(Array.from(e.target.files))} style={{ fontSize: 12, flex: 1 }} />
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px 12px', background: '#e2e0d8', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#333' }}>
+              📷 Görsel Ekle
+              <input type="file" accept="image/*" multiple onChange={(e) => setDuzDosyalar(Array.from(e.target.files))} style={{ display: 'none' }} />
+            </label>
+            {duzDosyalar.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#555' }}>
+                <span>{duzDosyalar.length} dosya</span>
+                <button onClick={() => setDuzDosyalar([])} style={{ background: 'none', border: 'none', color: '#D64545', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={() => setDuzenlenenId(null)} style={{ fontSize: 12 }} disabled={yukleniyor}>Vazgeç</button>
