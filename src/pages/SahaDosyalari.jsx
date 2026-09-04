@@ -160,6 +160,19 @@ export default function SahaDosyalari() {
     }
   }
 
+  const notDuzenle = async (dosya) => {
+    const yeniNot = window.prompt('Dosya için not/açıklama giriniz:', dosya.aciklama || '')
+    if (yeniNot === null) return
+    
+    try {
+      const { error } = await supabase.from('drive_dosyalar').update({ aciklama: yeniNot }).eq('id', dosya.id)
+      if (error) throw error
+      dosyalariYukle()
+    } catch (err) {
+      alert('Not kaydedilirken bir hata oluştu: ' + err.message)
+    }
+  }
+
   const getDosyaIkon = (tip) => {
     if (['pdf'].includes(tip)) return '📕'
     if (['dwg', 'dxf', 'rvt'].includes(tip)) return '📐'
@@ -359,6 +372,11 @@ export default function SahaDosyalari() {
                       <p style={{ margin: 0, fontSize: 11, color: '#9CA3AF' }}>
                         Yükleyen: <strong style={{ color: '#6B7280' }}>{d.profiles?.ad_soyad}</strong> · {new Date(d.created_at).toLocaleDateString('tr-TR')}
                       </p>
+                      {d.aciklama && (
+                        <p style={{ margin: '6px 0 0', fontSize: 12, color: '#4B5563', fontStyle: 'italic', background: '#F9FAFB', padding: '6px 8px', borderRadius: 6, borderLeft: '3px solid #1D9596' }}>
+                          {d.aciklama}
+                        </p>
+                      )}
                     </div>
                   </div>
                   
@@ -369,6 +387,7 @@ export default function SahaDosyalari() {
                     </div>
                     {yonetici && (
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <button onClick={() => notDuzenle(d)} style={{ background: '#FFFBEB', color: '#D97706', border: 'none', padding: '4px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer', flexShrink: 0 }}>Not Ekle</button>
                         <button onClick={(e) => dosyaSil(d, e)} style={{ background: '#FEF2F2', color: '#EF4444', border: 'none', padding: '4px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer', flexShrink: 0 }}>Sil</button>
                       </div>
                     )}
