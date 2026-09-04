@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { paraFormatla } from '../lib/format'
 
 const SAYFALAR = [
+  { yol: '/yonetim/proje-dosyalari', ad: 'Proje & Yönetim Dosyaları', aciklama: 'Sözleşme, vekalet, harita arşivi' },
   { yol: '/yonetim/santiyeler', ad: 'Şantiye Yönetimi', aciklama: 'Ekleme / düzenleme / silme' },
   { yol: '/yonetim/cek-takip', ad: 'Çek Takip Sayfası', aciklama: 'Sıralanabilir/filtrelenebilir tablo' },
   { yol: '/yonetim/teminatlar/banka', ad: 'Banka Teminat Mektupları', aciklama: '' },

@@ -23,6 +23,8 @@ import SantiyeAdresleri from './pages/yonetim/SantiyeAdresleri'
 import YarisiBizden from './pages/yonetim/YarisiBizden'
 import ProjeGelirleri from './pages/yonetim/ProjeGelirleri'
 import KrediKartlari from './pages/KrediKartlari'
+import SahaDosyalari from './pages/SahaDosyalari'
+import ProjeDosyalari from './pages/ProjeDosyalari'
 
 function YonetimKoruma({ children }) {
   const { profile } = useAuth()
@@ -82,6 +84,9 @@ function IcerikAlani() {
             <Route path="/yonetim/yarisi-bizden" element={<YonetimKoruma><YarisiBizden /></YonetimKoruma>} />
             <Route path="/yonetim/proje-gelirleri" element={<YonetimKoruma><ProjeGelirleri /></YonetimKoruma>} />
             <Route path="/yonetim/kredi-kartlari" element={<YonetimKoruma><KrediKartlari /></YonetimKoruma>} />
+            <Route path="/yonetim/proje-dosyalari" element={<YonetimKoruma><ProjeDosyalari /></YonetimKoruma>} />
+            
+            <Route path="/saha-dosyalari" element={<SahaDosyalari />} />
           </Routes>
         </main>
 

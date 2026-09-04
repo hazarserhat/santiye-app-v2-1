@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 const OGELER = [
+  { yol: '/saha-dosyalari', etiket: 'Drive', simge: '📁' },
   { yol: '/gorevler', etiket: 'Görevler', simge: '✓' },
   { yol: '/masraflar', etiket: 'Giderler', simge: '₺' },
   { yol: '/gelirler', etiket: 'Gelirler', simge: '💰', ozelRol: true },
