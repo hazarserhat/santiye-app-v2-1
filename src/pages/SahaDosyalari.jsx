@@ -85,13 +85,15 @@ export default function SahaDosyalari() {
   }
 
   const dosyalariSistemeEkle = async (yeniDosyalar) => {
-    if (!hedefSantiye || !hedefKategori) {
+    const yuklenecekSantiye = aktifSekme === 'klasorler' && seciliSantiyeKlasoru ? seciliSantiyeKlasoru : hedefSantiye
+    
+    if (!yuklenecekSantiye || !hedefKategori) {
       alert('Lütfen dosya yüklemeden önce hedef Şantiye ve Kategori seçiniz.')
       return
     }
 
     setYukleniyor(true)
-    const santiyeAdi = santiyeler.find(s => s.id === hedefSantiye)?.ad || 'Santiye'
+    const santiyeAdi = santiyeler.find(s => s.id === yuklenecekSantiye)?.ad || 'Santiye'
     const kategoriAdi = KATEGORILER.find(k => k.id === hedefKategori)?.ad || hedefKategori
     const driveFolderName = `SahaDosyalari/${santiyeAdi}/${kategoriAdi}`
 
@@ -109,7 +111,7 @@ export default function SahaDosyalari() {
         })
 
         await supabase.from('drive_dosyalar').insert({
-          santiye_id: hedefSantiye,
+          santiye_id: yuklenecekSantiye,
           sayfa_turu: 'saha',
           klasor_yolu: hedefKategori, // Kategori bilgisini klasör yolu olarak tutuyoruz
           dosya_adi: file.name,
@@ -327,22 +329,60 @@ export default function SahaDosyalari() {
           )}
 
           {aktifSekme === 'klasorler' && seciliSantiyeKlasoru && (
-             <input 
-              type="text" placeholder="Bu şantiyede ara..." value={arama} onChange={(e) => setArama(e.target.value)}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 13, outline: 'none', marginBottom: 16 }}
-            />
+            <>
+              <div style={{ background: '#f8f9fa', border: '1px solid #e5e7eb', borderRadius: 12, padding: '16px', marginBottom: 20 }}>
+                <p style={{ margin: '0 0 12px 0', fontSize: 14, fontWeight: 700, color: '#374151' }}>Bu Şantiyeye Dosya Yükle</p>
+                <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                  <select 
+                    value={hedefKategori} onChange={(e) => setHedefKategori(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', fontSize: 13, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', outline: 'none' }}
+                  >
+                    <option value="">Yükleme Kategorisi Seçin...</option>
+                    {KATEGORILER.map(k => <option key={k.id} value={k.id}>{k.ad}</option>)}
+                  </select>
+                </div>
+                <div 
+                  onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}
+                  style={{ 
+                    background: surukleniyor ? '#E0F2FE' : '#fff', 
+                    border: `2px dashed ${surukleniyor ? '#3B82F6' : '#d1d5db'}`, 
+                    borderRadius: 12, padding: '24px 16px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s'
+                  }}
+                  onClick={() => {
+                    if (!hedefKategori) alert('Lütfen kategori seçin.')
+                    else if (!yukleniyor) dosyaInputRef.current?.click()
+                  }}
+                >
+                  {yukleniyor ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 24 }}>⏳</span>
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#1D9596' }}>Dosyalar Yükleniyor...</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 28 }}>📥</span>
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#4B5563' }}>Dosyaları buraya sürükleyin veya <span style={{ color: '#1D9596' }}>tıklayın</span></p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <input 
+                type="text" placeholder="Bu şantiyede ara..." value={arama} onChange={(e) => setArama(e.target.value)}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 13, outline: 'none', marginBottom: 16 }}
+              />
+            </>
           )}
 
           <div 
-            onDragOver={aktifSekme === 'tum' ? handleDragOver : undefined}
-            onDragLeave={aktifSekme === 'tum' ? handleDragLeave : undefined}
-            onDrop={aktifSekme === 'tum' ? handleDrop : undefined}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
             style={{ 
               display: 'flex', flexDirection: 'column', gap: 10, 
               minHeight: 200, 
-              background: surukleniyor && aktifSekme === 'tum' ? '#E0F2FE' : 'transparent',
+              background: surukleniyor ? '#E0F2FE' : 'transparent',
               borderRadius: 12,
-              padding: surukleniyor && aktifSekme === 'tum' ? 10 : 0,
+              padding: surukleniyor ? 10 : 0,
               transition: 'all 0.2s'
             }}
           >
