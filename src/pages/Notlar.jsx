@@ -56,7 +56,11 @@ export default function Notlar() {
             adSoyad: profile?.ad_soyad || 'Kullanici'
           })
           const dosyaLink = result.directUrl || result.url
-          eklenenIcerik += `\n\n![Görsel](${dosyaLink})`
+          if (dosya.type.startsWith('image/')) {
+            eklenenIcerik += `\n\n![Görsel](${dosyaLink})`
+          } else {
+            eklenenIcerik += `\n\n[📄 ${dosya.name}](${dosyaLink})`
+          }
         } catch (err) {
           alert('Görsel yüklenemedi: ' + err.message)
           setYukleniyor(false)
@@ -100,7 +104,11 @@ export default function Notlar() {
             adSoyad: profile?.ad_soyad || 'Kullanici'
           })
           const dosyaLink = result.directUrl || result.url
-          eklenenIcerik += `\n\n![Görsel](${dosyaLink})`
+          if (dosya.type.startsWith('image/')) {
+            eklenenIcerik += `\n\n![Görsel](${dosyaLink})`
+          } else {
+            eklenenIcerik += `\n\n[📄 ${dosya.name}](${dosyaLink})`
+          }
         } catch (err) {
           alert('Görsel yüklenemedi: ' + err.message)
           setYukleniyor(false)
@@ -191,8 +199,8 @@ export default function Notlar() {
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', flex: 1 }}>
               <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 12px', background: '#e2e0d8', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#333' }}>
-                📷 Görsel Ekle
-                <input type="file" accept="image/*" multiple onChange={(e) => setYeniDosyalar(Array.from(e.target.files))} style={{ display: 'none' }} />
+                📎 Dosya/Görsel Ekle
+                <input type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" multiple onChange={(e) => setYeniDosyalar(Array.from(e.target.files))} style={{ display: 'none' }} />
               </label>
               {yeniDosyalar.length > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#555' }}>
@@ -279,8 +287,8 @@ function NotKarti({ n, ctx }) {
             style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', marginBottom: 6 }} />
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
             <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px 12px', background: '#e2e0d8', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#333' }}>
-              📷 Görsel Ekle
-              <input type="file" accept="image/*" multiple onChange={(e) => setDuzDosyalar(Array.from(e.target.files))} style={{ display: 'none' }} />
+              📎 Dosya/Görsel Ekle
+              <input type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" multiple onChange={(e) => setDuzDosyalar(Array.from(e.target.files))} style={{ display: 'none' }} />
             </label>
             {duzDosyalar.length > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#555' }}>
@@ -313,11 +321,25 @@ function NotKarti({ n, ctx }) {
           {acikId === n.id && (
             <>
               {(() => {
-                const textIcerik = n.icerik.replace(/!\[.*?\]\((.*?)\)/g, '').trim()
-                const gorselUrller = [...n.icerik.matchAll(/!\[.*?\]\((.*?)\)/g)].map(m => m[1])
+                const textIcerik = n.icerik.replace(/!?\[.*?\]\((.*?)\)/g, '').trim()
+                const butunLinkler = [...n.icerik.matchAll(/(!?)\[(.*?)\]\((.*?)\)/g)]
+                const gorselUrller = butunLinkler.filter(m => m[1] === '!').map(m => m[3])
+                const dosyaLinkleri = butunLinkler.filter(m => m[1] === '').map(m => ({ ad: m[2], url: m[3] }))
+
                 return (
                   <div style={{ marginTop: 8 }}>
-                    {textIcerik && <p className="not-icerik" style={{ whiteSpace: 'pre-wrap', marginBottom: gorselUrller.length > 0 ? 12 : 0 }}>{textIcerik}</p>}
+                    {textIcerik && <p className="not-icerik" style={{ whiteSpace: 'pre-wrap', marginBottom: (gorselUrller.length > 0 || dosyaLinkleri.length > 0) ? 12 : 0 }}>{textIcerik}</p>}
+                    
+                    {dosyaLinkleri.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8, marginBottom: 8 }}>
+                        {dosyaLinkleri.map((dosya, i) => (
+                          <a key={i} href={dosya.url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', padding: '8px 12px', background: '#f5f4f0', borderRadius: 6, textDecoration: 'none', color: '#333', fontSize: 13, border: '1px solid #e2e0d8', width: 'fit-content' }}>
+                            {dosya.ad}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+
                     {gorselUrller.length > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
                         {gorselUrller.map((url, i) => (
