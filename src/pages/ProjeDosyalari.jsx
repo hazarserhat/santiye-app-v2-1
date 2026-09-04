@@ -8,54 +8,48 @@ import {
   moveToSilinenler,
 } from '../lib/googleDrive'
 
-const YONETIM_KLASORLERI = [
-  { id: 'sozlesmeler', ad: 'Sözleşmeler', ikon: '🤝', renk: '#3B82F6', bg: '#EFF6FF' },
-  { id: 'vekaletler', ad: 'Vekaletler', ikon: '📜', renk: '#8B5CF6', bg: '#F5F3FF' },
-  { id: 'harita', ad: 'Harita Evrakları', ikon: '🗺️', renk: '#10B981', bg: '#ECFDF5' },
-  { id: 'diger_proje', ad: 'Diğer', ikon: '📁', renk: '#6B7280', bg: '#F3F4F6' },
-]
-
 export default function ProjeDosyalari() {
-  const { aktifSantiye, santiyeler } = useSite()
+  const { santiyeler } = useSite()
   const { profile } = useAuth()
   
-  const [seciliSantiyeId, setSeciliSantiyeId] = useState('')
-  const [aktifKlasor, setAktifKlasor] = useState(null)
-  const [arama, setArama] = useState('')
+  // UI State
+  const [aktifSekme, setAktifSekme] = useState('tum') // 'tum' veya 'klasorler'
   
+  // Data State
   const [dosyalar, setDosyalar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(false)
   const [surukleniyor, setSurukleniyor] = useState(false)
+  
+  // Form State (Yükleme için)
+  const [hedefSantiye, setHedefSantiye] = useState('')
+  
+  // Filtre ve Arama State (Tüm Evraklar)
+  const [arama, setArama] = useState('')
+  const [filtreSantiye, setFiltreSantiye] = useState('')
+
+  // Klasör State (Şantiyelere Göre Klasörler)
+  const [seciliSantiyeKlasoru, setSeciliSantiyeKlasoru] = useState(null)
+  
+  // Not Ekleme State
+  const [duzenlenenNotId, setDuzenlenenNotId] = useState(null)
+  const [geciciNot, setGeciciNot] = useState('')
   
   const dosyaInputRef = useRef(null)
   
   const yonetici = profile?.rol === 'yonetici' || profile?.rol === 'koordinator' || profile?.sistem_yoneticisi
 
+  // Sadece tüm proje dosyalarını çeker
   useEffect(() => {
-    if (aktifSantiye) setSeciliSantiyeId(aktifSantiye.id)
-  }, [aktifSantiye])
-
-  useEffect(() => {
-    if (seciliSantiyeId) {
-      dosyalariYukle()
-    } else {
-      setDosyalar([])
-    }
-  }, [seciliSantiyeId, aktifKlasor])
+    dosyalariYukle()
+  }, [])
 
   const dosyalariYukle = async () => {
-    let sorgu = supabase
+    const { data, error } = await supabase
       .from('drive_dosyalar')
       .select('*, profiles(ad_soyad)')
-      .eq('santiye_id', seciliSantiyeId)
       .eq('sayfa_turu', 'proje')
       .order('created_at', { ascending: false })
 
-    if (aktifKlasor) {
-      sorgu = sorgu.eq('klasor_yolu', aktifKlasor)
-    }
-
-    const { data, error } = await sorgu
     if (error) {
       console.error('Dosyalar yüklenirken hata:', error.message)
     } else {
@@ -63,11 +57,7 @@ export default function ProjeDosyalari() {
     }
   }
 
-  const klasorSec = (klasorId) => {
-    setAktifKlasor(klasorId)
-    setArama('')
-  }
-
+  // --- SÜRÜKLE BIRAK OLAYLARI ---
   const handleDragOver = (e) => {
     e.preventDefault()
     setSurukleniyor(true)
@@ -90,15 +80,17 @@ export default function ProjeDosyalari() {
   }
 
   const dosyalariSistemeEkle = async (yeniDosyalar) => {
-    if (!seciliSantiyeId || !aktifKlasor) {
-      alert('Lütfen önce bir şantiye ve klasör seçin.')
+    const yuklenecekSantiye = aktifSekme === 'klasorler' && seciliSantiyeKlasoru ? seciliSantiyeKlasoru : hedefSantiye
+    
+    if (!yuklenecekSantiye) {
+      alert('Lütfen dosya yüklemeden önce hedef Şantiye seçiniz.')
       return
     }
 
     setYukleniyor(true)
-    const santiyeAdi = santiyeler.find(s => s.id === seciliSantiyeId)?.ad || 'Santiye'
-    const klasorAdi = YONETIM_KLASORLERI.find(k => k.id === aktifKlasor)?.ad || aktifKlasor
-    const driveFolderName = `ProjeDosyalari/${santiyeAdi}/${klasorAdi}`
+    const santiyeAdi = santiyeler.find(s => s.id === yuklenecekSantiye)?.ad || 'Santiye'
+    // Doğrudan şantiye klasörüne yüklüyoruz
+    const driveFolderName = `ProjeDosyalari/${santiyeAdi}`
 
     let basariliSayisi = 0
 
@@ -114,9 +106,9 @@ export default function ProjeDosyalari() {
         })
 
         await supabase.from('drive_dosyalar').insert({
-          santiye_id: seciliSantiyeId,
+          santiye_id: yuklenecekSantiye,
           sayfa_turu: 'proje',
-          klasor_yolu: aktifKlasor,
+          klasor_yolu: 'Genel', 
           dosya_adi: file.name,
           dosya_url: driveSonuc.url,
           dosya_tipi: ext,
@@ -125,7 +117,7 @@ export default function ProjeDosyalari() {
         basariliSayisi++
       } catch (err) {
         console.error('Dosya yükleme hatası:', file.name, err)
-        alert(`${file.name} yüklenirken hata oluştu: ${err.message}`)
+        alert(`${file.name} yüklenirken hata: ${err.message}`)
       }
     }
 
@@ -145,9 +137,8 @@ export default function ProjeDosyalari() {
     if (!window.confirm(`"${dosya.dosya_adi}" dosyasını silmek istediğinize emin misiniz?`)) return
 
     try {
-      const santiyeAdi = santiyeler.find(s => s.id === seciliSantiyeId)?.ad || 'Santiye'
-      const klasorAdi = YONETIM_KLASORLERI.find(k => k.id === aktifKlasor)?.ad || aktifKlasor
-      await moveToSilinenler(dosya.dosya_url, `Silinenler/ProjeDosyalari/${santiyeAdi}/${klasorAdi}`)
+      const santiyeAdi = santiyeler.find(s => s.id === dosya.santiye_id)?.ad || 'Santiye'
+      await moveToSilinenler(dosya.dosya_url, `Silinenler/ProjeDosyalari/${santiyeAdi}`)
 
       const { error } = await supabase.from('drive_dosyalar').delete().eq('id', dosya.id)
       if (error) throw error
@@ -161,18 +152,26 @@ export default function ProjeDosyalari() {
   const dosyaPaylas = async (d) => {
     try {
       const gDriveLink = getGoogleDriveViewUrl(d.dosya_url)
-      const metin = `📄 *Proje/Resmi Dosya*\n*Dosya:* ${d.dosya_adi}\n*Bağlantı:* ${gDriveLink}`
+      const metin = `📄 *Proje & Yönetim Dosyası*\n*Dosya:* ${d.dosya_adi}\n*Bağlantı:* ${gDriveLink}`
       
       if (navigator.share) {
-        await navigator.share({
-          title: d.dosya_adi,
-          text: metin,
-        })
+        await navigator.share({ title: d.dosya_adi, text: metin })
       } else {
         window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
       }
     } catch (err) {
       console.error('Paylaşım hatası:', err)
+    }
+  }
+
+  const notKaydet = async (dosyaId) => {
+    try {
+      const { error } = await supabase.from('drive_dosyalar').update({ aciklama: geciciNot }).eq('id', dosyaId)
+      if (error) throw error
+      setDuzenlenenNotId(null)
+      dosyalariYukle()
+    } catch (err) {
+      alert('Not kaydedilirken bir hata oluştu: ' + err.message)
     }
   }
 
@@ -185,176 +184,248 @@ export default function ProjeDosyalari() {
     return '📄'
   }
 
-  const filtreliDosyalar = dosyalar.filter(d => {
-    if (!arama) return true
-    return d.dosya_adi.toLowerCase().includes(arama.toLowerCase()) || 
-           (d.etiketler && d.etiketler.toLowerCase().includes(arama.toLowerCase()))
-  })
+  // --- LİSTE FİLTRELEME ---
+  let gosterilecekDosyalar = dosyalar
+
+  if (aktifSekme === 'tum') {
+    gosterilecekDosyalar = gosterilecekDosyalar.filter(d => {
+      let uyuyor = true
+      if (filtreSantiye && d.santiye_id !== filtreSantiye) uyuyor = false
+      if (arama && !d.dosya_adi.toLowerCase().includes(arama.toLowerCase())) uyuyor = false
+      return uyuyor
+    })
+  } else if (aktifSekme === 'klasorler' && seciliSantiyeKlasoru) {
+    gosterilecekDosyalar = gosterilecekDosyalar.filter(d => {
+      let uyuyor = d.santiye_id === seciliSantiyeKlasoru
+      if (arama && !d.dosya_adi.toLowerCase().includes(arama.toLowerCase())) uyuyor = false
+      return uyuyor
+    })
+  }
 
   return (
     <div className="sayfa">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8 }}>
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, color: '#3B82F6', letterSpacing: '-0.2px' }}>
           Proje & Yönetim Dosyaları
         </h2>
       </div>
 
-      <div style={{ background: '#f8f9fa', padding: '12px', borderRadius: 12, boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.03)', marginBottom: 16 }}>
-        <label style={{ fontSize: 11, fontWeight: 700, color: '#555', display: 'block', marginBottom: 4 }}>Şantiye Seçimi</label>
-        <select 
-          value={seciliSantiyeId} 
-          onChange={(e) => { setSeciliSantiyeId(e.target.value); setAktifKlasor(null) }} 
-          style={{ width: '100%', padding: '10px 12px', fontSize: 13, borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.03)', outline: 'none' }}
-        >
-          <option value="">Şantiye seçin...</option>
-          {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
-        </select>
+      {/* SEKMELER */}
+      <div className="gorunum-secici" style={{ marginBottom: 16 }}>
+        <button className={aktifSekme === 'tum' ? 'secili-tab proje-tab' : ''} onClick={() => { setAktifSekme('tum'); setArama('') }}>
+          Tüm Evraklar
+        </button>
+        <button className={aktifSekme === 'klasorler' ? 'secili-tab proje-tab' : ''} onClick={() => { setAktifSekme('klasorler'); setSeciliSantiyeKlasoru(null); setArama('') }}>
+          Şantiye Klasörleri
+        </button>
       </div>
 
-      {!seciliSantiyeId ? (
-        <p className="bos-mesaj">Lütfen bir şantiye seçin.</p>
-      ) : !aktifKlasor ? (
-        <div>
-          <p style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#333' }}>Klasörler</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
-            {YONETIM_KLASORLERI.map(klasor => (
-              <div 
-                key={klasor.id} 
-                onClick={() => klasorSec(klasor.id)}
-                style={{ 
-                  background: klasor.bg, 
-                  border: `1px solid ${klasor.renk}30`, 
-                  borderRadius: 16, 
-                  padding: '20px 16px', 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  textAlign: 'center'
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.06)' }}
-                onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.03)' }}
-              >
-                <span style={{ fontSize: 32, marginBottom: 8 }}>{klasor.ikon}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: klasor.renk, lineHeight: 1.2 }}>{klasor.ad}</span>
+      <style>{`
+        .proje-tab {
+          background-color: #3B82F6 !important;
+          color: white !important;
+          border-color: #3B82F6 !important;
+        }
+      `}</style>
+
+      {/* AKTİF SEKME: TÜM EVRAKLAR */}
+      {aktifSekme === 'tum' && (
+        <>
+          {/* YÜKLEME ALANI */}
+          <div style={{ background: '#f8f9fa', border: '1px solid #e5e7eb', borderRadius: 12, padding: '16px', marginBottom: 20 }}>
+            <p style={{ margin: '0 0 12px 0', fontSize: 14, fontWeight: 700, color: '#374151' }}>Yeni Dosya Yükle</p>
+            <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 200px' }}>
+                <select 
+                  value={hedefSantiye} onChange={(e) => setHedefSantiye(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', fontSize: 13, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', outline: 'none' }}
+                >
+                  <option value="">Hedef Şantiye Seçin...</option>
+                  {santiyeler.map(s => <option key={s.id} value={s.id}>{s.ad}</option>)}
+                </select>
               </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <button 
-              onClick={() => setAktifKlasor(null)}
-              style={{ padding: '6px 10px', background: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 8, cursor: 'pointer', color: '#555', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+            </div>
+            
+            <div 
+              onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}
+              style={{ 
+                background: surukleniyor ? '#EFF6FF' : '#fff', 
+                border: `2px dashed ${surukleniyor ? '#3B82F6' : '#d1d5db'}`, 
+                borderRadius: 12, padding: '24px 16px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s'
+              }}
+              onClick={() => {
+                if (!hedefSantiye) alert('Lütfen önce şantiye seçin.')
+                else if (!yukleniyor) dosyaInputRef.current?.click()
+              }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-              Geri
-            </button>
-            <span style={{ fontSize: 14, fontWeight: 600, color: '#333' }}>
-              / {YONETIM_KLASORLERI.find(k => k.id === aktifKlasor)?.ad}
-            </span>
+              {yukleniyor ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 24 }}>⏳</span>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#3B82F6' }}>Dosyalar Yükleniyor...</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 28 }}>📥</span>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#4B5563' }}>Dosyaları buraya sürükleyin veya <span style={{ color: '#3B82F6' }}>tıklayın</span></p>
+                </div>
+              )}
+              <input type="file" multiple hidden ref={dosyaInputRef} onChange={handleFileInput} disabled={yukleniyor} />
+            </div>
           </div>
+
+          {/* FİLTRE VE ARAMA */}
+          <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+            <input 
+              type="text" placeholder="Dosya adı ara..." value={arama} onChange={(e) => setArama(e.target.value)}
+              style={{ flex: '1 1 200px', padding: '10px 14px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 13, outline: 'none' }}
+            />
+            <select value={filtreSantiye} onChange={(e) => setFiltreSantiye(e.target.value)} style={{ flex: '1 1 140px', padding: '10px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 13 }}>
+              <option value="">Tüm Şantiyeler</option>
+              {santiyeler.map(s => <option key={s.id} value={s.id}>{s.ad}</option>)}
+            </select>
+          </div>
+        </>
+      )}
+
+      {/* AKTİF SEKME: KLASÖRLER (KÖK) */}
+      {aktifSekme === 'klasorler' && !seciliSantiyeKlasoru && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
+          {santiyeler.map(s => (
+            <div 
+              key={s.id} onClick={() => setSeciliSantiyeKlasoru(s.id)}
+              style={{ 
+                background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 16, padding: '24px 16px', 
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', textAlign: 'center'
+              }}
+            >
+              <span style={{ fontSize: 36, marginBottom: 8 }}>📁</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#334155', lineHeight: 1.2 }}>{s.ad}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* KLASÖR İÇİ VEYA TÜM EVRAKLAR LİSTESİ */}
+      {(aktifSekme === 'tum' || seciliSantiyeKlasoru) && (
+        <div>
+          {aktifSekme === 'klasorler' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <button onClick={() => setSeciliSantiyeKlasoru(null)} style={{ padding: '6px 12px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>Geri</button>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#374151' }}>
+                📁 {santiyeler.find(s => s.id === seciliSantiyeKlasoru)?.ad}
+              </span>
+            </div>
+          )}
+
+          {aktifSekme === 'klasorler' && seciliSantiyeKlasoru && (
+            <>
+              <div style={{ background: '#f8f9fa', border: '1px solid #e5e7eb', borderRadius: 12, padding: '16px', marginBottom: 20 }}>
+                <p style={{ margin: '0 0 12px 0', fontSize: 14, fontWeight: 700, color: '#374151' }}>Bu Şantiyeye Dosya Yükle</p>
+                <div 
+                  onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}
+                  style={{ 
+                    background: surukleniyor ? '#EFF6FF' : '#fff', 
+                    border: `2px dashed ${surukleniyor ? '#3B82F6' : '#d1d5db'}`, 
+                    borderRadius: 12, padding: '24px 16px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s'
+                  }}
+                  onClick={() => {
+                    if (!yukleniyor) dosyaInputRef.current?.click()
+                  }}
+                >
+                  {yukleniyor ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 24 }}>⏳</span>
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#3B82F6' }}>Dosyalar Yükleniyor...</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 28 }}>📥</span>
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#4B5563' }}>Dosyaları buraya sürükleyin veya <span style={{ color: '#3B82F6' }}>tıklayın</span></p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <input 
+                type="text" placeholder="Bu şantiyede ara..." value={arama} onChange={(e) => setArama(e.target.value)}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 13, outline: 'none', marginBottom: 16 }}
+              />
+            </>
+          )}
 
           <div 
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             style={{ 
-              background: surukleniyor ? '#E0F2FE' : '#fcfcf9', 
-              border: `2px dashed ${surukleniyor ? '#3B82F6' : 'rgba(0,0,0,0.15)'}`, 
-              borderRadius: 16, 
-              padding: '24px 16px', 
-              textAlign: 'center',
-              marginBottom: 20,
-              transition: 'all 0.2s',
-              cursor: 'pointer'
+              display: 'flex', flexDirection: 'column', gap: 10, 
+              minHeight: 200, 
+              background: surukleniyor ? '#EFF6FF' : 'transparent',
+              borderRadius: 12,
+              padding: surukleniyor ? 10 : 0,
+              transition: 'all 0.2s'
             }}
-            onClick={() => !yukleniyor && dosyaInputRef.current?.click()}
           >
-            {yukleniyor ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 24 }}>⏳</span>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#3B82F6' }}>Dosyalar Yükleniyor... Lütfen bekleyin.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 32 }}>📥</span>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#555' }}>
-                  Dosyaları buraya sürükleyin veya <span style={{ color: '#3B82F6', textDecoration: 'underline' }}>seçmek için tıklayın</span>
-                </p>
-                <p style={{ margin: 0, fontSize: 11, color: '#888' }}>Çoklu dosya (PDF, DWG, Görsel vb.) seçebilirsiniz</p>
-              </div>
-            )}
-            <input 
-              type="file" 
-              multiple 
-              hidden 
-              ref={dosyaInputRef} 
-              onChange={handleFileInput} 
-              disabled={yukleniyor}
-            />
-          </div>
-
-          <input 
-            type="text" 
-            placeholder="Bu klasörde dosya ara..." 
-            value={arama} 
-            onChange={(e) => setArama(e.target.value)} 
-            style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.02)', fontSize: 13, outline: 'none', marginBottom: 16 }}
-          />
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {filtreliDosyalar.map((d) => (
-              <div key={d.id} style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.04)', borderRadius: 12, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, boxShadow: '0 4px 10px rgba(0,0,0,0.02)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: 24 }}>{getDosyaIkon(d.dosya_tipi)}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: '0 0 2px', fontSize: 14, fontWeight: 700, color: '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.dosya_adi}</p>
-                    <p style={{ margin: 0, fontSize: 11, color: '#888' }}>
-                      Yükleyen: {d.profiles?.ad_soyad || 'Bilinmiyor'} · {new Date(d.created_at).toLocaleDateString('tr-TR')}
-                    </p>
+            {gosterilecekDosyalar.map((d) => {
+              const bSantiye = santiyeler.find(s => s.id === d.santiye_id)?.ad || 'Bilinmeyen'
+              
+              return (
+                <div key={d.id} style={{ background: '#fff', border: '1px solid #f3f4f6', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: 24, marginTop: 2 }}>{getDosyaIkon(d.dosya_tipi)}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700, color: '#1f2937', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.dosya_adi}</p>
+                      
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 4 }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, background: '#EFF6FF', color: '#2563EB', padding: '2px 8px', borderRadius: 10 }}>📍 {bSantiye}</span>
+                      </div>
+                      
+                      <p style={{ margin: 0, fontSize: 11, color: '#9CA3AF' }}>
+                        Yükleyen: <strong style={{ color: '#6B7280' }}>{d.profiles?.ad_soyad}</strong> · {new Date(d.created_at).toLocaleDateString('tr-TR')}
+                      </p>
+                      {duzenlenenNotId === d.id ? (
+                        <div style={{ marginTop: 8, display: 'flex', gap: 6, width: '100%' }}>
+                          <input 
+                            type="text" value={geciciNot} onChange={(e) => setGeciciNot(e.target.value)} 
+                            placeholder="Notunuzu yazın..."
+                            style={{ flex: 1, padding: '6px 10px', fontSize: 12, borderRadius: 6, border: '1px solid #3B82F6', outline: 'none' }}
+                            autoFocus
+                            onKeyDown={(e) => { if (e.key === 'Enter') notKaydet(d.id) }}
+                          />
+                          <button onClick={() => notKaydet(d.id)} style={{ background: '#3B82F6', color: '#fff', border: 'none', padding: '4px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>Kaydet</button>
+                          <button onClick={() => setDuzenlenenNotId(null)} style={{ background: '#F3F4F6', color: '#4B5563', border: 'none', padding: '4px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>İptal</button>
+                        </div>
+                      ) : (
+                        d.aciklama && (
+                          <p style={{ margin: '6px 0 0', fontSize: 12, color: '#4B5563', fontStyle: 'italic', background: '#F9FAFB', padding: '6px 8px', borderRadius: 6, borderLeft: '3px solid #3B82F6' }}>
+                            {d.aciklama}
+                          </p>
+                        )
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <a href={getGoogleDriveViewUrl(d.dosya_url)} target="_blank" rel="noopener noreferrer" style={{ background: '#F0F9FF', color: '#0284C7', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>Aç</a>
+                      <button onClick={() => dosyaPaylas(d)} style={{ background: '#ECFDF5', color: '#10B981', border: 'none', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Paylaş</button>
+                    </div>
+                    {yonetici && (
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        {duzenlenenNotId !== d.id && (
+                          <button onClick={() => { setDuzenlenenNotId(d.id); setGeciciNot(d.aciklama || '') }} style={{ background: '#FFFBEB', color: '#D97706', border: 'none', padding: '4px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer', flexShrink: 0 }}>
+                            {d.aciklama ? 'Notu Düzenle' : 'Not Ekle'}
+                          </button>
+                        )}
+                        <button onClick={(e) => dosyaSil(d, e)} style={{ background: '#FEF2F2', color: '#EF4444', border: 'none', padding: '4px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer', flexShrink: 0 }}>Sil</button>
+                      </div>
+                    )}
                   </div>
                 </div>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  <a 
-                    href={getGoogleDriveViewUrl(d.dosya_url)} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ background: '#F0F9FF', color: '#0284C7', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                    Aç
-                  </a>
-                  
-                  <button 
-                    onClick={() => dosyaPaylas(d)}
-                    style={{ background: '#ECFDF5', color: '#10B981', border: 'none', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-                    Paylaş
-                  </button>
-
-                  {yonetici && (
-                    <button 
-                      onClick={(e) => dosyaSil(d, e)}
-                      style={{ background: '#FEF2F2', color: '#EF4444', border: 'none', padding: '6px', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      title="Sil"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              )
+            })}
             
-            {filtreliDosyalar.length === 0 && (
-              <p className="bos-mesaj">Bu klasörde henüz dosya yok.</p>
+            {gosterilecekDosyalar.length === 0 && (
+              <p className="bos-mesaj">Evrak bulunamadı.</p>
             )}
           </div>
         </div>
