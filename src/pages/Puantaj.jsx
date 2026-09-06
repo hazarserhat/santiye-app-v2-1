@@ -51,6 +51,7 @@ function PuantajKayitEkleme() {
   const [yeniTaseronId, setYeniTaseronId] = useState('')
   const [yeniSantiyeId, setYeniSantiyeId] = useState('')
   const [yeniCalisanAdi, setYeniCalisanAdi] = useState({}) // { taseronId: metin }
+  const [yeniCalisanSifat, setYeniCalisanSifat] = useState({}) // { taseronId: metin }
 
   useEffect(() => {
     // Sadece puantajda gösterilecek taşeronları yükle
@@ -111,11 +112,14 @@ function PuantajKayitEkleme() {
 
   const calisanEkle = async (taseronId, santiyeId) => {
     const ad = (yeniCalisanAdi[taseronId] || '').trim().toLocaleUpperCase('tr-TR')
+    const sifat = (yeniCalisanSifat[taseronId] || '').trim().toLocaleUpperCase('tr-TR')
     if (!ad) return
-    const { data, error } = await supabase.from('taseron_calisanlari').insert({ taseron_id: taseronId, santiye_id: santiyeId, ad_soyad: ad }).select().single()
+    const tamAd = sifat ? `${ad} (${sifat})` : ad
+    const { data, error } = await supabase.from('taseron_calisanlari').insert({ taseron_id: taseronId, santiye_id: santiyeId, ad_soyad: tamAd }).select().single()
     if (error) { alert('Çalışan eklenemedi: ' + error.message); return }
     setCalisanlar((onceki) => [...onceki, data])
     setYeniCalisanAdi((onceki) => ({ ...onceki, [taseronId]: '' }))
+    setYeniCalisanSifat((onceki) => ({ ...onceki, [taseronId]: '' }))
   }
 
   const satirSil = async (id) => {
@@ -186,9 +190,17 @@ function PuantajKayitEkleme() {
               <div style={{ marginTop: 16, borderTop: '1px dashed rgba(0,0,0,0.08)', paddingTop: 16, display: 'flex', gap: 8 }}>
                 <input
                   type="text"
-                  placeholder="Hızlıca yeni çalışan ekle..."
+                  placeholder="İsim soyisim..."
                   value={yeniCalisanAdi[k.taseron_id] || ''}
                   onChange={(e) => setYeniCalisanAdi((o) => ({ ...o, [k.taseron_id]: e.target.value.toLocaleUpperCase('tr-TR') }))}
+                  onKeyDown={(e) => e.key === 'Enter' && calisanEkle(k.taseron_id, k.santiye_id)}
+                  style={{ flex: 2, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#f8f7f2', fontSize: 13, outline: 'none' }}
+                />
+                <input
+                  type="text"
+                  placeholder="Sıfat/Görev..."
+                  value={yeniCalisanSifat[k.taseron_id] || ''}
+                  onChange={(e) => setYeniCalisanSifat((o) => ({ ...o, [k.taseron_id]: e.target.value.toLocaleUpperCase('tr-TR') }))}
                   onKeyDown={(e) => e.key === 'Enter' && calisanEkle(k.taseron_id, k.santiye_id)}
                   style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#f8f7f2', fontSize: 13, outline: 'none' }}
                 />
@@ -326,9 +338,9 @@ function PuantajTakvimGozlem() {
         <div style={{ marginTop: 24, padding: 20, background: 'linear-gradient(to bottom, #ffffff, #fcfcf9)', borderRadius: 16, border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
           <h3 style={{ margin: '0 0 16px', fontSize: 18, color: '#1D9596', fontWeight: 700, borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: 12 }}>{tarihGoster(seciliGun)} Detayları</h3>
           
-          <div style={{ display: 'flex', gap: 20, overflowX: 'auto', paddingBottom: 10 }}>
+          <div style={{ display: 'flex', gap: 20, flexDirection: 'column', paddingBottom: 10 }}>
             {/* Şantiyeler */}
-            <div style={{ flexShrink: 0, width: 250 }}>
+            <div>
               <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.5px' }}>1. Şantiye Seçin</p>
               {gununSantiyeleri.map(sId => {
                 const sAd = santiyeler.find(s => s.id === sId)?.ad || 'Bilinmeyen Şantiye'
@@ -344,7 +356,7 @@ function PuantajTakvimGozlem() {
 
             {/* Taşeronlar */}
             {seciliSantiye && (
-              <div style={{ flexShrink: 0, width: 250, borderLeft: '1px dashed rgba(0,0,0,0.1)', paddingLeft: 20 }}>
+              <div style={{ borderTop: '1px dashed rgba(0,0,0,0.1)', paddingTop: 20 }}>
                 <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.5px' }}>2. Taşeron Seçin</p>
                 {gununTaseronlari.map(tId => {
                   const tAd = taseronIsimleri[tId] || 'Bilinmeyen Taşeron'
@@ -360,7 +372,7 @@ function PuantajTakvimGozlem() {
 
             {/* İşçiler */}
             {seciliTaseron && (
-              <div style={{ flexShrink: 0, width: 250, borderLeft: '1px dashed rgba(0,0,0,0.1)', paddingLeft: 20 }}>
+              <div style={{ borderTop: '1px dashed rgba(0,0,0,0.1)', paddingTop: 20 }}>
                 <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.5px' }}>3. İşe Gelenler</p>
                 <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                   {gununCalisanlari.map((cId, idx) => (
@@ -399,7 +411,7 @@ function PuantajToplam() {
   const [yukleniyor, setYukleniyor] = useState(false)
 
   useEffect(() => {
-    supabase.from('taseronlar').select('*').order('ad').then(({ data }) => setTaseronlar(data || []))
+    supabase.from('taseronlar').select('*').neq('puantajda_goster', false).order('ad').then(({ data }) => setTaseronlar(data || []))
   }, [])
 
   useEffect(() => {
@@ -567,7 +579,7 @@ function PuantajCalisanRapor() {
   const [yukleniyor, setYukleniyor] = useState(false)
 
   useEffect(() => {
-    supabase.from('taseronlar').select('*').order('ad').then(({ data }) => setTaseronlar(data || []))
+    supabase.from('taseronlar').select('*').neq('puantajda_goster', false).order('ad').then(({ data }) => setTaseronlar(data || []))
   }, [])
 
   useEffect(() => {
@@ -752,9 +764,10 @@ function PuantajCalisanKayit() {
   const [taseronId, setTaseronId] = useState('')
   const [calisanlar, setCalisanlar] = useState([])
   const [yeniAd, setYeniAd] = useState('')
+  const [yeniSifat, setYeniSifat] = useState('')
 
   useEffect(() => {
-    supabase.from('taseronlar').select('*').order('ad').then(({ data }) => setTaseronlar(data || []))
+    supabase.from('taseronlar').select('*').neq('puantajda_goster', false).order('ad').then(({ data }) => setTaseronlar(data || []))
   }, [])
 
   useEffect(() => {
@@ -774,10 +787,13 @@ function PuantajCalisanKayit() {
 
   const calisanEkle = async () => {
     const ad = yeniAd.trim().toLocaleUpperCase('tr-TR')
+    const sifat = yeniSifat.trim().toLocaleUpperCase('tr-TR')
     if (!ad) return
-    const { data, error } = await supabase.from('taseron_calisanlari').insert({ taseron_id: taseronId, santiye_id: santiyeId, ad_soyad: ad }).select().single()
+    const tamAd = sifat ? `${ad} (${sifat})` : ad
+    const { data, error } = await supabase.from('taseron_calisanlari').insert({ taseron_id: taseronId, santiye_id: santiyeId, ad_soyad: tamAd }).select().single()
     if (error) { alert('Eklenemedi: ' + error.message); return }
     setYeniAd('')
+    setYeniSifat('')
     calisanlariYukle()
   }
 
@@ -807,9 +823,10 @@ function PuantajCalisanKayit() {
 
         {taseronId && (
           <>
-            <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: '#5F5E5A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>3. İsim Ekleyin</p>
+            <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: '#5F5E5A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>3. İsim ve Meslek Ekleyin</p>
             <div style={{ display: 'flex', gap: 10 }}>
-              <input type="text" placeholder="Ad Soyad..." value={yeniAd} onChange={(e) => setYeniAd(e.target.value.toLocaleUpperCase('tr-TR'))} onKeyDown={(e) => e.key === 'Enter' && calisanEkle()} style={{ flex: 1, padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', fontSize: 13, textTransform: 'uppercase', outline: 'none', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }} />
+              <input type="text" placeholder="Ad Soyad..." value={yeniAd} onChange={(e) => setYeniAd(e.target.value.toLocaleUpperCase('tr-TR'))} onKeyDown={(e) => e.key === 'Enter' && calisanEkle()} style={{ flex: 2, padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', fontSize: 13, textTransform: 'uppercase', outline: 'none', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }} />
+              <input type="text" placeholder="Sıfat/Görev..." value={yeniSifat} onChange={(e) => setYeniSifat(e.target.value.toLocaleUpperCase('tr-TR'))} onKeyDown={(e) => e.key === 'Enter' && calisanEkle()} style={{ flex: 1, padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', fontSize: 13, textTransform: 'uppercase', outline: 'none', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }} />
               <button onClick={calisanEkle} style={{ width: 'auto', padding: '12px 24px', background: 'linear-gradient(135deg, #1D9596, #117575)', color: '#fff', borderRadius: 12, fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 4px 10px rgba(29, 149, 150, 0.3)', whiteSpace: 'nowrap' }}>Listeye Ekle</button>
             </div>
           </>
