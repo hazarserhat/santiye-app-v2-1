@@ -322,8 +322,11 @@ function PuantajTakvim() {
 function PuantajToplam() {
   const { santiyeler } = useSite()
   const [taseronlar, setTaseronlar] = useState([])
-  const [donem, setDonem] = useState('gunluk') // 'gunluk' | 'aylik' | 'tum'
+  const [donem, setDonem] = useState('gunluk') // 'gunluk' | 'aylik' | 'aralik' | 'tum'
   const [tarih, setTarih] = useState(bugun())
+  const [basTarih, setBasTarih] = useState(bugun())
+  const [bitTarih, setBitTarih] = useState(bugun())
+  const [aramaIsim, setAramaIsim] = useState('')
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreTaseron, setFiltreTaseron] = useState('hepsi')
   const [filtreAcik, setFiltreAcik] = useState(false)
@@ -339,7 +342,7 @@ function PuantajToplam() {
 
   useEffect(() => {
     raporuYukle()
-  }, [donem, tarih, filtreSantiye, filtreTaseron])
+  }, [donem, tarih, basTarih, bitTarih, filtreSantiye, filtreTaseron])
 
   const raporuYukle = async () => {
     setYukleniyor(true)
@@ -353,6 +356,9 @@ function PuantajToplam() {
       const sonrakiAy = gunEkle(ilkGun, 32).slice(0, 8) + '01'
       sorgu = sorgu.gte('tarih', ilkGun).lt('tarih', sonrakiAy)
       ckSorgu = ckSorgu.gte('tarih', ilkGun).lt('tarih', sonrakiAy)
+    } else if (donem === 'aralik') {
+      sorgu = sorgu.gte('tarih', basTarih).lte('tarih', bitTarih)
+      ckSorgu = ckSorgu.gte('tarih', basTarih).lte('tarih', bitTarih)
     }
     if (filtreSantiye !== 'hepsi') { sorgu = sorgu.eq('santiye_id', filtreSantiye); ckSorgu = ckSorgu.eq('santiye_id', filtreSantiye) }
     if (filtreTaseron !== 'hepsi') { sorgu = sorgu.eq('taseron_id', filtreTaseron); ckSorgu = ckSorgu.eq('taseron_id', filtreTaseron) }
@@ -429,16 +435,30 @@ function PuantajToplam() {
       <div className="gorunum-secici" style={{ marginBottom: 14 }}>
         <button className={donem === 'gunluk' ? 'secili-tab' : ''} onClick={() => setDonem('gunluk')}>Günlük</button>
         <button className={donem === 'aylik' ? 'secili-tab' : ''} onClick={() => setDonem('aylik')}>Aylık</button>
+        <button className={donem === 'aralik' ? 'secili-tab' : ''} onClick={() => setDonem('aralik')}>Tarih Aralığı</button>
         <button className={donem === 'tum' ? 'secili-tab' : ''} onClick={() => setDonem('tum')}>Tümü</button>
       </div>
 
-      {donem !== 'tum' && (
+      {(donem === 'gunluk' || donem === 'aylik') && (
         <div className="tarih-gezici">
           <button onClick={() => setTarih((t) => gunEkle(t, donem === 'gunluk' ? -1 : -30))}>‹</button>
           <span style={{ textTransform: 'capitalize' }}>
             {donem === 'gunluk' ? tarihGoster(tarih) : new Date(tarih).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
           </span>
           <button onClick={() => setTarih((t) => gunEkle(t, donem === 'gunluk' ? 1 : 30))}>›</button>
+        </div>
+      )}
+
+      {donem === 'aralik' && (
+        <div className="ekleme-kutusu" style={{ display: 'flex', gap: 10, marginBottom: 14, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <div style={{ flex: 1 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Başlangıç Tarihi:</span>
+            <input type="date" value={basTarih} onChange={(e) => setBasTarih(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Bitiş Tarihi:</span>
+            <input type="date" value={bitTarih} onChange={(e) => setBitTarih(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }} />
+          </div>
         </div>
       )}
 
@@ -477,9 +497,21 @@ function PuantajToplam() {
 
       {Object.keys(calisanBazinda).length > 0 && (
         <>
-          <p className="alt-baslik">Kişi / Çalışan bazında {filtreTaseron !== 'hepsi' ? `(${taseronlar.find(t => t.id === filtreTaseron)?.ad})` : ''}</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
+            <p className="alt-baslik" style={{ margin: 0 }}>Kişi / Çalışan bazında {filtreTaseron !== 'hepsi' ? `(${taseronlar.find(t => t.id === filtreTaseron)?.ad})` : ''}</p>
+            <input 
+              type="text" 
+              placeholder="İsim ara..." 
+              value={aramaIsim} 
+              onChange={(e) => setAramaIsim(e.target.value)} 
+              style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, minWidth: '180px', flex: '1 1 180px' }}
+            />
+          </div>
           <div className="liste">
-            {Object.values(calisanBazinda).sort((a, b) => b.sayi - a.sayi).map((c) => (
+            {Object.values(calisanBazinda)
+              .filter(c => c.ad.toLowerCase().includes(aramaIsim.toLowerCase()))
+              .sort((a, b) => b.sayi - a.sayi)
+              .map((c) => (
               <div key={c.ad + c.taseron_id} className="kart" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px' }}>
                 <span style={{ fontSize: 13 }}>
                   {c.ad}
@@ -488,6 +520,9 @@ function PuantajToplam() {
                 <span style={{ fontSize: 15, fontWeight: 500, color: '#0F6E56' }}>{c.sayi} yevmiye</span>
               </div>
             ))}
+            {Object.values(calisanBazinda).filter(c => c.ad.toLowerCase().includes(aramaIsim.toLowerCase())).length === 0 && (
+              <p className="bos-mesaj">Aranan isimde kayıt bulunamadı.</p>
+            )}
           </div>
         </>
       )}
