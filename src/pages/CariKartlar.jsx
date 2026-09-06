@@ -93,6 +93,21 @@ export default function CariKartlar() {
     }
   }
 
+  const puantajGorunurlukDegistir = async (id, mevcutDurum, e) => {
+    e.stopPropagation()
+    if (!yonetici) return
+    const { error } = await supabase
+      .from('taseronlar')
+      .update({ puantajda_goster: !mevcutDurum })
+      .eq('id', id)
+
+    if (error) {
+      alert('Hata oluştu: ' + error.message)
+    } else {
+      taseronlariYukle()
+    }
+  }
+
   const taseronSil = async (id, e) => {
     e.stopPropagation()
     if (!window.confirm('Bu cari hesap kaydını ve tüm ilişkili verilerini silmek istediğinize emin misiniz?')) return
@@ -159,7 +174,7 @@ export default function CariKartlar() {
     if (!yeniAd.trim()) return
     const { data, error } = await supabase
       .from('taseronlar')
-      .insert({ ad: yeniAd, sifat: yeniSifat, firma: yeniFirma, telefon: yeniTelefon, adres: yeniAdres, sef_gorunur: true })
+      .insert({ ad: yeniAd, sifat: yeniSifat, firma: yeniFirma, telefon: yeniTelefon, adres: yeniAdres, sef_gorunur: true, puantajda_goster: true })
       .select().single()
     if (error) { alert('Taşeron eklenemedi: ' + error.message); return }
     if (data) {
@@ -664,6 +679,15 @@ export default function CariKartlar() {
                       onChange={(e) => gorunurlukDegistir(t.id, t.sef_gorunur, e)}
                       style={{ accentColor: '#1D9596' }}
                     /> <span style={{ fontSize: 10, fontWeight: 600, color: '#555' }}>Şef Görsün</span>
+                  </label>
+
+                  <label onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, background: '#f0fdf4', padding: '4px 8px', borderRadius: 8, border: '1px solid rgba(22, 163, 74, 0.2)' }}>
+                    <input
+                      type="checkbox"
+                      checked={t.puantajda_goster !== false}
+                      onChange={(e) => puantajGorunurlukDegistir(t.id, t.puantajda_goster !== false, e)}
+                      style={{ accentColor: '#16a34a' }}
+                    /> <span style={{ fontSize: 10, fontWeight: 600, color: '#16a34a' }}>Puantaj</span>
                   </label>
 
                   <button
