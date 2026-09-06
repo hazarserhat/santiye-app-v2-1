@@ -7,20 +7,29 @@ export default function CariAramaSecici({ deger, onDegisti, placeholder }) {
   const [acik, setAcik] = useState(false)
   const kutuRef = useRef(null)
 
+  const [tumCariler, setTumCariler] = useState([])
+
   useEffect(() => { setMetin(deger || '') }, [deger])
 
   useEffect(() => {
+    supabase.from('taseronlar').select('id, ad, sifat').then(({ data }) => setTumCariler(data || []))
+    
     const disaTikla = (e) => { if (kutuRef.current && !kutuRef.current.contains(e.target)) setAcik(false) }
     document.addEventListener('mousedown', disaTikla)
     return () => document.removeEventListener('mousedown', disaTikla)
   }, [])
 
-  const ara = async (yeniMetin) => {
+  const ara = (yeniMetin) => {
     setMetin(yeniMetin)
     onDegisti(yeniMetin, null)
     if (yeniMetin.trim().length < 2) { setOneriler([]); return }
-    const { data } = await supabase.from('taseronlar').select('id, ad, sifat').ilike('ad', `%${yeniMetin}%`).limit(6)
-    setOneriler(data || [])
+    
+    const aranan = yeniMetin.trim().toLocaleLowerCase('tr-TR')
+    const sonuclar = tumCariler
+      .filter(c => c.ad && c.ad.toLocaleLowerCase('tr-TR').includes(aranan))
+      .slice(0, 6)
+      
+    setOneriler(sonuclar)
     setAcik(true)
   }
 
@@ -33,20 +42,17 @@ export default function CariAramaSecici({ deger, onDegisti, placeholder }) {
   const hizliEkle = async () => {
     if (!metin.trim()) return
     
-    // Önce aynı isimde var mı diye kontrol et (mükerrer kayıt önleme)
-    const { data: mevcut } = await supabase
-      .from('taseronlar')
-      .select('id, ad')
-      .ilike('ad', metin.trim())
-      .limit(1)
+    const aranan = metin.trim().toLocaleLowerCase('tr-TR')
+    const mevcut = tumCariler.find(c => c.ad && c.ad.toLocaleLowerCase('tr-TR') === aranan)
 
-    if (mevcut && mevcut.length > 0) {
-      secimYap(mevcut[0].ad, mevcut[0].id)
+    if (mevcut) {
+      secimYap(mevcut.ad, mevcut.id)
       return
     }
 
     const { data, error } = await supabase.from('taseronlar').insert({ ad: metin.trim() }).select().single()
     if (error) { alert('Eklenemedi: ' + error.message); return }
+    setTumCariler(prev => [...prev, data])
     secimYap(data.ad, data.id)
   }
 
