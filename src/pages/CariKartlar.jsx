@@ -15,6 +15,7 @@ export default function CariKartlar() {
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [seciliId, setSeciliId] = useState(null)
   const [arama, setArama] = useState('')
+  const [aktifSekme, setAktifSekme] = useState('ana')
 
   const [notlar, setNotlar] = useState([])
   const [iliskiliSantiyeler, setIliskiliSantiyeler] = useState([])
@@ -108,9 +109,43 @@ export default function CariKartlar() {
     }
   }
 
+  const ikincilDurumDegistir = async (id, mevcutDurum, e) => {
+    e.stopPropagation()
+    if (!yonetici) return
+    const { error } = await supabase
+      .from('taseronlar')
+      .update({ ikincil: !mevcutDurum })
+      .eq('id', id)
+
+    if (error) {
+      alert('Hata oluştu: ' + error.message)
+    } else {
+      taseronlariYukle()
+    }
+  }
+
   const taseronSil = async (id, e) => {
     e.stopPropagation()
-    if (!window.confirm('Bu cari hesap kaydını ve tüm ilişkili verilerini silmek istediğinize emin misiniz?')) return
+    if (!yonetici) return
+
+    const { data: hk } = await supabase.from('hakedisler').select('id').eq('taseron_id', id).limit(1)
+    const { data: ms } = await supabase.from('masraflar').select('id').eq('cari_id', id).limit(1)
+    const { data: ck } = await supabase.from('cekler').select('id').eq('cari_id', id).limit(1)
+    const { data: gl } = await supabase.from('gelirler').select('id').eq('cari_id', id).limit(1)
+
+    const hasFinans = (hk && hk.length > 0) || (ms && ms.length > 0) || (ck && ck.length > 0) || (gl && gl.length > 0)
+
+    if (hasFinans) {
+      const uretilenKod = Math.random().toString(36).substring(2, 14).toUpperCase()
+      const girilen = window.prompt(`DİKKAT: Bu cariye ait finansal akış veya bilgi kartı bulunuyor.\nSilmek istiyorsanız aşağıdaki teyit kodunu yazın:\n\n${uretilenKod}`)
+      
+      if (girilen !== uretilenKod) {
+        alert('Girdiğiniz kod hatalı veya işlem iptal edildi.')
+        return
+      }
+    } else {
+      if (!window.confirm('Bu cari hesap kaydını ve tüm ilişkili verilerini silmek istediğinize emin misiniz?')) return
+    }
 
     const { error } = await supabase.from('taseronlar').delete().eq('id', id)
     if (error) {
@@ -605,6 +640,81 @@ export default function CariKartlar() {
     )
   }
 
+  const ORTAKLAR_ISIMLERI = ['Fuat Hazar', 'Fırat Tekstil Diyarbakır', 'Abdullah Tufan']
+  const ortaklarListesi = filtreliListe.filter(t => ORTAKLAR_ISIMLERI.includes(t.ad))
+  const digerCariler = filtreliListe.filter(t => !ORTAKLAR_ISIMLERI.includes(t.ad))
+  
+  const gosterilenCariler = aktifSekme === 'ana' 
+    ? digerCariler.filter(t => !t.ikincil)
+    : digerCariler.filter(t => t.ikincil)
+
+  const renderCariCard = (t) => (
+    <div key={t.id} onClick={() => detayYukle(t.id)} style={{ background: 'linear-gradient(to bottom, #ffffff, #fcfcf9)', border: '1px solid rgba(0,0,0,0.03)', borderRadius: 16, padding: '12px 14px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03), inset 0 2px 4px rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #1D9596, #117575)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0, boxShadow: '0 2px 6px rgba(29, 149, 150, 0.3)' }}>
+          {t.ad.slice(0, 2).toUpperCase()}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ margin: '0 0 2px', fontSize: 14, fontWeight: 700, color: '#333' }}>
+            {t.ad}
+            {t.sifat ? <span style={{ fontWeight: 500, color: '#888780', fontSize: 12 }}> · {t.sifat}</span> : ''}
+          </p>
+          <p style={{ margin: 0, fontSize: 11, color: '#555', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {(taseronSantiyeHaritasi[t.id] || []).map((sid) => santiyeler.find((s) => s.id === sid)?.ad).filter(Boolean).join(', ') || 'Şantiye ataması yok'}
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, flexShrink: 0 }}>
+        {yonetici && (
+          <>
+            <label onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, background: '#f8f7f2', padding: '4px 8px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.04)' }}>
+              <input
+                type="checkbox"
+                checked={t.sef_gorunur || false}
+                onChange={(e) => gorunurlukDegistir(t.id, t.sef_gorunur, e)}
+                style={{ accentColor: '#1D9596' }}
+              /> <span style={{ fontSize: 10, fontWeight: 600, color: '#555' }}>Şef Görsün</span>
+            </label>
+
+            <label onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, background: '#f0fdf4', padding: '4px 8px', borderRadius: 8, border: '1px solid rgba(22, 163, 74, 0.2)' }}>
+              <input
+                type="checkbox"
+                checked={t.puantajda_goster !== false}
+                onChange={(e) => puantajGorunurlukDegistir(t.id, t.puantajda_goster !== false, e)}
+                style={{ accentColor: '#16a34a' }}
+              /> <span style={{ fontSize: 10, fontWeight: 600, color: '#16a34a' }}>Puantaj</span>
+            </label>
+
+            {!ORTAKLAR_ISIMLERI.includes(t.ad) && (
+              <button
+                onClick={(e) => ikincilDurumDegistir(t.id, t.ikincil, e)}
+                style={{ background: '#fff', border: '1px solid rgba(139, 92, 246, 0.2)', borderRadius: 8, padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#8b5cf6', boxShadow: '0 2px 4px rgba(139, 92, 246, 0.05)', fontWeight: 600 }}
+                title={t.ikincil ? "Ana Listeye Al" : "İkincile Al"}
+              >
+                {t.ikincil ? "Ana Yap" : "İkincil"}
+              </button>
+            )}
+
+            <button
+              onClick={(e) => taseronSil(t.id, e)}
+              style={{ background: '#fff', border: '1px solid rgba(214, 69, 69, 0.2)', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#D64545', boxShadow: '0 2px 4px rgba(214, 69, 69, 0.05)', transition: 'all 0.2s' }}
+              title="Sil"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </>
+        )}
+        <span style={{ color: '#aaa', display: 'flex' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </span>
+      </div>
+    </div>
+  )
+
   // ---- LİSTE GÖRÜNÜMÜ ----
   return (
     <div className="sayfa">
@@ -636,6 +746,11 @@ export default function CariKartlar() {
         </div>
       </div>
 
+      <div className="gorunum-secici" style={{ marginBottom: 14, display: 'flex', gap: 8 }}>
+        <button className={aktifSekme === 'ana' ? 'secili-tab' : ''} onClick={() => setAktifSekme('ana')} style={{ flex: 1, padding: '10px', borderRadius: 8, fontWeight: 600, border: '1px solid rgba(0,0,0,0.05)', cursor: 'pointer' }}>Ana Cariler</button>
+        <button className={aktifSekme === 'ikincil' ? 'secili-tab' : ''} onClick={() => setAktifSekme('ikincil')} style={{ flex: 1, padding: '10px', borderRadius: 8, fontWeight: 600, border: '1px solid rgba(0,0,0,0.05)', cursor: 'pointer' }}>İkincil / Arşiv</button>
+      </div>
+
       <div style={{ display: 'flex', background: '#f4f3ed', padding: 4, borderRadius: 10, marginBottom: 16, boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.05)' }}>
         <button 
           onClick={() => setSiralama('alfabetik')}
@@ -651,64 +766,21 @@ export default function CariKartlar() {
         </button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {filtreliListe.map((t) => (
-          <div key={t.id} onClick={() => detayYukle(t.id)} style={{ background: 'linear-gradient(to bottom, #ffffff, #fcfcf9)', border: '1px solid rgba(0,0,0,0.03)', borderRadius: 16, padding: '12px 14px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03), inset 0 2px 4px rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #1D9596, #117575)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0, boxShadow: '0 2px 6px rgba(29, 149, 150, 0.3)' }}>
-                {t.ad.slice(0, 2).toUpperCase()}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: '0 0 2px', fontSize: 14, fontWeight: 700, color: '#333' }}>
-                  {t.ad}
-                  {t.sifat ? <span style={{ fontWeight: 500, color: '#888780', fontSize: 12 }}> · {t.sifat}</span> : ''}
-                </p>
-                <p style={{ margin: 0, fontSize: 11, color: '#555', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {(taseronSantiyeHaritasi[t.id] || []).map((sid) => santiyeler.find((s) => s.id === sid)?.ad).filter(Boolean).join(', ') || 'Şantiye ataması yok'}
-                </p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, flexShrink: 0 }}>
-              {yonetici && (
-                <>
-                  <label onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, background: '#f8f7f2', padding: '4px 8px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.04)' }}>
-                    <input
-                      type="checkbox"
-                      checked={t.sef_gorunur || false}
-                      onChange={(e) => gorunurlukDegistir(t.id, t.sef_gorunur, e)}
-                      style={{ accentColor: '#1D9596' }}
-                    /> <span style={{ fontSize: 10, fontWeight: 600, color: '#555' }}>Şef Görsün</span>
-                  </label>
-
-                  <label onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, background: '#f0fdf4', padding: '4px 8px', borderRadius: 8, border: '1px solid rgba(22, 163, 74, 0.2)' }}>
-                    <input
-                      type="checkbox"
-                      checked={t.puantajda_goster !== false}
-                      onChange={(e) => puantajGorunurlukDegistir(t.id, t.puantajda_goster !== false, e)}
-                      style={{ accentColor: '#16a34a' }}
-                    /> <span style={{ fontSize: 10, fontWeight: 600, color: '#16a34a' }}>Puantaj</span>
-                  </label>
-
-                  <button
-                    onClick={(e) => taseronSil(t.id, e)}
-                    style={{ background: '#fff', border: '1px solid rgba(214, 69, 69, 0.2)', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#D64545', boxShadow: '0 2px 4px rgba(214, 69, 69, 0.05)', transition: 'all 0.2s' }}
-                    title="Sil"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                  </button>
-                </>
-              )}
-              <span style={{ color: '#aaa', display: 'flex' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-              </span>
-            </div>
+      {ortaklarListesi.length > 0 && aktifSekme === 'ana' && (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: 14, fontWeight: 700, color: '#333', textTransform: 'uppercase', letterSpacing: '1px' }}>Firma Ortakları</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: '#f0fdf4', padding: 12, borderRadius: 16, border: '1px solid #bbf7d0' }}>
+            {ortaklarListesi.map((t) => renderCariCard(t))}
           </div>
-        ))}
-        {filtreliListe.length === 0 && <p className="bos-mesaj">Kayıt bulunamadı.</p>}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {ortaklarListesi.length > 0 && aktifSekme === 'ana' && gosterilenCariler.length > 0 && (
+          <h3 style={{ margin: '8px 0 2px 0', fontSize: 14, fontWeight: 700, color: '#333', textTransform: 'uppercase', letterSpacing: '1px' }}>Diğer Cariler</h3>
+        )}
+        {gosterilenCariler.map((t) => renderCariCard(t))}
+        {gosterilenCariler.length === 0 && <p className="bos-mesaj">Kayıt bulunamadı.</p>}
       </div>
 
       {!yeniTaseronAcik ? (
