@@ -15,13 +15,15 @@ export default function Puantaj() {
 
   return (
     <div className="sayfa">
-      <h2>Puantaj</h2>
-      <div className="gorunum-secici" style={{ marginBottom: 14, flexWrap: 'wrap', gap: 6 }}>
-        <button className={sayfa === 'kayit' ? 'secili-tab' : ''} onClick={() => setSayfa('kayit')}>1- Kayıt Ekleme</button>
-        <button className={sayfa === 'takvim' ? 'secili-tab' : ''} onClick={() => setSayfa('takvim')}>2- Takvim (Gözlem)</button>
-        <button className={sayfa === 'toplam' ? 'secili-tab' : ''} onClick={() => setSayfa('toplam')}>3- Dönem Raporu</button>
-        <button className={sayfa === 'calisan_rapor' ? 'secili-tab' : ''} onClick={() => setSayfa('calisan_rapor')}>4- Çalışan Raporu</button>
-        <button className={sayfa === 'isci_yonetim' ? 'secili-tab' : ''} onClick={() => setSayfa('isci_yonetim')}>5- İşçi Yönetimi</button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#1D9596', letterSpacing: '-0.5px' }}>Puantaj Yönetimi</h2>
+      </div>
+      <div className="gorunum-secici" style={{ marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 8, background: '#f8f7f2', padding: 6, borderRadius: 12, boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.04)' }}>
+        <button className={sayfa === 'kayit' ? 'secili-tab' : ''} onClick={() => setSayfa('kayit')} style={{ flex: 1, padding: '10px 14px', borderRadius: 10, fontWeight: 600, border: 'none', background: sayfa === 'kayit' ? '#fff' : 'transparent', color: sayfa === 'kayit' ? '#1D9596' : '#5F5E5A', boxShadow: sayfa === 'kayit' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 13, minWidth: 120 }}>1- Yoklama / Kayıt</button>
+        <button className={sayfa === 'takvim' ? 'secili-tab' : ''} onClick={() => setSayfa('takvim')} style={{ flex: 1, padding: '10px 14px', borderRadius: 10, fontWeight: 600, border: 'none', background: sayfa === 'takvim' ? '#fff' : 'transparent', color: sayfa === 'takvim' ? '#1D9596' : '#5F5E5A', boxShadow: sayfa === 'takvim' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 13, minWidth: 120 }}>2- Takvim Matrisi</button>
+        <button className={sayfa === 'toplam' ? 'secili-tab' : ''} onClick={() => setSayfa('toplam')} style={{ flex: 1, padding: '10px 14px', borderRadius: 10, fontWeight: 600, border: 'none', background: sayfa === 'toplam' ? '#fff' : 'transparent', color: sayfa === 'toplam' ? '#1D9596' : '#5F5E5A', boxShadow: sayfa === 'toplam' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 13, minWidth: 120 }}>3- Dönem Raporu</button>
+        <button className={sayfa === 'calisan_rapor' ? 'secili-tab' : ''} onClick={() => setSayfa('calisan_rapor')} style={{ flex: 1, padding: '10px 14px', borderRadius: 10, fontWeight: 600, border: 'none', background: sayfa === 'calisan_rapor' ? '#fff' : 'transparent', color: sayfa === 'calisan_rapor' ? '#1D9596' : '#5F5E5A', boxShadow: sayfa === 'calisan_rapor' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 13, minWidth: 120 }}>4- Çalışan Raporu</button>
+        <button className={sayfa === 'isci_yonetim' ? 'secili-tab' : ''} onClick={() => setSayfa('isci_yonetim')} style={{ flex: 1, padding: '10px 14px', borderRadius: 10, fontWeight: 600, border: 'none', background: sayfa === 'isci_yonetim' ? '#fff' : 'transparent', color: sayfa === 'isci_yonetim' ? '#1D9596' : '#5F5E5A', boxShadow: sayfa === 'isci_yonetim' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 13, minWidth: 120 }}>5- İşçi Yönetimi</button>
       </div>
       
       {sayfa === 'kayit' && <PuantajKayitEkleme />}
@@ -128,17 +130,17 @@ function PuantajKayitEkleme() {
 
   return (
     <div>
-      <div className="ekleme-kutusu" style={{ display: 'flex', gap: 10, marginBottom: 14, background: '#fdfdfd' }}>
+      <div className="ekleme-kutusu" style={{ display: 'flex', gap: 12, marginBottom: 16, background: 'linear-gradient(to bottom, #ffffff, #fcfcf9)', padding: 16, borderRadius: 16, border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
         <div style={{ flex: 1 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Şantiye:</span>
-          <select value={filtreSantiye} onChange={(e) => setFiltreSantiye(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#5F5E5A', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Şantiye Filtresi</span>
+          <select value={filtreSantiye} onChange={(e) => setFiltreSantiye(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)', cursor: 'pointer' }}>
             <option value="hepsi">Tüm Şantiyeler</option>
             {santiyeler.map(s => <option key={s.id} value={s.id}>{s.ad}</option>)}
           </select>
         </div>
         <div style={{ flex: 1 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Yoklama Tarihi:</span>
-          <input type="date" value={tarih} onChange={(e) => setTarih(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#5F5E5A', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Yoklama Tarihi</span>
+          <input type="date" value={tarih} onChange={(e) => setTarih(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)', cursor: 'pointer' }} />
         </div>
       </div>
 
@@ -148,39 +150,49 @@ function PuantajKayitEkleme() {
           const isciSayisi = calisanKayitlari.filter((c) => c.santiye_id === k.santiye_id && c.taseron_id === k.taseron_id).length
           
           return (
-            <div key={k.id} className="kart">
-              <div className="kart-ust">
-                <div>
-                  <span className="kart-baslik">{k.taseronlar?.ad}</span>
-                  {filtreSantiye === 'hepsi' && <span className="etiket etiket-vurgu" style={{ marginLeft: 8 }}>{k.santiyeler?.ad}</span>}
-                  <span className="etiket" style={{ marginLeft: 6 }}>{isciSayisi} kişi tikli</span>
+            <div key={k.id} className="kart" style={{ background: 'linear-gradient(to bottom, #ffffff, #fcfcf9)', borderRadius: 16, border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03), inset 0 2px 4px rgba(255,255,255,0.8)', padding: 16, marginBottom: 14 }}>
+              <div className="kart-ust" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(0,0,0,0.03)', paddingBottom: 12, marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #1D9596, #117575)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14, boxShadow: '0 2px 6px rgba(29, 149, 150, 0.3)' }}>
+                    {k.taseronlar?.ad?.slice(0, 2).toUpperCase() || 'TŞ'}
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: '#333', display: 'block' }}>{k.taseronlar?.ad}</span>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                      {filtreSantiye === 'hepsi' && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: '#f8f7f2', color: '#555', fontWeight: 600, border: '1px solid rgba(0,0,0,0.03)' }}>{k.santiyeler?.ad}</span>}
+                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: '#f0fdf4', color: '#16a34a', fontWeight: 600, border: '1px solid rgba(22, 163, 74, 0.2)' }}>{isciSayisi} kişi tikli</span>
+                    </div>
+                  </div>
                 </div>
-                <button className="sil-buton" onClick={() => satirSil(k.id)} aria-label="Kaydı sil">🗑</button>
+                <button onClick={() => satirSil(k.id)} style={{ background: '#fff', border: '1px solid rgba(214, 69, 69, 0.2)', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#D64545', boxShadow: '0 2px 4px rgba(214, 69, 69, 0.05)', transition: 'all 0.2s' }} title="Kaydı sil">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
               </div>
 
-              <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
                 {taseronCalisanlari.map((c) => {
                   const tikli = !!calisanKayitlari.find((ck) => ck.santiye_id === k.santiye_id && ck.taseron_id === k.taseron_id && ck.calisan_id === c.id)
                   return (
-                    <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', fontSize: 13, background: tikli ? '#f0fdf4' : '#f8fafc', border: tikli ? '1px solid #bbf7d0' : '1px solid #e2e8f0', borderRadius: 8, cursor: 'pointer', transition: 'all 0.2s' }}>
-                      <input type="checkbox" checked={tikli} onChange={() => calisanTikle(k, c.id)} style={{ width: 16, height: 16, accentColor: '#16a34a' }} />
-                      <span style={{ fontWeight: tikli ? 600 : 500, color: tikli ? '#166534' : '#334155' }}>{c.ad_soyad}</span>
+                    <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', fontSize: 13, background: tikli ? '#f0fdf4' : '#fcfcf9', border: tikli ? '1px solid #bbf7d0' : '1px solid rgba(0,0,0,0.05)', borderRadius: 12, cursor: 'pointer', transition: 'all 0.2s', boxShadow: tikli ? '0 2px 8px rgba(22, 163, 74, 0.15)' : 'none', transform: tikli ? 'translateY(-1px)' : 'none' }}>
+                      <input type="checkbox" checked={tikli} onChange={() => calisanTikle(k, c.id)} style={{ width: 18, height: 18, accentColor: '#16a34a', cursor: 'pointer' }} />
+                      <span style={{ fontWeight: tikli ? 700 : 500, color: tikli ? '#166534' : '#555' }}>{c.ad_soyad}</span>
                     </label>
                   )
                 })}
               </div>
               
-              {taseronCalisanlari.length === 0 && <p className="bos-mesaj" style={{ padding: '4px 0' }}>Henüz kayıtlı çalışan yok.</p>}
+              {taseronCalisanlari.length === 0 && <p className="bos-mesaj" style={{ padding: '8px 0', fontSize: 13 }}>Bu şantiye için henüz tanımlı çalışan yok.</p>}
 
-              <div className="ekleme-satiri-2" style={{ marginTop: 12, borderTop: '1px solid #f1f5f9', paddingTop: 12 }}>
+              <div style={{ marginTop: 16, borderTop: '1px dashed rgba(0,0,0,0.08)', paddingTop: 16, display: 'flex', gap: 8 }}>
                 <input
                   type="text"
                   placeholder="Hızlıca yeni çalışan ekle..."
                   value={yeniCalisanAdi[k.taseron_id] || ''}
                   onChange={(e) => setYeniCalisanAdi((o) => ({ ...o, [k.taseron_id]: e.target.value.toLocaleUpperCase('tr-TR') }))}
                   onKeyDown={(e) => e.key === 'Enter' && calisanEkle(k.taseron_id, k.santiye_id)}
+                  style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#f8f7f2', fontSize: 13, outline: 'none' }}
                 />
-                <button onClick={() => calisanEkle(k.taseron_id, k.santiye_id)}>Ekle</button>
+                <button onClick={() => calisanEkle(k.taseron_id, k.santiye_id)} style={{ padding: '10px 16px', background: '#f4f3ed', color: '#555', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 10, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>Ekle</button>
               </div>
             </div>
           )
@@ -188,19 +200,22 @@ function PuantajKayitEkleme() {
         {kayitlar.length === 0 && <p className="bos-mesaj">Seçili tarihte bu filtreyle hiçbir taşeron satırı açılmamış.</p>}
       </div>
 
-      <div className="ekleme-kutusu" style={{ marginTop: 16 }}>
-        <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 700, color: '#333' }}>+ Yeni Taşeron Satırı Aç</p>
-        <div style={{ display: 'flex', gap: 8 }}>
+      <div className="ekleme-kutusu" style={{ marginTop: 20, background: '#fdfdfd', padding: 20, borderRadius: 16, border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+        <p style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700, color: '#333' }}>+ Yeni Taşeron Satırı Aç</p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {filtreSantiye === 'hepsi' && (
-            <select value={yeniSantiyeId} onChange={(e) => setYeniSantiyeId(e.target.value)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+            <select value={yeniSantiyeId} onChange={(e) => setYeniSantiyeId(e.target.value)} style={{ flex: 1, minWidth: 150, padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }}>
+              <option value="">Şantiye Seç...</option>
               {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
             </select>
           )}
-          <select value={yeniTaseronId} onChange={(e) => setYeniTaseronId(e.target.value)} style={{ flex: 2, padding: '10px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+          <select value={yeniTaseronId} onChange={(e) => setYeniTaseronId(e.target.value)} style={{ flex: 2, minWidth: 200, padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }}>
             <option value="">Taşeron seç...</option>
             {eklenebilirTaseronlar.map((t) => <option key={t.id} value={t.id}>{t.ad}</option>)}
           </select>
-          <button style={{ padding: '10px 16px', background: '#0f172a', color: '#fff', borderRadius: 8, fontWeight: 700, border: 'none', cursor: 'pointer' }} onClick={satirEkle}>Satır Ekle</button>
+          <button style={{ padding: '12px 20px', background: 'linear-gradient(135deg, #24b8b9, #1D9596)', color: '#fff', borderRadius: 12, fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 4px 10px rgba(29, 149, 150, 0.3)', textShadow: '0 1px 2px rgba(0,0,0,0.1)' }} onClick={satirEkle}>
+            Satır Ekle
+          </button>
         </div>
       </div>
     </div>
@@ -268,16 +283,16 @@ function PuantajTakvimGozlem() {
 
   return (
     <div>
-      <div className="tarih-gezici">
-        <button onClick={() => { setTarih((t) => gunEkle(t, -30)); setSeciliGun(null) }}>‹</button>
-        <span style={{ textTransform: 'capitalize' }}>{ayAdi}</span>
-        <button onClick={() => { setTarih((t) => gunEkle(t, 30)); setSeciliGun(null) }}>›</button>
+      <div className="tarih-gezici" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', padding: '10px 16px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', marginBottom: 20 }}>
+        <button onClick={() => { setTarih((t) => gunEkle(t, -30)); setSeciliGun(null) }} style={{ border: 'none', background: '#f4f3ed', borderRadius: 8, width: 36, height: 36, fontSize: 18, fontWeight: 700, cursor: 'pointer', color: '#555' }}>‹</button>
+        <span style={{ textTransform: 'capitalize', fontSize: 16, fontWeight: 700, color: '#333' }}>{ayAdi}</span>
+        <button onClick={() => { setTarih((t) => gunEkle(t, 30)); setSeciliGun(null) }} style={{ border: 'none', background: '#f4f3ed', borderRadius: 8, width: 36, height: 36, fontSize: 18, fontWeight: 700, cursor: 'pointer', color: '#555' }}>›</button>
       </div>
 
-      <div className="takvim-baslik-satiri">
+      <div className="takvim-baslik-satiri" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, marginBottom: 8, textAlign: 'center', fontWeight: 700, fontSize: 12, color: '#888780', textTransform: 'uppercase' }}>
         {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map((g) => <span key={g}>{g}</span>)}
       </div>
-      <div className="takvim-grid">
+      <div className="takvim-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
         {Array.from({ length: ilkGunHaftaIndeksi }).map((_, i) => <div key={`bos-${i}`} />)}
         {Array.from({ length: ayinGunSayisi }).map((_, i) => {
           const gunTarihi = `${tarih.slice(0, 8)}${String(i + 1).padStart(2, '0')}`
@@ -290,11 +305,17 @@ function PuantajTakvimGozlem() {
             <button
               key={gunTarihi}
               className={`takvim-gun ${gunTarihi === bugun() ? 'bugun' : ''}`}
-              style={{ background: isSelected ? '#1e293b' : undefined, color: isSelected ? '#fff' : undefined, transform: isSelected ? 'scale(1.05)' : undefined }}
+              style={{
+                background: isSelected ? 'linear-gradient(135deg, #1D9596, #117575)' : '#fff',
+                color: isSelected ? '#fff' : '#333',
+                transform: isSelected ? 'scale(1.02)' : 'none',
+                border: isSelected ? 'none' : (gunTarihi === bugun() ? '2px solid #1D9596' : '1px solid rgba(0,0,0,0.05)'),
+                borderRadius: 12, padding: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 60, cursor: 'pointer', boxShadow: isSelected ? '0 4px 12px rgba(29, 149, 150, 0.3)' : '0 2px 4px rgba(0,0,0,0.02)', transition: 'all 0.2s'
+              }}
               onClick={() => gunTikla(gunTarihi)}
             >
-              <span className="takvim-gun-no">{i + 1}</span>
-              {kisiSayisi > 0 && <span className="takvim-gun-toplam" style={{ background: isSelected ? '#3b82f6' : undefined, color: isSelected ? '#fff' : undefined }}>{kisiSayisi} kişi</span>}
+              <span className="takvim-gun-no" style={{ fontSize: 14, fontWeight: 700, opacity: isSelected ? 1 : 0.8 }}>{i + 1}</span>
+              {kisiSayisi > 0 && <span className="takvim-gun-toplam" style={{ marginTop: 4, background: isSelected ? 'rgba(255,255,255,0.2)' : '#f0fdf4', color: isSelected ? '#fff' : '#16a34a', padding: '2px 6px', borderRadius: 6, fontSize: 10, fontWeight: 700 }}>{kisiSayisi} kişi</span>}
             </button>
           )
         })}
@@ -302,18 +323,18 @@ function PuantajTakvimGozlem() {
 
       {/* HİYERARŞİ ALANI */}
       {seciliGun && (
-        <div style={{ marginTop: 24, padding: 16, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: 16, color: '#0f172a' }}>{tarihGoster(seciliGun)} Detayları</h3>
+        <div style={{ marginTop: 24, padding: 20, background: 'linear-gradient(to bottom, #ffffff, #fcfcf9)', borderRadius: 16, border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
+          <h3 style={{ margin: '0 0 16px', fontSize: 18, color: '#1D9596', fontWeight: 700, borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: 12 }}>{tarihGoster(seciliGun)} Detayları</h3>
           
-          <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 10 }}>
+          <div style={{ display: 'flex', gap: 20, overflowX: 'auto', paddingBottom: 10 }}>
             {/* Şantiyeler */}
             <div style={{ flexShrink: 0, width: 250 }}>
-              <p style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#64748b' }}>1. Şantiye Seçin</p>
+              <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.5px' }}>1. Şantiye Seçin</p>
               {gununSantiyeleri.map(sId => {
                 const sAd = santiyeler.find(s => s.id === sId)?.ad || 'Bilinmeyen Şantiye'
                 const secili = seciliSantiye === sId
                 return (
-                  <button key={sId} onClick={() => { setSeciliSantiye(sId); setSeciliTaseron(null) }} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 12px', marginBottom: 8, background: secili ? '#1e293b' : '#fff', color: secili ? '#fff' : '#334155', border: '1px solid #cbd5e1', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: secili ? 600 : 400 }}>
+                  <button key={sId} onClick={() => { setSeciliSantiye(sId); setSeciliTaseron(null) }} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 14px', marginBottom: 8, background: secili ? 'linear-gradient(135deg, #1D9596, #117575)' : '#fff', color: secili ? '#fff' : '#333', border: secili ? 'none' : '1px solid rgba(0,0,0,0.05)', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: secili ? 700 : 500, boxShadow: secili ? '0 4px 12px rgba(29, 149, 150, 0.3)' : '0 2px 4px rgba(0,0,0,0.02)', transition: 'all 0.2s' }}>
                     {sAd}
                   </button>
                 )
@@ -323,13 +344,13 @@ function PuantajTakvimGozlem() {
 
             {/* Taşeronlar */}
             {seciliSantiye && (
-              <div style={{ flexShrink: 0, width: 250, borderLeft: '2px solid #e2e8f0', paddingLeft: 16 }}>
-                <p style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#64748b' }}>2. Taşeron Seçin</p>
+              <div style={{ flexShrink: 0, width: 250, borderLeft: '1px dashed rgba(0,0,0,0.1)', paddingLeft: 20 }}>
+                <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.5px' }}>2. Taşeron Seçin</p>
                 {gununTaseronlari.map(tId => {
                   const tAd = taseronIsimleri[tId] || 'Bilinmeyen Taşeron'
                   const secili = seciliTaseron === tId
                   return (
-                    <button key={tId} onClick={() => setSeciliTaseron(tId)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 12px', marginBottom: 8, background: secili ? '#3b82f6' : '#fff', color: secili ? '#fff' : '#334155', border: '1px solid #cbd5e1', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: secili ? 600 : 400 }}>
+                    <button key={tId} onClick={() => setSeciliTaseron(tId)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 14px', marginBottom: 8, background: secili ? '#1e293b' : '#fff', color: secili ? '#fff' : '#333', border: secili ? 'none' : '1px solid rgba(0,0,0,0.05)', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: secili ? 700 : 500, boxShadow: secili ? '0 4px 12px rgba(30, 41, 59, 0.3)' : '0 2px 4px rgba(0,0,0,0.02)', transition: 'all 0.2s' }}>
                       {tAd}
                     </button>
                   )
@@ -339,15 +360,16 @@ function PuantajTakvimGozlem() {
 
             {/* İşçiler */}
             {seciliTaseron && (
-              <div style={{ flexShrink: 0, width: 250, borderLeft: '2px solid #e2e8f0', paddingLeft: 16 }}>
-                <p style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#64748b' }}>3. İşe Gelenler</p>
-                <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8, overflow: 'hidden' }}>
+              <div style={{ flexShrink: 0, width: 250, borderLeft: '1px dashed rgba(0,0,0,0.1)', paddingLeft: 20 }}>
+                <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.5px' }}>3. İşe Gelenler</p>
+                <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                   {gununCalisanlari.map((cId, idx) => (
-                    <div key={idx} style={{ padding: '8px 12px', borderBottom: '1px solid #e2e8f0', fontSize: 13, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ color: '#10b981' }}>✓</span> {calisanIsimleri[cId] || 'Bilinmeyen'}
+                    <div key={idx} style={{ padding: '10px 14px', borderBottom: '1px solid rgba(0,0,0,0.03)', fontSize: 13, color: '#333', display: 'flex', alignItems: 'center', gap: 10, fontWeight: 500 }}>
+                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#f0fdf4', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, border: '1px solid #bbf7d0' }}>✓</div> 
+                      {calisanIsimleri[cId] || 'Bilinmeyen'}
                     </div>
                   ))}
-                  {gununCalisanlari.length === 0 && <div style={{ padding: '12px', fontSize: 13, color: '#64748b' }}>Kimse işaretlenmemiş.</div>}
+                  {gununCalisanlari.length === 0 && <div style={{ padding: '14px', fontSize: 13, color: '#888780', fontStyle: 'italic' }}>Kimse işaretlenmemiş.</div>}
                 </div>
               </div>
             )}
@@ -437,71 +459,71 @@ function PuantajToplam() {
 
   return (
     <>
-      <div style={{ marginBottom: 14 }}>
-        <button className="ekle-buton-genis" onClick={() => setFiltreAcik(!filtreAcik)}>
-          {filtreAcik ? 'Filtreleri Gizle' : 'Filtreleri Göster'}
+      <div style={{ marginBottom: 16 }}>
+        <button className="ekle-buton-genis" onClick={() => setFiltreAcik(!filtreAcik)} style={{ width: '100%', padding: '12px', background: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 12, fontWeight: 700, color: '#555', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+          {filtreAcik ? 'Filtreleri Gizle ⌃' : 'Filtreleri Göster ⌄'}
         </button>
       </div>
 
       {filtreAcik && (
-        <div className="ekleme-kutusu" style={{ marginBottom: 15, background: '#fdfdfd' }}>
-          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Şantiye Filtresi</p>
-          <select value={filtreSantiye} onChange={(e) => setFiltreSantiye(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+        <div className="ekleme-kutusu" style={{ marginBottom: 16, background: '#fdfdfd', padding: 16, borderRadius: 16, border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+          <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: '#5F5E5A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Şantiye Filtresi</p>
+          <select value={filtreSantiye} onChange={(e) => setFiltreSantiye(e.target.value)} style={{ width: '100%', padding: '12px 14px', marginBottom: 12, borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }}>
             <option value="hepsi">Tüm Şantiyeler</option>
             {santiyeler.map(s => <option key={s.id} value={s.id}>{s.ad}</option>)}
           </select>
 
-          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Taşeron Filtresi</p>
-          <select value={filtreTaseron} onChange={(e) => setFiltreTaseron(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+          <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: '#5F5E5A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Taşeron Filtresi</p>
+          <select value={filtreTaseron} onChange={(e) => setFiltreTaseron(e.target.value)} style={{ width: '100%', padding: '12px 14px', marginBottom: 6, borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }}>
             <option value="hepsi">Tüm Taşeronlar</option>
             {taseronlar.map((t) => <option key={t.id} value={t.id}>{t.ad}</option>)}
           </select>
         </div>
       )}
 
-      <div className="gorunum-secici" style={{ marginBottom: 14 }}>
-        <button className={donem === 'gunluk' ? 'secili-tab' : ''} onClick={() => setDonem('gunluk')}>Günlük</button>
-        <button className={donem === 'aylik' ? 'secili-tab' : ''} onClick={() => setDonem('aylik')}>Aylık</button>
-        <button className={donem === 'aralik' ? 'secili-tab' : ''} onClick={() => setDonem('aralik')}>Tarih Aralığı</button>
-        <button className={donem === 'tum' ? 'secili-tab' : ''} onClick={() => setDonem('tum')}>Tümü</button>
+      <div className="gorunum-secici" style={{ marginBottom: 20, display: 'flex', background: '#f8f7f2', padding: 6, borderRadius: 12, boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.04)' }}>
+        <button className={donem === 'gunluk' ? 'secili-tab' : ''} onClick={() => setDonem('gunluk')} style={{ flex: 1, padding: '10px', borderRadius: 10, fontWeight: 600, border: 'none', background: donem === 'gunluk' ? '#fff' : 'transparent', color: donem === 'gunluk' ? '#1D9596' : '#555', boxShadow: donem === 'gunluk' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 13 }}>Günlük</button>
+        <button className={donem === 'aylik' ? 'secili-tab' : ''} onClick={() => setDonem('aylik')} style={{ flex: 1, padding: '10px', borderRadius: 10, fontWeight: 600, border: 'none', background: donem === 'aylik' ? '#fff' : 'transparent', color: donem === 'aylik' ? '#1D9596' : '#555', boxShadow: donem === 'aylik' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 13 }}>Aylık</button>
+        <button className={donem === 'aralik' ? 'secili-tab' : ''} onClick={() => setDonem('aralik')} style={{ flex: 1, padding: '10px', borderRadius: 10, fontWeight: 600, border: 'none', background: donem === 'aralik' ? '#fff' : 'transparent', color: donem === 'aralik' ? '#1D9596' : '#555', boxShadow: donem === 'aralik' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 13 }}>Tarih Aralığı</button>
+        <button className={donem === 'tum' ? 'secili-tab' : ''} onClick={() => setDonem('tum')} style={{ flex: 1, padding: '10px', borderRadius: 10, fontWeight: 600, border: 'none', background: donem === 'tum' ? '#fff' : 'transparent', color: donem === 'tum' ? '#1D9596' : '#555', boxShadow: donem === 'tum' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 13 }}>Tümü</button>
       </div>
 
       {(donem === 'gunluk' || donem === 'aylik') && (
-        <div className="tarih-gezici">
-          <button onClick={() => setTarih((t) => gunEkle(t, donem === 'gunluk' ? -1 : -30))}>‹</button>
-          <span style={{ textTransform: 'capitalize' }}>
+        <div className="tarih-gezici" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', padding: '10px 16px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', marginBottom: 20 }}>
+          <button onClick={() => setTarih((t) => gunEkle(t, donem === 'gunluk' ? -1 : -30))} style={{ border: 'none', background: '#f4f3ed', borderRadius: 8, width: 36, height: 36, fontSize: 18, fontWeight: 700, cursor: 'pointer', color: '#555' }}>‹</button>
+          <span style={{ textTransform: 'capitalize', fontSize: 16, fontWeight: 700, color: '#333' }}>
             {donem === 'gunluk' ? tarihGoster(tarih) : new Date(tarih).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
           </span>
-          <button onClick={() => setTarih((t) => gunEkle(t, donem === 'gunluk' ? 1 : 30))}>›</button>
+          <button onClick={() => setTarih((t) => gunEkle(t, donem === 'gunluk' ? 1 : 30))} style={{ border: 'none', background: '#f4f3ed', borderRadius: 8, width: 36, height: 36, fontSize: 18, fontWeight: 700, cursor: 'pointer', color: '#555' }}>›</button>
         </div>
       )}
 
       {donem === 'aralik' && (
-        <div className="ekleme-kutusu" style={{ display: 'flex', gap: 10, marginBottom: 14, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+        <div className="ekleme-kutusu" style={{ display: 'flex', gap: 12, marginBottom: 16, background: 'linear-gradient(to bottom, #ffffff, #fcfcf9)', padding: 16, borderRadius: 16, border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
           <div style={{ flex: 1 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Başlangıç Tarihi:</span>
-            <input type="date" value={basTarih} onChange={(e) => setBasTarih(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#5F5E5A', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Başlangıç Tarihi:</span>
+            <input type="date" value={basTarih} onChange={(e) => setBasTarih(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
           </div>
           <div style={{ flex: 1 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Bitiş Tarihi:</span>
-            <input type="date" value={bitTarih} onChange={(e) => setBitTarih(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#5F5E5A', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bitiş Tarihi:</span>
+            <input type="date" value={bitTarih} onChange={(e) => setBitTarih(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
           </div>
         </div>
       )}
 
-      <div className="ozet-kart" style={{ marginBottom: 14 }}>
-        <p className="ozet-etiket">Genel toplam (İşçi yevmiyesi)</p>
-        <p className="ozet-tutar">{yukleniyor ? '...' : genelToplam}</p>
+      <div className="ozet-kart" style={{ marginBottom: 20, background: 'linear-gradient(135deg, #1D9596, #117575)', padding: 24, borderRadius: 16, color: '#fff', boxShadow: '0 4px 16px rgba(29, 149, 150, 0.3)' }}>
+        <p className="ozet-etiket" style={{ fontSize: 13, opacity: 0.9, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8, fontWeight: 600 }}>Genel toplam (İşçi yevmiyesi)</p>
+        <p className="ozet-tutar" style={{ fontSize: 36, fontWeight: 800, margin: 0 }}>{yukleniyor ? '...' : genelToplam}</p>
       </div>
 
       {filtreSantiye === 'hepsi' && Object.keys(santiyeBazinda).length > 0 && (
         <>
-          <p className="alt-baslik">Şantiye bazında</p>
-          <div className="liste" style={{ marginBottom: 16 }}>
+          <p className="alt-baslik" style={{ fontSize: 14, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Şantiye bazında</p>
+          <div className="liste" style={{ marginBottom: 24 }}>
             {Object.entries(santiyeBazinda).sort((a, b) => b[1] - a[1]).map(([ad, sayi]) => (
-              <div key={ad} className="kart" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px' }}>
-                <span style={{ fontSize: 13 }}>{ad}</span>
-                <span style={{ fontSize: 15, fontWeight: 500 }}>{sayi} yevmiye</span>
+              <div key={ad} className="kart" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', background: '#fff', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', marginBottom: 8, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#333' }}>{ad}</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#1D9596' }}>{sayi} yevmiye</span>
               </div>
             ))}
           </div>
@@ -510,12 +532,12 @@ function PuantajToplam() {
 
       {filtreTaseron === 'hepsi' && Object.keys(taseronBazinda).length > 0 && (
         <>
-          <p className="alt-baslik">Taşeron bazında</p>
-          <div className="liste" style={{ marginBottom: 16 }}>
+          <p className="alt-baslik" style={{ fontSize: 14, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Taşeron bazında</p>
+          <div className="liste" style={{ marginBottom: 24 }}>
             {Object.entries(taseronBazinda).sort((a, b) => b[1] - a[1]).map(([ad, sayi]) => (
-              <div key={ad} className="kart" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px' }}>
-                <span style={{ fontSize: 13 }}>{ad}</span>
-                <span style={{ fontSize: 15, fontWeight: 500 }}>{sayi} yevmiye</span>
+              <div key={ad} className="kart" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', background: '#fff', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', marginBottom: 8, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#333' }}>{ad}</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#1D9596' }}>{sayi} yevmiye</span>
               </div>
             ))}
           </div>
@@ -627,61 +649,61 @@ function PuantajCalisanRapor() {
 
   return (
     <div>
-      <div className="ekleme-kutusu" style={{ marginBottom: 15, background: '#fdfdfd' }}>
-        <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Taşeron Filtresi</p>
-        <select value={filtreTaseron} onChange={(e) => setFiltreTaseron(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+      <div className="ekleme-kutusu" style={{ marginBottom: 16, background: '#fdfdfd', padding: 16, borderRadius: 16, border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+        <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: '#5F5E5A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Taşeron Filtresi</p>
+        <select value={filtreTaseron} onChange={(e) => setFiltreTaseron(e.target.value)} style={{ width: '100%', padding: '12px 14px', marginBottom: 12, borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }}>
           <option value="hepsi">Tüm Taşeronlar</option>
           {taseronlar.map((t) => <option key={t.id} value={t.id}>{t.ad}</option>)}
         </select>
         
-        <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Şantiye Filtresi</p>
-        <select value={filtreSantiye} onChange={(e) => setFiltreSantiye(e.target.value)} style={{ width: '100%', padding: 8, borderRadius: 6 }}>
+        <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: '#5F5E5A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Şantiye Filtresi</p>
+        <select value={filtreSantiye} onChange={(e) => setFiltreSantiye(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }}>
           <option value="hepsi">Tüm Şantiyeler</option>
           {santiyeler.map(s => <option key={s.id} value={s.id}>{s.ad}</option>)}
         </select>
       </div>
 
-      <div className="gorunum-secici" style={{ marginBottom: 14 }}>
-        <button className={donem === 'gunluk' ? 'secili-tab' : ''} onClick={() => setDonem('gunluk')}>Günlük</button>
-        <button className={donem === 'aylik' ? 'secili-tab' : ''} onClick={() => setDonem('aylik')}>Aylık</button>
-        <button className={donem === 'aralik' ? 'secili-tab' : ''} onClick={() => setDonem('aralik')}>Tarih Aralığı</button>
-        <button className={donem === 'tum' ? 'secili-tab' : ''} onClick={() => setDonem('tum')}>Tümü</button>
+      <div className="gorunum-secici" style={{ marginBottom: 20, display: 'flex', background: '#f8f7f2', padding: 6, borderRadius: 12, boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.04)' }}>
+        <button className={donem === 'gunluk' ? 'secili-tab' : ''} onClick={() => setDonem('gunluk')} style={{ flex: 1, padding: '10px', borderRadius: 10, fontWeight: 600, border: 'none', background: donem === 'gunluk' ? '#fff' : 'transparent', color: donem === 'gunluk' ? '#1D9596' : '#555', boxShadow: donem === 'gunluk' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 13 }}>Günlük</button>
+        <button className={donem === 'aylik' ? 'secili-tab' : ''} onClick={() => setDonem('aylik')} style={{ flex: 1, padding: '10px', borderRadius: 10, fontWeight: 600, border: 'none', background: donem === 'aylik' ? '#fff' : 'transparent', color: donem === 'aylik' ? '#1D9596' : '#555', boxShadow: donem === 'aylik' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 13 }}>Aylık</button>
+        <button className={donem === 'aralik' ? 'secili-tab' : ''} onClick={() => setDonem('aralik')} style={{ flex: 1, padding: '10px', borderRadius: 10, fontWeight: 600, border: 'none', background: donem === 'aralik' ? '#fff' : 'transparent', color: donem === 'aralik' ? '#1D9596' : '#555', boxShadow: donem === 'aralik' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 13 }}>Tarih Aralığı</button>
+        <button className={donem === 'tum' ? 'secili-tab' : ''} onClick={() => setDonem('tum')} style={{ flex: 1, padding: '10px', borderRadius: 10, fontWeight: 600, border: 'none', background: donem === 'tum' ? '#fff' : 'transparent', color: donem === 'tum' ? '#1D9596' : '#555', boxShadow: donem === 'tum' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none', cursor: 'pointer', transition: 'all 0.2s', fontSize: 13 }}>Tümü</button>
       </div>
 
       {(donem === 'gunluk' || donem === 'aylik') && (
-        <div className="tarih-gezici">
-          <button onClick={() => setTarih((t) => gunEkle(t, donem === 'gunluk' ? -1 : -30))}>‹</button>
-          <span style={{ textTransform: 'capitalize' }}>
+        <div className="tarih-gezici" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', padding: '10px 16px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', marginBottom: 20 }}>
+          <button onClick={() => setTarih((t) => gunEkle(t, donem === 'gunluk' ? -1 : -30))} style={{ border: 'none', background: '#f4f3ed', borderRadius: 8, width: 36, height: 36, fontSize: 18, fontWeight: 700, cursor: 'pointer', color: '#555' }}>‹</button>
+          <span style={{ textTransform: 'capitalize', fontSize: 16, fontWeight: 700, color: '#333' }}>
             {donem === 'gunluk' ? tarihGoster(tarih) : new Date(tarih).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
           </span>
-          <button onClick={() => setTarih((t) => gunEkle(t, donem === 'gunluk' ? 1 : 30))}>›</button>
+          <button onClick={() => setTarih((t) => gunEkle(t, donem === 'gunluk' ? 1 : 30))} style={{ border: 'none', background: '#f4f3ed', borderRadius: 8, width: 36, height: 36, fontSize: 18, fontWeight: 700, cursor: 'pointer', color: '#555' }}>›</button>
         </div>
       )}
 
       {donem === 'aralik' && (
-        <div className="ekleme-kutusu" style={{ display: 'flex', gap: 10, marginBottom: 14, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+        <div className="ekleme-kutusu" style={{ display: 'flex', gap: 12, marginBottom: 16, background: 'linear-gradient(to bottom, #ffffff, #fcfcf9)', padding: 16, borderRadius: 16, border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
           <div style={{ flex: 1 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Başlangıç:</span>
-            <input type="date" value={basTarih} onChange={(e) => setBasTarih(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#5F5E5A', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Başlangıç:</span>
+            <input type="date" value={basTarih} onChange={(e) => setBasTarih(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
           </div>
           <div style={{ flex: 1 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Bitiş:</span>
-            <input type="date" value={bitTarih} onChange={(e) => setBitTarih(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#5F5E5A', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bitiş:</span>
+            <input type="date" value={bitTarih} onChange={(e) => setBitTarih(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
           </div>
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
-        <p className="alt-baslik" style={{ margin: 0 }}>Rapor Çıktısı</p>
-        <div style={{ display: 'flex', gap: 8, flex: '1 1 auto', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12, marginTop: 24 }}>
+        <p className="alt-baslik" style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Rapor Çıktısı</p>
+        <div style={{ display: 'flex', gap: 10, flex: '1 1 auto', justifyContent: 'flex-end' }}>
           <input 
             type="text" 
             placeholder="İsim ara..." 
             value={aramaIsim} 
             onChange={(e) => setAramaIsim(e.target.value)} 
-            style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, minWidth: '130px', flex: '1 1 130px' }}
+            style={{ padding: '10px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', fontSize: 13, minWidth: '150px', flex: '1 1 150px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)', outline: 'none' }}
           />
-          <button onClick={raporuPaylas} style={{ background: '#22c55e', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 8, fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button onClick={raporuPaylas} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 10px rgba(16, 185, 129, 0.3)' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
             Paylaş
           </button>
@@ -696,8 +718,8 @@ function PuantajCalisanRapor() {
         ) : filtrelenmis.length === 0 ? (
           <p className="bos-mesaj">Aranan isimde kayıt bulunamadı.</p>
         ) : (
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr 1fr', background: '#f8fafc', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
+          <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr 1fr', background: '#f8f7f2', padding: '12px 16px', fontSize: 11, fontWeight: 800, color: '#888780', borderBottom: '1px solid rgba(0,0,0,0.05)', letterSpacing: '0.5px' }}>
               <span>İSİM SOYİSİM</span>
               <span>ŞANTİYE & TAŞERON</span>
               <span style={{ textAlign: 'right' }}>GÜN</span>
@@ -706,10 +728,10 @@ function PuantajCalisanRapor() {
               const sAd = santiyeler.find(s => s.id === c.santiye_id)?.ad || '—'
               const tAd = taseronlar.find(t => t.id === c.taseron_id)?.ad || '—'
               return (
-                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '3fr 2fr 1fr', padding: '12px', fontSize: 13, borderBottom: '1px solid #f1f5f9', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 600, color: '#0f172a' }}>{c.ad}</span>
-                  <span style={{ color: '#64748b', fontSize: 11 }}>{sAd} <br/><span style={{ opacity: 0.7 }}>({tAd})</span></span>
-                  <span style={{ textAlign: 'right', fontWeight: 700, color: '#059669', fontSize: 14 }}>{c.sayi}</span>
+                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '3fr 2fr 1fr', padding: '16px', fontSize: 13, borderBottom: idx === filtrelenmis.length - 1 ? 'none' : '1px solid rgba(0,0,0,0.03)', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 700, color: '#333' }}>{c.ad}</span>
+                  <span style={{ color: '#888780', fontSize: 12 }}>{sAd} <br/><span style={{ opacity: 0.7, fontWeight: 500 }}>({tAd})</span></span>
+                  <span style={{ textAlign: 'right', fontWeight: 800, color: '#10b981', fontSize: 16 }}>{c.sayi}</span>
                 </div>
               )
             })}
@@ -767,28 +789,28 @@ function PuantajCalisanKayit() {
 
   return (
     <div>
-      <p style={{ fontSize: 13, color: '#64748b', marginTop: 0, marginBottom: 16 }}>
-        Buradan sisteme tanımlayacağınız işçiler Kayıt Ekleme bölümünde karşınıza çıkacaktır. İsimler zorunlu olarak BÜYÜK HARFLE kaydedilir.
+      <p style={{ fontSize: 13, color: '#888780', marginTop: 0, marginBottom: 20, background: '#f8f7f2', padding: 12, borderRadius: 12, border: '1px solid rgba(0,0,0,0.03)' }}>
+        <span style={{ color: '#1D9596', fontWeight: 700 }}>BİLGİ:</span> Buradan sisteme tanımlayacağınız işçiler <strong>Kayıt Ekleme</strong> bölümünde karşınıza çıkacaktır. İsimler zorunlu olarak <strong>BÜYÜK HARFLE</strong> kaydedilir.
       </p>
 
-      <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
-        <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>1. Şantiye Seçin</p>
-        <select value={santiyeId} onChange={(e) => setSantiyeId(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 12, borderRadius: 6 }}>
+      <div className="ekleme-kutusu" style={{ marginBottom: 24, background: '#fdfdfd', padding: 20, borderRadius: 16, border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+        <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: '#5F5E5A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>1. Şantiye Seçin</p>
+        <select value={santiyeId} onChange={(e) => setSantiyeId(e.target.value)} style={{ width: '100%', padding: '12px 14px', marginBottom: 16, borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }}>
           {santiyeler.map(s => <option key={s.id} value={s.id}>{s.ad}</option>)}
         </select>
         
-        <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>2. Taşeron Seçin</p>
-        <select value={taseronId} onChange={(e) => setTaseronId(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 12, borderRadius: 6 }}>
+        <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: '#5F5E5A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>2. Taşeron Seçin</p>
+        <select value={taseronId} onChange={(e) => setTaseronId(e.target.value)} style={{ width: '100%', padding: '12px 14px', marginBottom: 16, borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }}>
           <option value="">Seçiniz...</option>
           {taseronlar.map((t) => <option key={t.id} value={t.id}>{t.ad}</option>)}
         </select>
 
         {taseronId && (
           <>
-            <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>3. İsim Ekleyin</p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input type="text" placeholder="Ad Soyad..." value={yeniAd} onChange={(e) => setYeniAd(e.target.value.toLocaleUpperCase('tr-TR'))} onKeyDown={(e) => e.key === 'Enter' && calisanEkle()} style={{ flex: 1, padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', textTransform: 'uppercase' }} />
-              <button className="ekle-buton-genis" onClick={calisanEkle} style={{ width: 'auto' }}>Listeye Ekle</button>
+            <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: '#5F5E5A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>3. İsim Ekleyin</p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <input type="text" placeholder="Ad Soyad..." value={yeniAd} onChange={(e) => setYeniAd(e.target.value.toLocaleUpperCase('tr-TR'))} onKeyDown={(e) => e.key === 'Enter' && calisanEkle()} style={{ flex: 1, padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', fontSize: 13, textTransform: 'uppercase', outline: 'none', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }} />
+              <button onClick={calisanEkle} style={{ width: 'auto', padding: '12px 24px', background: 'linear-gradient(135deg, #1D9596, #117575)', color: '#fff', borderRadius: 12, fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 4px 10px rgba(29, 149, 150, 0.3)', whiteSpace: 'nowrap' }}>Listeye Ekle</button>
             </div>
           </>
         )}
@@ -796,12 +818,14 @@ function PuantajCalisanKayit() {
 
       {taseronId && (
         <div className="liste">
-          <p className="alt-baslik">Kayıtlı Çalışanlar ({calisanlar.length})</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
+          <p className="alt-baslik" style={{ fontSize: 15, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 16 }}>Kayıtlı Çalışanlar ({calisanlar.length})</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
             {calisanlar.map(c => (
-              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{c.ad_soyad}</span>
-                <button onClick={() => calisanSil(c.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 4 }} title="Sil">🗑</button>
+              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#333' }}>{c.ad_soyad}</span>
+                <button onClick={() => calisanSil(c.id)} style={{ background: '#fef2f2', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }} title="Sil">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
               </div>
             ))}
           </div>
