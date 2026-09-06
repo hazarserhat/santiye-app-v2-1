@@ -134,6 +134,25 @@ function PuantajKayitEkleme() {
 
   return (
     <div>
+      <div className="ekleme-kutusu" style={{ marginBottom: 20, background: '#fdfdfd', padding: 20, borderRadius: 16, border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+        <p style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700, color: '#333' }}>+ Yeni Taşeron Satırı Aç</p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {filtreSantiye === 'hepsi' && (
+            <select value={yeniSantiyeId} onChange={(e) => setYeniSantiyeId(e.target.value)} style={{ flex: 1, minWidth: 150, padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }}>
+              <option value="">Şantiye Seç...</option>
+              {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+            </select>
+          )}
+          <select value={yeniTaseronId} onChange={(e) => setYeniTaseronId(e.target.value)} style={{ flex: 2, minWidth: 200, padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }}>
+            <option value="">Taşeron seç...</option>
+            {eklenebilirTaseronlar.map((t) => <option key={t.id} value={t.id}>{t.ad}</option>)}
+          </select>
+          <button style={{ padding: '12px 20px', background: 'linear-gradient(135deg, #24b8b9, #1D9596)', color: '#fff', borderRadius: 12, fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 4px 10px rgba(29, 149, 150, 0.3)', textShadow: '0 1px 2px rgba(0,0,0,0.1)' }} onClick={satirEkle}>
+            Satır Ekle
+          </button>
+        </div>
+      </div>
+
       <div className="ekleme-kutusu" style={{ display: 'flex', gap: 12, marginBottom: 16, background: 'linear-gradient(to bottom, #ffffff, #fcfcf9)', padding: 16, borderRadius: 16, border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
         <div style={{ flex: 1 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#5F5E5A', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Şantiye Filtresi</span>
@@ -210,25 +229,6 @@ function PuantajKayitEkleme() {
           )
         })}
         {kayitlar.length === 0 && <p className="bos-mesaj">Seçili tarihte bu filtreyle hiçbir taşeron satırı açılmamış.</p>}
-      </div>
-
-      <div className="ekleme-kutusu" style={{ marginTop: 20, background: '#fdfdfd', padding: 20, borderRadius: 16, border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-        <p style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700, color: '#333' }}>+ Yeni Taşeron Satırı Aç</p>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {filtreSantiye === 'hepsi' && (
-            <select value={yeniSantiyeId} onChange={(e) => setYeniSantiyeId(e.target.value)} style={{ flex: 1, minWidth: 150, padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }}>
-              <option value="">Şantiye Seç...</option>
-              {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
-            </select>
-          )}
-          <select value={yeniTaseronId} onChange={(e) => setYeniTaseronId(e.target.value)} style={{ flex: 2, minWidth: 200, padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }}>
-            <option value="">Taşeron seç...</option>
-            {eklenebilirTaseronlar.map((t) => <option key={t.id} value={t.id}>{t.ad}</option>)}
-          </select>
-          <button style={{ padding: '12px 20px', background: 'linear-gradient(135deg, #24b8b9, #1D9596)', color: '#fff', borderRadius: 12, fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 4px 10px rgba(29, 149, 150, 0.3)', textShadow: '0 1px 2px rgba(0,0,0,0.1)' }} onClick={satirEkle}>
-            Satır Ekle
-          </button>
-        </div>
       </div>
     </div>
   )
@@ -524,8 +524,8 @@ function PuantajToplam() {
       )}
 
       <div className="ozet-kart" style={{ marginBottom: 20, background: 'linear-gradient(135deg, #1D9596, #117575)', padding: 24, borderRadius: 16, color: '#fff', boxShadow: '0 4px 16px rgba(29, 149, 150, 0.3)' }}>
-        <p className="ozet-etiket" style={{ fontSize: 13, opacity: 0.9, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8, fontWeight: 600 }}>Genel toplam (İşçi yevmiyesi)</p>
-        <p className="ozet-tutar" style={{ fontSize: 36, fontWeight: 800, margin: 0 }}>{yukleniyor ? '...' : genelToplam}</p>
+        <p className="ozet-etiket" style={{ fontSize: 13, opacity: 0.9, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8, fontWeight: 600, color: '#fff' }}>Genel toplam (İşçi yevmiyesi)</p>
+        <p className="ozet-tutar" style={{ fontSize: 36, fontWeight: 800, margin: 0, color: '#fff' }}>{yukleniyor ? '...' : genelToplam}</p>
       </div>
 
       {filtreSantiye === 'hepsi' && Object.keys(santiyeBazinda).length > 0 && (
