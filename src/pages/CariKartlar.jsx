@@ -40,6 +40,8 @@ export default function CariKartlar() {
   const [yeniFirma, setYeniFirma] = useState('')
   const [yeniTelefon, setYeniTelefon] = useState('')
   const [yeniAdres, setYeniAdres] = useState('')
+  const [yeniKategori, setYeniKategori] = useState('')
+  const [acikMenuId, setAcikMenuId] = useState(null)
 
   const [eklenecekSantiyeId, setEklenecekSantiyeId] = useState('')
 
@@ -209,11 +211,11 @@ export default function CariKartlar() {
     if (!yeniAd.trim()) return
     const { data, error } = await supabase
       .from('taseronlar')
-      .insert({ ad: yeniAd, sifat: yeniSifat, firma: yeniFirma, telefon: yeniTelefon, adres: yeniAdres, sef_gorunur: true, puantajda_goster: true })
+      .insert({ ad: yeniAd, sifat: yeniSifat, firma: yeniFirma, telefon: yeniTelefon, adres: yeniAdres, kategori: yeniKategori, sef_gorunur: true, puantajda_goster: true })
       .select().single()
     if (error) { alert('Taşeron eklenemedi: ' + error.message); return }
     if (data) {
-      setYeniAd(''); setYeniSifat(''); setYeniFirma(''); setYeniTelefon(''); setYeniAdres('')
+      setYeniAd(''); setYeniSifat(''); setYeniFirma(''); setYeniTelefon(''); setYeniAdres(''); setYeniKategori('')
       setYeniTaseronAcik(false)
       taseronlariYukle()
     }
