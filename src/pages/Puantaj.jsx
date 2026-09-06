@@ -495,19 +495,22 @@ function PuantajToplam() {
         </>
       )}
 
-      {Object.keys(calisanBazinda).length > 0 && (
-        <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
-            <p className="alt-baslik" style={{ margin: 0 }}>Kişi / Çalışan bazında {filtreTaseron !== 'hepsi' ? `(${taseronlar.find(t => t.id === filtreTaseron)?.ad})` : ''}</p>
-            <input 
-              type="text" 
-              placeholder="İsim ara..." 
-              value={aramaIsim} 
-              onChange={(e) => setAramaIsim(e.target.value)} 
-              style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, minWidth: '180px', flex: '1 1 180px' }}
-            />
-          </div>
-          <div className="liste">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8, marginTop: 24 }}>
+        <p className="alt-baslik" style={{ margin: 0 }}>Kişi / Çalışan bazında {filtreTaseron !== 'hepsi' ? `(${taseronlar.find(t => t.id === filtreTaseron)?.ad})` : ''}</p>
+        <input 
+          type="text" 
+          placeholder="İsim ara..." 
+          value={aramaIsim} 
+          onChange={(e) => setAramaIsim(e.target.value)} 
+          style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, minWidth: '180px', flex: '1 1 180px' }}
+        />
+      </div>
+
+      <div className="liste">
+        {Object.keys(calisanBazinda).length === 0 ? (
+          <p className="bos-mesaj" style={{ marginTop: 0 }}>Bu tarih aralığında kişisel bazda işlenmiş yevmiye kaydı bulunmuyor.</p>
+        ) : (
+          <>
             {Object.values(calisanBazinda)
               .filter(c => c.ad.toLowerCase().includes(aramaIsim.toLowerCase()))
               .sort((a, b) => b.sayi - a.sayi)
@@ -523,9 +526,9 @@ function PuantajToplam() {
             {Object.values(calisanBazinda).filter(c => c.ad.toLowerCase().includes(aramaIsim.toLowerCase())).length === 0 && (
               <p className="bos-mesaj">Aranan isimde kayıt bulunamadı.</p>
             )}
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
 
       {kayitlar.length === 0 && !yukleniyor && <p className="bos-mesaj">Bu filtrede kayıt yok.</p>}
     </>
