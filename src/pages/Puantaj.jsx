@@ -330,6 +330,7 @@ function PuantajToplam() {
 
   const [kayitlar, setKayitlar] = useState([])
   const [calisanSayilari, setCalisanSayilari] = useState({}) // { "santiyeId_taseronId_tarih": sayi }
+  const [calisanBazinda, setCalisanBazinda] = useState({}) // { calisan_id: { ad, sayi, taseron_id } }
   const [yukleniyor, setYukleniyor] = useState(false)
 
   useEffect(() => {
@@ -361,12 +362,24 @@ function PuantajToplam() {
     setKayitlar(data || [])
 
     const { data: ckData } = await ckSorgu
+    const { data: isciler } = await supabase.from('taseron_calisanlari').select('id, ad_soyad')
+    const isciHaritasi = {}
+    ;(isciler || []).forEach(i => isciHaritasi[i.id] = i.ad_soyad)
+
     const sayac = {}
+    const cBazinda = {}
     ;(ckData || []).forEach((c) => {
       const anahtar = `${c.santiye_id}_${c.taseron_id}_${c.tarih}`
       sayac[anahtar] = (sayac[anahtar] || 0) + 1
+      
+      if (c.calisan_id) {
+        const ad = isciHaritasi[c.calisan_id] || 'Bilinmeyen Çalışan'
+        if (!cBazinda[c.calisan_id]) cBazinda[c.calisan_id] = { ad, sayi: 0, taseron_id: c.taseron_id }
+        cBazinda[c.calisan_id].sayi += 1
+      }
     })
     setCalisanSayilari(sayac)
+    setCalisanBazinda(cBazinda)
     setYukleniyor(false)
   }
 
@@ -451,11 +464,28 @@ function PuantajToplam() {
       {filtreTaseron === 'hepsi' && Object.keys(taseronBazinda).length > 0 && (
         <>
           <p className="alt-baslik">Taşeron bazında</p>
-          <div className="liste">
+          <div className="liste" style={{ marginBottom: 16 }}>
             {Object.entries(taseronBazinda).sort((a, b) => b[1] - a[1]).map(([ad, sayi]) => (
               <div key={ad} className="kart" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px' }}>
                 <span style={{ fontSize: 13 }}>{ad}</span>
-                <span style={{ fontSize: 15, fontWeight: 500 }}>{sayi}</span>
+                <span style={{ fontSize: 15, fontWeight: 500 }}>{sayi} yevmiye</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {Object.keys(calisanBazinda).length > 0 && (
+        <>
+          <p className="alt-baslik">Kişi / Çalışan bazında {filtreTaseron !== 'hepsi' ? `(${taseronlar.find(t => t.id === filtreTaseron)?.ad})` : ''}</p>
+          <div className="liste">
+            {Object.values(calisanBazinda).sort((a, b) => b.sayi - a.sayi).map((c) => (
+              <div key={c.ad + c.taseron_id} className="kart" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px' }}>
+                <span style={{ fontSize: 13 }}>
+                  {c.ad}
+                  {filtreTaseron === 'hepsi' && <span style={{ fontSize: 11, color: '#888', marginLeft: 8 }}>({taseronlar.find(t => t.id === c.taseron_id)?.ad})</span>}
+                </span>
+                <span style={{ fontSize: 15, fontWeight: 500, color: '#0F6E56' }}>{c.sayi} yevmiye</span>
               </div>
             ))}
           </div>
