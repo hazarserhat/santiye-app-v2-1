@@ -601,6 +601,30 @@ function PuantajCalisanRapor() {
     .filter(c => c.ad.toLocaleLowerCase('tr-TR').includes(aramaIsim.trim().toLocaleLowerCase('tr-TR')))
     .sort((a, b) => b.sayi - a.sayi || a.ad.localeCompare(b.ad))
 
+  const raporuPaylas = () => {
+    if (filtrelenmis.length === 0) return alert('Paylaşılacak kayıt yok.')
+    
+    let metin = `📋 *ÇALIŞAN BAZLI PUANTAJ RAPORU*\n`
+    if (donem !== 'tum') {
+       metin += `🗓 *Tarih:* ${donem === 'gunluk' ? tarihGoster(tarih) : (donem === 'aylik' ? new Date(tarih).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }) : `${basTarih} - ${bitTarih}`)}\n`
+    }
+    metin += `\n`
+
+    filtrelenmis.forEach(c => {
+      const sAd = santiyeler.find(s => s.id === c.santiye_id)?.ad || '—'
+      const tAd = taseronlar.find(t => t.id === c.taseron_id)?.ad || '—'
+      metin += `👤 *${c.ad}*\n`
+      metin += `📍 ${sAd} (${tAd})\n`
+      metin += `✅ Toplam: ${c.sayi} Gün (Yevmiye)\n\n`
+    })
+
+    if (navigator.share) {
+      navigator.share({ text: metin }).catch(() => {})
+    } else {
+      window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
+    }
+  }
+
   return (
     <div>
       <div className="ekleme-kutusu" style={{ marginBottom: 15, background: '#fdfdfd' }}>
@@ -649,13 +673,19 @@ function PuantajCalisanRapor() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
         <p className="alt-baslik" style={{ margin: 0 }}>Rapor Çıktısı</p>
-        <input 
-          type="text" 
-          placeholder="İsim ara..." 
-          value={aramaIsim} 
-          onChange={(e) => setAramaIsim(e.target.value)} 
-          style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, minWidth: '180px', flex: '1 1 180px' }}
-        />
+        <div style={{ display: 'flex', gap: 8, flex: '1 1 auto', justifyContent: 'flex-end' }}>
+          <input 
+            type="text" 
+            placeholder="İsim ara..." 
+            value={aramaIsim} 
+            onChange={(e) => setAramaIsim(e.target.value)} 
+            style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, minWidth: '130px', flex: '1 1 130px' }}
+          />
+          <button onClick={raporuPaylas} style={{ background: '#22c55e', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 8, fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+            Paylaş
+          </button>
+        </div>
       </div>
 
       <div className="liste">
