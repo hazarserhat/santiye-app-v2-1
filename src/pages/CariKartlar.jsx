@@ -692,23 +692,6 @@ export default function CariKartlar() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, flexShrink: 0 }}>
         {yonetici && (
           <>
-            <label onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, background: '#f8f7f2', padding: '4px 8px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.04)' }}>
-              <input
-                type="checkbox"
-                checked={t.sef_gorunur || false}
-                onChange={(e) => gorunurlukDegistir(t.id, t.sef_gorunur, e)}
-                style={{ accentColor: '#1D9596' }}
-              /> <span style={{ fontSize: 10, fontWeight: 600, color: '#555' }}>Şef Görsün</span>
-            </label>
-
-            <label onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, background: '#f0fdf4', padding: '4px 8px', borderRadius: 8, border: '1px solid rgba(22, 163, 74, 0.2)' }}>
-              <input
-                type="checkbox"
-                checked={t.puantajda_goster !== false}
-                onChange={(e) => puantajGorunurlukDegistir(t.id, t.puantajda_goster !== false, e)}
-                style={{ accentColor: '#16a34a' }}
-              /> <span style={{ fontSize: 10, fontWeight: 600, color: '#16a34a' }}>Puantaj</span>
-            </label>
 
             <div style={{ position: 'relative' }}>
               <button onClick={(e) => { e.stopPropagation(); setAcikMenuId(acikMenuId === t.id ? null : t.id); }} style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#555', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'all 0.2s' }}>
@@ -792,13 +775,16 @@ export default function CariKartlar() {
         </div>
       </div>
 
-      <div style={{ background: '#f8f7f2', padding: '12px', borderRadius: 12, boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.03)', marginBottom: 14 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>Şantiye Filtresi</label>
+      <div style={{ background: '#fff', padding: '14px', borderRadius: 16, boxShadow: '0 4px 15px rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)', marginBottom: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: '#1D9596', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+            Şantiye Filtresi
+          </label>
           <select 
             value={filtreSantiye} 
             onChange={(e) => setFiltreSantiye(e.target.value)} 
-            style={{ padding: '8px 10px', fontSize: 13, borderRadius: 8, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.03)', outline: 'none', cursor: 'pointer' }}
+            style={{ width: '100%', padding: '10px 14px', fontSize: 14, borderRadius: 10, border: '1px solid rgba(0,0,0,0.08)', background: '#fcfcf9', outline: 'none', cursor: 'pointer', color: '#333', fontWeight: 500 }}
           >
             <option value="hepsi">Tüm şantiyeler</option>
             {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
@@ -806,13 +792,26 @@ export default function CariKartlar() {
         </div>
       </div>
 
-      <div className="gorunum-secici" style={{ marginBottom: 14, display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+      <div className="gorunum-secici" style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {KATEGORILER.map(k => (
           <button 
             key={k.id} 
-            className={aktifSekme === k.id ? 'secili-tab' : ''} 
             onClick={() => setAktifSekme(k.id)} 
-            style={{ whiteSpace: 'nowrap', padding: '10px 16px', borderRadius: 8, fontWeight: 600, border: '1px solid rgba(0,0,0,0.05)', cursor: 'pointer', flexShrink: 0 }}
+            style={{ 
+              flex: '1 1 calc(33.33% - 8px)',
+              minWidth: '100px',
+              padding: '10px 12px', 
+              borderRadius: 12, 
+              fontWeight: 600, 
+              fontSize: 13,
+              border: aktifSekme === k.id ? 'none' : '1px solid rgba(0,0,0,0.06)', 
+              background: aktifSekme === k.id ? 'linear-gradient(135deg, #1D9596, #117575)' : '#fff',
+              color: aktifSekme === k.id ? '#fff' : '#555',
+              boxShadow: aktifSekme === k.id ? '0 4px 10px rgba(29, 149, 150, 0.3)' : '0 2px 4px rgba(0,0,0,0.02)',
+              cursor: 'pointer', 
+              transition: 'all 0.2s ease',
+              textAlign: 'center'
+            }}
           >
             {k.ad}
           </button>
