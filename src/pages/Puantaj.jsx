@@ -347,7 +347,7 @@ function PuantajToplam() {
   const raporuYukle = async () => {
     setYukleniyor(true)
     let sorgu = supabase.from('puantaj_kayitlari').select('santiye_id, taseron_id, tarih, diger_sayisi, santiyeler(ad), taseronlar(ad)')
-    let ckSorgu = supabase.from('puantaj_calisan_kayitlari').select('santiye_id, taseron_id, tarih')
+    let ckSorgu = supabase.from('puantaj_calisan_kayitlari').select('santiye_id, taseron_id, tarih, calisan_id')
 
     if (donem === 'gunluk') {
       sorgu = sorgu.eq('tarih', tarih); ckSorgu = ckSorgu.eq('tarih', tarih)
@@ -512,7 +512,7 @@ function PuantajToplam() {
         ) : (
           <>
             {Object.values(calisanBazinda)
-              .filter(c => c.ad.toLowerCase().includes(aramaIsim.toLowerCase()))
+              .filter(c => c.ad.toLocaleLowerCase('tr-TR').includes(aramaIsim.trim().toLocaleLowerCase('tr-TR')))
               .sort((a, b) => b.sayi - a.sayi)
               .map((c) => (
               <div key={c.ad + c.taseron_id} className="kart" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px' }}>
@@ -523,7 +523,7 @@ function PuantajToplam() {
                 <span style={{ fontSize: 15, fontWeight: 500, color: '#0F6E56' }}>{c.sayi} yevmiye</span>
               </div>
             ))}
-            {Object.values(calisanBazinda).filter(c => c.ad.toLowerCase().includes(aramaIsim.toLowerCase())).length === 0 && (
+            {Object.values(calisanBazinda).filter(c => c.ad.toLocaleLowerCase('tr-TR').includes(aramaIsim.trim().toLocaleLowerCase('tr-TR'))).length === 0 && (
               <p className="bos-mesaj">Aranan isimde kayıt bulunamadı.</p>
             )}
           </>
