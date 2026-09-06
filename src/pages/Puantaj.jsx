@@ -134,7 +134,7 @@ function PuantajKayitEkleme() {
 
   return (
     <div>
-      <div className="ekleme-kutusu" style={{ marginBottom: 20, background: '#fdfdfd', padding: 20, borderRadius: 16, border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+      <div className="ekleme-kutusu" style={{ marginBottom: 20, background: 'rgba(255, 255, 255, 0.6)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: 20, borderRadius: 16, border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
         <p style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700, color: '#333' }}>+ Yeni Taşeron Satırı Aç</p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {filtreSantiye === 'hepsi' && (
@@ -813,7 +813,7 @@ function PuantajCalisanKayit() {
         </div>
       </div>
 
-      <div className="ekleme-kutusu" style={{ marginBottom: 24, background: '#fdfdfd', padding: 20, borderRadius: 16, border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+      <div className="ekleme-kutusu" style={{ marginBottom: 24, background: 'rgba(255, 255, 255, 0.6)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: 20, borderRadius: 16, border: '1px solid rgba(0,0,0,0.03)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
         <p style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: '#5F5E5A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>1. Şantiye Seçin</p>
         <select value={santiyeId} onChange={(e) => setSantiyeId(e.target.value)} style={{ width: '100%', padding: '12px 14px', marginBottom: 16, borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }}>
           {santiyeler.map(s => <option key={s.id} value={s.id}>{s.ad}</option>)}
