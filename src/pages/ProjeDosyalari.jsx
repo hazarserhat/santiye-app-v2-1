@@ -23,6 +23,7 @@ export default function ProjeDosyalari() {
   
   const [duzenlenenNotId, setDuzenlenenNotId] = useState(null)
   const [geciciNot, setGeciciNot] = useState('')
+  const [acikMenuId, setAcikMenuId] = useState(null)
   
   const dosyaInputRef = useRef(null)
   const yonetici = profile?.rol === 'yonetici' || profile?.rol === 'koordinator' || profile?.sistem_yoneticisi
@@ -133,13 +134,13 @@ export default function ProjeDosyalari() {
   if (aktifSekme === 'tum') {
     gosterilecekDosyalar = gosterilecekDosyalar.filter(d => {
       if (filtreSantiye && d.santiye_id !== filtreSantiye) return false
-      if (arama && !d.dosya_adi.toLowerCase().includes(arama.toLowerCase())) return false
+      if (arama && !d.dosya_adi.toLowerCase().includes(arama.toLowerCase()) && !(d.aciklama && d.aciklama.toLowerCase().includes(arama.toLowerCase()))) return false
       return true
     })
   } else if (aktifSekme === 'klasorler' && seciliSantiyeKlasoru) {
     gosterilecekDosyalar = gosterilecekDosyalar.filter(d => {
       if (d.santiye_id !== seciliSantiyeKlasoru) return false
-      if (arama && !d.dosya_adi.toLowerCase().includes(arama.toLowerCase())) return false
+      if (arama && !d.dosya_adi.toLowerCase().includes(arama.toLowerCase()) && !(d.aciklama && d.aciklama.toLowerCase().includes(arama.toLowerCase()))) return false
       return true
     })
   }
@@ -447,52 +448,53 @@ export default function ProjeDosyalari() {
             {gosterilecekDosyalar.map((d) => {
               const bSantiye = santiyeler.find(s => s.id === d.santiye_id)?.ad || 'Bilinmeyen'
               return (
-                <div key={d.id} className="drv-file-item">
-                  <div className="drv-file-icon">{getDosyaIkon(d.dosya_tipi)}</div>
-                  
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.dosya_adi}</p>
+                <div key={d.id} className="drv-file-item" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                    <div className="drv-file-icon">{getDosyaIkon(d.dosya_tipi)}</div>
                     
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, background: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: 8 }}>📍 {bSantiye}</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', padding: '4px 0' }}>Yükleyen: {d.profiles?.ad_soyad} · {new Date(d.created_at).toLocaleDateString('tr-TR')}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.dosya_adi}</p>
+                      
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, background: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: 8 }}>📍 {bSantiye}</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', padding: '4px 0' }}>Yükleyen: {d.profiles?.ad_soyad} · {new Date(d.created_at).toLocaleDateString('tr-TR')}</span>
+                      </div>
                     </div>
                     
-                    {duzenlenenNotId === d.id ? (
-                      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                        <input 
-                          type="text" className="drv-input" value={geciciNot} onChange={(e) => setGeciciNot(e.target.value)} 
-                          placeholder="Notunuzu yazın..." style={{ flex: 1, padding: '8px 12px' }} autoFocus
-                          onKeyDown={(e) => { if (e.key === 'Enter') notKaydet(d.id) }}
-                        />
-                        <button className="drv-btn drv-btn-primary" onClick={() => notKaydet(d.id)}>Kaydet</button>
-                        <button className="drv-btn" style={{ background: '#f1f5f9' }} onClick={() => setDuzenlenenNotId(null)}>İptal</button>
-                      </div>
-                    ) : (
-                      d.aciklama && (
-                        <div style={{ marginTop: 8, background: '#f8fafc', padding: '10px 14px', borderRadius: 10, borderLeft: '4px solid #6366f1' }}>
-                          <p style={{ margin: 0, fontSize: 13, color: '#475569', fontStyle: 'italic', lineHeight: 1.4 }}>{d.aciklama}</p>
+                    <div style={{ flexShrink: 0, position: 'relative' }}>
+                      <button onClick={() => setAcikMenuId(acikMenuId === d.id ? null : d.id)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', padding: '0 8px', borderRadius: 8, color: '#64748b', lineHeight: 1 }}>⋮</button>
+                      {acikMenuId === d.id && (
+                        <div style={{ position: 'absolute', top: 28, right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10, padding: 4, minWidth: 120 }}>
+                          <a href={getGoogleDriveViewUrl(d.dosya_url)} target="_blank" rel="noopener noreferrer" style={{ display: 'block', padding: '8px 12px', color: '#0f172a', textDecoration: 'none', fontSize: 13, borderRadius: 8 }}>Aç</a>
+                          <button onClick={() => { dosyaPaylas(d); setAcikMenuId(null); }} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#0f172a', fontSize: 13, cursor: 'pointer', borderRadius: 8 }}>Paylaş</button>
+                          {yonetici && (
+                            <>
+                              <button onClick={() => { setDuzenlenenNotId(d.id); setGeciciNot(d.aciklama || ''); setAcikMenuId(null); }} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#0f172a', fontSize: 13, cursor: 'pointer', borderRadius: 8 }}>{d.aciklama ? 'Notu Düzenle' : 'Not Ekle'}</button>
+                              <button onClick={(e) => { dosyaSil(d, e); setAcikMenuId(null); }} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#dc2626', fontSize: 13, cursor: 'pointer', borderRadius: 8 }}>Sil</button>
+                            </>
+                          )}
                         </div>
-                      )
-                    )}
+                      )}
+                    </div>
                   </div>
                   
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <a href={getGoogleDriveViewUrl(d.dosya_url)} target="_blank" rel="noopener noreferrer" className="drv-btn drv-btn-primary" style={{ textDecoration: 'none' }}>Aç</a>
-                      <button className="drv-btn drv-btn-success" onClick={() => dosyaPaylas(d)}>Paylaş</button>
+                  {duzenlenenNotId === d.id ? (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                      <input 
+                        type="text" className="drv-input" value={geciciNot} onChange={(e) => setGeciciNot(e.target.value)} 
+                        placeholder="Notunuzu yazın..." style={{ flex: 1, padding: '8px 12px' }} autoFocus
+                        onKeyDown={(e) => { if (e.key === 'Enter') notKaydet(d.id) }}
+                      />
+                      <button className="drv-btn drv-btn-primary" onClick={() => notKaydet(d.id)}>Kaydet</button>
+                      <button className="drv-btn" style={{ background: '#f1f5f9' }} onClick={() => setDuzenlenenNotId(null)}>İptal</button>
                     </div>
-                    {yonetici && (
-                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                        {duzenlenenNotId !== d.id && (
-                          <button className="drv-btn drv-btn-warning" onClick={() => { setDuzenlenenNotId(d.id); setGeciciNot(d.aciklama || '') }}>
-                            {d.aciklama ? 'Düzenle' : 'Not Ekle'}
-                          </button>
-                        )}
-                        <button className="drv-btn drv-btn-danger" onClick={(e) => dosyaSil(d, e)}>Sil</button>
+                  ) : (
+                    d.aciklama && (
+                      <div style={{ marginTop: 12, background: '#f8fafc', padding: '10px 14px', borderRadius: 10, borderLeft: '4px solid #0ea5e9' }}>
+                        <p style={{ margin: 0, fontSize: 13, color: '#475569', fontStyle: 'italic', lineHeight: 1.4 }}>{d.aciklama}</p>
                       </div>
-                    )}
-                  </div>
+                    )
+                  )}
                 </div>
               )
             })}
