@@ -476,6 +476,7 @@ function PuantajToplam() {
     const doc = new jsPDF()
     doc.addFileToVFS('Roboto-Regular.ttf', RobotoBase64)
     doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal')
+    doc.addFont('Roboto-Regular.ttf', 'Roboto', 'bold')
     doc.setFont('Roboto')
 
     doc.setFontSize(16)
@@ -771,6 +772,7 @@ function PuantajCalisanRapor() {
             const doc = new jsPDF()
             doc.addFileToVFS('Roboto-Regular.ttf', RobotoBase64)
             doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal')
+            doc.addFont('Roboto-Regular.ttf', 'Roboto', 'bold')
             doc.setFont('Roboto')
 
             doc.setFontSize(16)
