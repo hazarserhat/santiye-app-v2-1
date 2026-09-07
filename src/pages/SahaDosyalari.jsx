@@ -344,6 +344,8 @@ export default function SahaDosyalari() {
           Şantiye Klasörleri
         </button>
       </div>
+      
+      <input type="file" multiple hidden ref={dosyaInputRef} onChange={handleFileInput} disabled={yukleniyor} />
 
       {aktifSekme === 'tum' && (
         <>
@@ -376,7 +378,6 @@ export default function SahaDosyalari() {
                 <p style={{ margin: 0, fontSize: 13, color: '#94a3b8' }}>PDF, DWG, Görsel ve Excel dosyaları desteklenir</p>
               </div>
             )}
-            <input type="file" multiple hidden ref={dosyaInputRef} onChange={handleFileInput} disabled={yukleniyor} />
           </div>
 
           <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
