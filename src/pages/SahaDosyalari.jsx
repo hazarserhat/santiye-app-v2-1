@@ -418,19 +418,22 @@ export default function SahaDosyalari() {
           {aktifSekme === 'klasorler' && seciliSantiyeKlasoru && (
             <>
               <div 
-                className={`drv-upload-zone ${surukleniyor ? 'drag-active' : ''}`} style={{ padding: '24px 16px', marginBottom: 20 }}
+                className={`drv-upload-zone ${surukleniyor ? 'drag-active' : ''}`}
                 onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}
                 onClick={() => { if (!yukleniyor) dosyaInputRef.current?.click() }}
               >
                 {yukleniyor ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 24 }}>⏳</span>
-                    <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#0ea5e9' }}>Yükleniyor...</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 36 }}>⏳</span>
+                    <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#4f46e5' }}>Dosyalar Buluta Aktarılıyor...</p>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 32 }}>📥</span>
-                    <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#475569' }}>Bu şantiyeye dosya yüklemek için tıklayın</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 42 }}>📥</span>
+                    <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#334155' }}>
+                      Dosyaları buraya sürükleyin veya <span style={{ color: '#4f46e5' }}>tıklayın</span>
+                    </p>
+                    <p style={{ margin: 0, fontSize: 13, color: '#94a3b8' }}>PDF, DWG, Görsel ve Excel dosyaları desteklenir</p>
                   </div>
                 )}
               </div>
