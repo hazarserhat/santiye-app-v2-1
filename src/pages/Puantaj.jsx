@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { RobotoBase64 } from '../lib/fonts/RobotoRegular'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 const gunEkle = (t, n) => {
@@ -473,6 +474,10 @@ function PuantajToplam() {
 
   const pdfIndir = () => {
     const doc = new jsPDF()
+    doc.addFileToVFS('Roboto-Regular.ttf', RobotoBase64)
+    doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal')
+    doc.setFont('Roboto')
+
     doc.setFontSize(16)
     doc.text('Şantiye Dönem Raporu (Genel Puantaj)', 14, 15)
     
@@ -493,7 +498,8 @@ function PuantajToplam() {
         head: [['Şantiye Adı', 'Toplam Yevmiye']],
         body: Object.entries(santiyeBazinda).sort((a, b) => b[1] - a[1]),
         theme: 'grid',
-        headStyles: { fillColor: [29, 149, 150] }
+        headStyles: { fillColor: [29, 149, 150] },
+        styles: { font: 'Roboto' }
       })
       yPos = doc.lastAutoTable.finalY + 10
     }
@@ -504,7 +510,8 @@ function PuantajToplam() {
         head: [['Taşeron Adı', 'Toplam Yevmiye']],
         body: Object.entries(taseronBazinda).sort((a, b) => b[1] - a[1]),
         theme: 'grid',
-        headStyles: { fillColor: [29, 149, 150] }
+        headStyles: { fillColor: [29, 149, 150] },
+        styles: { font: 'Roboto' }
       })
     }
 
@@ -762,6 +769,10 @@ function PuantajCalisanRapor() {
           />
           <button onClick={() => {
             const doc = new jsPDF()
+            doc.addFileToVFS('Roboto-Regular.ttf', RobotoBase64)
+            doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal')
+            doc.setFont('Roboto')
+
             doc.setFontSize(16)
             doc.text('Çalışan Puantaj Detay Raporu', 14, 15)
             
@@ -785,7 +796,8 @@ function PuantajCalisanRapor() {
               head: [['İsim Soyisim', 'Şantiye', 'Taşeron', 'Toplam Yevmiye']],
               body: tabloVerisi,
               theme: 'grid',
-              headStyles: { fillColor: [29, 149, 150] }
+              headStyles: { fillColor: [29, 149, 150] },
+              styles: { font: 'Roboto' }
             })
 
             doc.save(`Calisan_Raporu_${bugun()}.pdf`)
