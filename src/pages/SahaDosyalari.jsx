@@ -15,6 +15,7 @@ export default function SahaDosyalari() {
   const [aktifSekme, setAktifSekme] = useState('tum')
   const [dosyalar, setDosyalar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(false)
+  const [yuklemeDurumu, setYuklemeDurumu] = useState(null)
   const [surukleniyor, setSurukleniyor] = useState(false)
   const [hedefSantiye, setHedefSantiye] = useState('')
   const [arama, setArama] = useState('')
@@ -61,12 +62,14 @@ export default function SahaDosyalari() {
     }
 
     setYukleniyor(true)
+    setYuklemeDurumu({ toplam: yeniDosyalar.length, tamamlanan: 0, mevcutDosyaAd: '' })
     const santiyeAdi = santiyeler.find(s => s.id === yuklenecekSantiye)?.ad || 'Santiye'
     const driveFolderName = `SahaDosyalari/${santiyeAdi}`
     let basariliSayisi = 0
 
     for (let i = 0; i < yeniDosyalar.length; i++) {
       const file = yeniDosyalar[i]
+      setYuklemeDurumu(prev => ({ ...prev, mevcutDosyaAd: file.name }))
       try {
         const ext = file.name.split('.').pop().toLowerCase()
         const driveSonuc = await uploadToGoogleDrive({
@@ -79,10 +82,13 @@ export default function SahaDosyalari() {
         basariliSayisi++
       } catch (err) {
         alert(`${file.name} yüklenirken hata: ${err.message}`)
+      } finally {
+        setYuklemeDurumu(prev => ({ ...prev, tamamlanan: prev.tamamlanan + 1 }))
       }
     }
 
     setYukleniyor(false)
+    setYuklemeDurumu(null)
     if (dosyaInputRef.current) dosyaInputRef.current.value = ''
     if (basariliSayisi > 0) dosyalariYukle()
   }
@@ -365,9 +371,21 @@ export default function SahaDosyalari() {
             }}
           >
             {yukleniyor ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%', maxWidth: 400 }}>
                 <span style={{ fontSize: 36 }}>⏳</span>
-                <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0ea5e9' }}>Dosyalar Buluta Aktarılıyor...</p>
+                <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#4f46e5', textAlign: 'center' }}>
+                  Dosyalar Buluta Aktarılıyor... {yuklemeDurumu ? `(${yuklemeDurumu.tamamlanan}/${yuklemeDurumu.toplam})` : ''}
+                </p>
+                {yuklemeDurumu && (
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
+                    <div style={{ width: '100%', height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
+                       <div style={{ height: '100%', background: '#4f46e5', width: `${((yuklemeDurumu.tamamlanan) / yuklemeDurumu.toplam) * 100}%`, transition: 'width 0.3s' }}></div>
+                    </div>
+                    <span style={{ fontSize: 13, color: '#64748b', fontStyle: 'italic', maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      Şu an yükleniyor: {yuklemeDurumu.mevcutDosyaAd}
+                    </span>
+                  </div>
+                )}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
@@ -423,9 +441,21 @@ export default function SahaDosyalari() {
                 onClick={() => { if (!yukleniyor) dosyaInputRef.current?.click() }}
               >
                 {yukleniyor ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%', maxWidth: 400 }}>
                     <span style={{ fontSize: 36 }}>⏳</span>
-                    <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#4f46e5' }}>Dosyalar Buluta Aktarılıyor...</p>
+                    <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#4f46e5', textAlign: 'center' }}>
+                      Dosyalar Buluta Aktarılıyor... {yuklemeDurumu ? `(${yuklemeDurumu.tamamlanan}/${yuklemeDurumu.toplam})` : ''}
+                    </p>
+                    {yuklemeDurumu && (
+                      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
+                        <div style={{ width: '100%', height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
+                           <div style={{ height: '100%', background: '#4f46e5', width: `${((yuklemeDurumu.tamamlanan) / yuklemeDurumu.toplam) * 100}%`, transition: 'width 0.3s' }}></div>
+                        </div>
+                        <span style={{ fontSize: 13, color: '#64748b', fontStyle: 'italic', maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          Şu an yükleniyor: {yuklemeDurumu.mevcutDosyaAd}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
