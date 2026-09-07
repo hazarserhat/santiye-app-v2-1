@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { jsPDF } from 'jspdf'
-import 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 const gunEkle = (t, n) => {
@@ -488,7 +488,7 @@ function PuantajToplam() {
     let yPos = 35
 
     if (filtreSantiye === 'hepsi' && Object.keys(santiyeBazinda).length > 0) {
-      doc.autoTable({
+      autoTable(doc, {
         startY: yPos,
         head: [['Şantiye Adı', 'Toplam Yevmiye']],
         body: Object.entries(santiyeBazinda).sort((a, b) => b[1] - a[1]),
@@ -499,7 +499,7 @@ function PuantajToplam() {
     }
 
     if (filtreTaseron === 'hepsi' && Object.keys(taseronBazinda).length > 0) {
-      doc.autoTable({
+      autoTable(doc, {
         startY: yPos,
         head: [['Taşeron Adı', 'Toplam Yevmiye']],
         body: Object.entries(taseronBazinda).sort((a, b) => b[1] - a[1]),
@@ -780,7 +780,7 @@ function PuantajCalisanRapor() {
               c.sayi
             ])
 
-            doc.autoTable({
+            autoTable(doc, {
               startY: 30,
               head: [['İsim Soyisim', 'Şantiye', 'Taşeron', 'Toplam Yevmiye']],
               body: tabloVerisi,
