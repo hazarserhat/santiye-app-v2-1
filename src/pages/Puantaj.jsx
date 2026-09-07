@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
+import { jsPDF } from 'jspdf'
+import 'jspdf-autotable'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 const gunEkle = (t, n) => {
@@ -469,11 +471,54 @@ function PuantajToplam() {
     taseronBazinda[tAdi] = (taseronBazinda[tAdi] || 0) + t
   })
 
+  const pdfIndir = () => {
+    const doc = new jsPDF()
+    doc.setFontSize(16)
+    doc.text('Şantiye Dönem Raporu (Genel Puantaj)', 14, 15)
+    
+    let tarihBilgisi = ''
+    if (donem === 'gunluk') tarihBilgisi = tarihGoster(tarih)
+    else if (donem === 'aylik') tarihBilgisi = new Date(tarih).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })
+    else if (donem === 'aralik') tarihBilgisi = `${tarihGoster(basTarih)} - ${tarihGoster(bitTarih)}`
+    
+    doc.setFontSize(11)
+    doc.text(`Dönem: ${tarihBilgisi || 'Tümü'}`, 14, 23)
+    doc.text(`Genel Toplam Yevmiye: ${genelToplam}`, 14, 29)
+
+    let yPos = 35
+
+    if (filtreSantiye === 'hepsi' && Object.keys(santiyeBazinda).length > 0) {
+      doc.autoTable({
+        startY: yPos,
+        head: [['Şantiye Adı', 'Toplam Yevmiye']],
+        body: Object.entries(santiyeBazinda).sort((a, b) => b[1] - a[1]),
+        theme: 'grid',
+        headStyles: { fillColor: [29, 149, 150] }
+      })
+      yPos = doc.lastAutoTable.finalY + 10
+    }
+
+    if (filtreTaseron === 'hepsi' && Object.keys(taseronBazinda).length > 0) {
+      doc.autoTable({
+        startY: yPos,
+        head: [['Taşeron Adı', 'Toplam Yevmiye']],
+        body: Object.entries(taseronBazinda).sort((a, b) => b[1] - a[1]),
+        theme: 'grid',
+        headStyles: { fillColor: [29, 149, 150] }
+      })
+    }
+
+    doc.save(`Donem_Raporu_${bugun()}.pdf`)
+  }
+
   return (
     <>
-      <div style={{ marginBottom: 16 }}>
-        <button className="ekle-buton-genis" onClick={() => setFiltreAcik(!filtreAcik)} style={{ width: '100%', padding: '12px', background: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 12, fontWeight: 700, color: '#555', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+      <div style={{ marginBottom: 16, display: 'flex', gap: 10 }}>
+        <button className="ekle-buton-genis" onClick={() => setFiltreAcik(!filtreAcik)} style={{ flex: 1, padding: '12px', background: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 12, fontWeight: 700, color: '#555', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
           {filtreAcik ? 'Filtreleri Gizle ⌃' : 'Filtreleri Göster ⌄'}
+        </button>
+        <button onClick={pdfIndir} style={{ padding: '12px 20px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 10px rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          📄 PDF İndir
         </button>
       </div>
 
@@ -707,7 +752,7 @@ function PuantajCalisanRapor() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12, marginTop: 24 }}>
         <p className="alt-baslik" style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Rapor Çıktısı</p>
-        <div style={{ display: 'flex', gap: 10, flex: '1 1 auto', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: 10, flex: '1 1 auto', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <input 
             type="text" 
             placeholder="İsim ara..." 
@@ -715,7 +760,39 @@ function PuantajCalisanRapor() {
             onChange={(e) => setAramaIsim(e.target.value)} 
             style={{ padding: '10px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fff', fontSize: 13, minWidth: '150px', flex: '1 1 150px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)', outline: 'none' }}
           />
-          <button onClick={raporuPaylas} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 10px rgba(16, 185, 129, 0.3)' }}>
+          <button onClick={() => {
+            const doc = new jsPDF()
+            doc.setFontSize(16)
+            doc.text('Çalışan Puantaj Detay Raporu', 14, 15)
+            
+            let tarihBilgisi = ''
+            if (donem === 'gunluk') tarihBilgisi = tarihGoster(tarih)
+            else if (donem === 'aylik') tarihBilgisi = new Date(tarih).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })
+            else if (donem === 'aralik') tarihBilgisi = `${tarihGoster(basTarih)} - ${tarihGoster(bitTarih)}`
+            
+            doc.setFontSize(11)
+            doc.text(`Dönem: ${tarihBilgisi || 'Tümü'}`, 14, 23)
+
+            const tabloVerisi = filtrelenmis.map(c => [
+              c.ad,
+              santiyeler.find(s => s.id === c.santiye_id)?.ad || '—',
+              taseronlar.find(t => t.id === c.taseron_id)?.ad || '—',
+              c.sayi
+            ])
+
+            doc.autoTable({
+              startY: 30,
+              head: [['İsim Soyisim', 'Şantiye', 'Taşeron', 'Toplam Yevmiye']],
+              body: tabloVerisi,
+              theme: 'grid',
+              headStyles: { fillColor: [29, 149, 150] }
+            })
+
+            doc.save(`Calisan_Raporu_${bugun()}.pdf`)
+          }} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 10px rgba(239, 68, 68, 0.3)' }}>
+            📄 PDF İndir
+          </button>
+          <button onClick={raporuPaylas} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 10px rgba(16, 185, 129, 0.3)' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
             Paylaş
           </button>
