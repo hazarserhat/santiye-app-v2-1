@@ -3,6 +3,19 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useSite } from '../../context/SiteContext'
 import { paraFormatla, sadeceSayiTuslari } from '../../lib/format'
+import jsPDF from 'jspdf'
+import 'jspdf-autotable'
+
+const tr2en = (text) => {
+  if (typeof text !== 'string') return ''
+  return text
+    .replace(/Ğ/g, 'G').replace(/ğ/g, 'g')
+    .replace(/Ü/g, 'U').replace(/ü/g, 'u')
+    .replace(/Ş/g, 'S').replace(/ş/g, 's')
+    .replace(/İ/g, 'I').replace(/ı/g, 'i')
+    .replace(/Ö/g, 'O').replace(/ö/g, 'o')
+    .replace(/Ç/g, 'C').replace(/ç/g, 'c')
+}
 
 export default function ProjeGelirleri() {
   const { santiyeler } = useSite()
@@ -212,6 +225,66 @@ export default function ProjeGelirleri() {
     toplamKalanGenel += Math.max(0, kalanBakiye - alinan)
   })
 
+  const pdfIndir = () => {
+    const doc = new jsPDF('landscape')
+    doc.text(tr2en('Proje Gelirleri ve Odeme Durumlari Raporu'), 14, 15)
+    doc.setFontSize(9)
+    doc.text(tr2en(`Tarih: ${new Date().toLocaleDateString('tr-TR')}`), 14, 22)
+
+    const tableColumn = [
+      "Malik / Isim", "Iletisim", "Santiye", "Mesken", "Daire", 
+      "Toplam Alacak", "Devlet Destegi", "Kalan Bakiye", 
+      "Alinan", "Kalan Borc"
+    ]
+    const tableRows = []
+
+    gorunenler.forEach(m => {
+      const kalanBakiye = Number(m.toplam_alacak || 0) - Number(m.devlet_destegi || 0)
+      const alinan = odemeToplamlari[m.id] || 0
+      const kalan = Math.max(0, kalanBakiye - alinan)
+      
+      const rowData = [
+        tr2en(m.ad_soyad || 'Isimsiz'),
+        tr2en(m.telefon || '-'),
+        tr2en(m.santiyeler?.ad || '-'),
+        tr2en(m.mesken_turu || '-'),
+        tr2en(m.daire_no || '-'),
+        paraFormatla(m.toplam_alacak) + ' TL',
+        paraFormatla(m.devlet_destegi) + ' TL',
+        paraFormatla(kalanBakiye) + ' TL',
+        paraFormatla(alinan) + ' TL',
+        paraFormatla(kalan) + ' TL'
+      ]
+      tableRows.push(rowData)
+    })
+
+    // Genel Toplam Satırı
+    tableRows.push([
+      "TOPLAM", "-", "-", "-", "-",
+      paraFormatla(toplamAlacakGenel) + ' TL',
+      paraFormatla(toplamDevletGenel) + ' TL',
+      paraFormatla(toplamAlacakGenel - toplamDevletGenel) + ' TL',
+      paraFormatla(toplamAlinanGenel) + ' TL',
+      paraFormatla(toplamKalanGenel) + ' TL'
+    ])
+
+    doc.autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 28,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [15, 110, 86] }, // Koyu yeşil tema
+      didParseCell: function(data) {
+        if (data.row.index === tableRows.length - 1) {
+          data.cell.styles.fontStyle = 'bold'
+          data.cell.styles.fillColor = [240, 240, 240]
+        }
+      }
+    })
+
+    doc.save(`gelirler_raporu_${new Date().toISOString().slice(0,10)}.pdf`)
+  }
+
   const hucreStil = { padding: '8px 10px', fontSize: 12, borderBottom: '1px solid #F1EFE8' }
   const baslikStil = { ...hucreStil, fontWeight: 700, color: '#5F5E5A', fontSize: 11, borderBottom: '1px solid #D3D1C7', whiteSpace: 'nowrap' }
 
@@ -236,6 +309,9 @@ export default function ProjeGelirleri() {
         {santiyeler.map((s) => (
           <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
         ))}
+        <button onClick={pdfIndir} style={{ padding: '6px 12px', background: '#D64545', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '13px', marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          📄 PDF Raporu İndir
+        </button>
       </div>
 
       <div style={{ overflowX: 'auto', background: 'white', borderRadius: 12, border: '1px solid #D3D1C7', marginBottom: 12 }}>
