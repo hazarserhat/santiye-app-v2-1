@@ -825,16 +825,29 @@ export default function ProjeGelirleri() {
                   <td style={{ position: 'sticky', left: 0, background: stickyBg, fontWeight: 700, zIndex: 5, boxShadow: '2px 0 5px rgba(0,0,0,0.03)', display: isColumnVisible('ad_soyad') ? '' : 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       {hucreEdit?.malikId === m.id && hucreEdit?.alan === 'ad_soyad' ? (
-                        <input
-                          type="text"
+                        <textarea
                           autoFocus
-                          style={{ padding: '3px 6px', border: '2px solid #1D9596', borderRadius: 4, width: '100%' }}
+                          style={{ padding: '3px 6px', border: '2px solid #1D9596', borderRadius: 4, width: '100%', resize: 'vertical', minHeight: '40px', fontFamily: 'inherit', fontSize: '13px' }}
                           defaultValue={m.ad_soyad}
                           onBlur={(e) => hucreKaydet(m.id, 'ad_soyad', e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') hucreKaydet(m.id, 'ad_soyad', e.target.value) }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              if (!e.altKey && !e.shiftKey) {
+                                e.preventDefault()
+                                hucreKaydet(m.id, 'ad_soyad', e.target.value)
+                              }
+                            }
+                          }}
                         />
                       ) : (
-                        <span onDoubleClick={() => hucreCiftTik(m.id, 'ad_soyad')} title={hizliDuzenleModu ? "Çift tıklayarak düzenle" : "Hızlı Düzenleme modunu açarak düzenleyebilirsiniz"} style={{ cursor: hizliDuzenleModu ? 'pointer' : 'default' }}>{m.ad_soyad}</span>
+                        <span onDoubleClick={() => hucreCiftTik(m.id, 'ad_soyad')} title={hizliDuzenleModu ? "Çift tıklayarak düzenle (Alt+Enter ile alt satır)" : "Hızlı Düzenleme modunu açarak düzenleyebilirsiniz"} style={{ cursor: hizliDuzenleModu ? 'pointer' : 'default', display: 'inline-block' }}>
+                          {(m.ad_soyad || '').split('\n').map((line, i, arr) => (
+                            <span key={i}>
+                              {line}
+                              {i < arr.length - 1 && <br />}
+                            </span>
+                          ))}
+                        </span>
                       )}
                       {isRuha && <span style={{ fontSize: 9, background: '#1D9596', color: 'white', padding: '3px 8px', borderRadius: 6, fontWeight: 900, boxShadow: '0 2px 6px rgba(29,149,150,0.3)', letterSpacing: '0.5px' }}>⭐ BİZE AİT</span>}
                     </div>
@@ -1031,12 +1044,12 @@ export default function ProjeGelirleri() {
           
           <div>
             <label className="premium-label">Ad Soyad</label>
-            <input 
-              type="text" 
+            <textarea 
               className="premium-input"
               value={taslak.ad_soyad || ''} 
-              placeholder="Malik Ad Soyad"
+              placeholder="Malik Ad Soyad (Alt+Enter ile alt satır)"
               onChange={(e) => setTaslak((o) => ({ ...o, ad_soyad: e.target.value }))} 
+              style={{ minHeight: '60px', resize: 'vertical', fontFamily: 'inherit' }}
             />
           </div>
           <div>
