@@ -756,6 +756,19 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   border-top-right-radius: 16px;
 }
 
+@media (max-width: 767px) {
+  .kaydirilabilir-tablo th:first-child, .premium-tablo th:first-child,
+  .kaydirilabilir-tablo td:first-child, .premium-tablo td:first-child,
+  .kaydirilabilir-tablo tfoot td:first-child, .premium-tablo tfoot td:first-child {
+    min-width: 100px !important;
+    max-width: 130px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    font-size: 11px !important;
+    padding: 6px 4px !important;
+  }
+}
+
 /* Header Aşama Toplu Düzenleme Inputu */
 .asama-baslik-input {
   width: 100%;
