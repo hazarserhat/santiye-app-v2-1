@@ -66,6 +66,21 @@ export default function ProjeGelirleri() {
   }
 
   const malikSil = async (id) => {
+    const { count, error: countError } = await supabase
+      .from('gelirler')
+      .select('*', { count: 'exact', head: true })
+      .eq('malik_id', id)
+      
+    if (countError) {
+      alert('Silme kontrolü sırasında bir hata oluştu: ' + countError.message)
+      return
+    }
+    
+    if (count > 0) {
+      alert('Bu malike ait ödeme (tahsilat) kayıtları bulunmaktadır! Silme işlemi yapılamaz. Lütfen önce Gelirler sekmesinden ilgili ödeme kayıtlarını silin veya başka birine aktarın.')
+      return
+    }
+
     if (!window.confirm('Bu maliki ve tüm aşama kayıtlarını silmek istediğinize emin misiniz?')) return
     await supabase.from('malikler').delete().eq('id', id)
     yenile()
