@@ -73,6 +73,7 @@ export default function ProjeGelirleri() {
   const duzenlemeyiAc = (m) => {
     setDuzenlenenId(m.id)
     setTaslak({ 
+      ad_soyad: m.ad_soyad || '',
       toplam_alacak: m.toplam_alacak || 0, 
       devlet_destegi: m.devlet_destegi || 0,
       telefon: m.telefon || '',
@@ -85,6 +86,7 @@ export default function ProjeGelirleri() {
 
   const kaydet = async (malikId) => {
     await supabase.from('malikler').update({
+      ad_soyad: taslak.ad_soyad || '',
       toplam_alacak: Number(taslak.toplam_alacak) || 0,
       devlet_destegi: Number(taslak.devlet_destegi) || 0,
       telefon: taslak.telefon || '',
@@ -108,6 +110,36 @@ export default function ProjeGelirleri() {
 
   const asamaTikle = async (asama) => {
     await supabase.from('malik_asamalari').update({ tamamlandi: !asama.tamamlandi }).eq('id', asama.id)
+    yenile()
+  }
+
+  const malikKopyala = async (m) => {
+    if (!window.confirm(`${m.ad_soyad} şablonunu kopyalamak istediğinize emin misiniz?`)) return
+    
+    const { data: yeniMalik, error } = await supabase.from('malikler').insert({
+      santiye_id: m.santiye_id,
+      ad_soyad: m.ad_soyad + ' (Kopya)',
+      telefon: m.telefon,
+      mesken_turu: m.mesken_turu,
+      daire_no: m.daire_no,
+      toplam_alacak: m.toplam_alacak,
+      devlet_destegi: m.devlet_destegi
+    }).select().single()
+
+    if (error) { alert('Kopyalama başarısız: ' + error.message); return }
+
+    const existingStages = asamalar[m.id] || []
+    if (existingStages.length > 0) {
+      const yeniAsamalarListesi = existingStages.map((a) => ({
+        malik_id: yeniMalik.id,
+        ad: a.ad || '',
+        tutar: Number(a.tutar) || 0,
+        tamamlandi: false,
+        sira: a.sira
+      }))
+      await supabase.from('malik_asamalari').insert(yeniAsamalarListesi)
+    }
+
     yenile()
   }
 
@@ -215,8 +247,11 @@ export default function ProjeGelirleri() {
                   <td style={{ ...hucreStil, color: '#1D9596', fontWeight: 700 }}>{paraFormatla(alinan)} ₺</td>
                   <td style={hucreStil}>{paraFormatla(kalan)} ₺</td>
                   <td style={hucreStil}>
-                    <button className="sil-buton" onClick={() => duzenlemeyiAc(m)} aria-label="Düzenle">✎</button>
-                    <button className="sil-buton" onClick={() => malikSil(m.id)} aria-label="Sil">🗑</button>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button className="sil-buton" onClick={() => malikKopyala(m)} aria-label="Kopyala" title="Şablonu Kopyala">📄</button>
+                      <button className="sil-buton" onClick={() => duzenlemeyiAc(m)} aria-label="Düzenle" title="Düzenle">✎</button>
+                      <button className="sil-buton" onClick={() => malikSil(m.id)} aria-label="Sil" title="Sil">🗑</button>
+                    </div>
                   </td>
                 </tr>
               )
@@ -250,6 +285,15 @@ export default function ProjeGelirleri() {
           
           <div className="ekleme-satiri-2" style={{ marginBottom: 8 }}>
             <div>
+              <label style={{ fontSize: 11, color: '#5F5E5A' }}>Ad Soyad</label>
+              <input 
+                type="text" 
+                value={taslak.ad_soyad || ''} 
+                placeholder="Malik Ad Soyad"
+                onChange={(e) => setTaslak((o) => ({ ...o, ad_soyad: e.target.value }))} 
+              />
+            </div>
+            <div>
               <label style={{ fontSize: 11, color: '#5F5E5A' }}>İletişim Bilgileri (Telefon)</label>
               <input 
                 type="text" 
@@ -258,6 +302,9 @@ export default function ProjeGelirleri() {
                 onChange={(e) => setTaslak((o) => ({ ...o, telefon: e.target.value }))} 
               />
             </div>
+          </div>
+
+          <div className="ekleme-satiri-2" style={{ marginBottom: 8 }}>
             <div>
               <label style={{ fontSize: 11, color: '#5F5E5A' }}>Mesken Türü</label>
               <input 
