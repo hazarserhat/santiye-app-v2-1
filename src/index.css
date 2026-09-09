@@ -655,8 +655,8 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
 .premium-tablo-kapsayici {
   overflow-x: auto !important;
   overflow-y: hidden;
-  touch-action: pan-x pan-y;
-  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -666,9 +666,11 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   margin-bottom: 24px;
   width: 100%;
   max-width: 100%;
+  box-sizing: border-box;
 }
 .premium-tablo-kapsayici::-webkit-scrollbar {
-  height: 10px;
+  height: 12px !important;
+  display: block !important;
 }
 .premium-tablo-kapsayici::-webkit-scrollbar-track {
   background: #E2E8F0;
@@ -677,17 +679,18 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
 .premium-tablo-kapsayici::-webkit-scrollbar-thumb {
   background: #1D9596;
   border-radius: 8px;
+  border: 2px solid #E2E8F0;
 }
 .premium-tablo-kapsayici::-webkit-scrollbar-thumb:hover {
   background: #157374;
 }
 .premium-tablo {
-  width: 100%;
-  table-layout: fixed;
+  width: max-content !important;
+  min-width: 100% !important;
+  table-layout: auto !important;
   border-collapse: separate;
   border-spacing: 0;
   text-align: left;
-  min-width: 1250px;
 }
 .premium-tablo tr {
   height: auto !important;
@@ -1014,11 +1017,12 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
     margin-bottom: 16px;
-    -webkit-overflow-scrolling: touch;
+    -webkit-overflow-scrolling: touch !important;
     overflow-x: auto !important;
     touch-action: pan-x pan-y !important;
   }
   .premium-tablo {
+    width: max-content !important;
     min-width: 1250px !important;
   }
   .premium-tablo th:first-child,
@@ -1028,5 +1032,6 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
     left: 0 !important;
     z-index: 12 !important;
     box-shadow: 3px 0 8px rgba(0, 0, 0, 0.08) !important;
+    touch-action: pan-x pan-y !important;
   }
 }

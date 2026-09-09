@@ -677,6 +677,12 @@ export default function ProjeGelirleri() {
         ))}
       </div>
 
+      {/* Yatay Kaydırma Görsel Bilgi Çubuğu */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', background: 'rgba(29, 149, 150, 0.08)', border: '1px dashed #1D9596', borderRadius: '12px', marginBottom: '12px', fontSize: '13px', color: '#0F5859', fontWeight: '700' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>↔️ <span>Tabloyu Sağa - Sola Kaydırabilirsiniz</span></span>
+        <span style={{ fontSize: '12px', fontWeight: '600', color: '#1D9596' }}>{gorunenler.length} Kayıt Gösteriliyor</span>
+      </div>
+
       {/* Table Container Wrapper */}
       <div
         ref={tabloKapsayiciRef}
