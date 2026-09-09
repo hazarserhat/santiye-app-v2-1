@@ -677,17 +677,8 @@ export default function ProjeGelirleri() {
         ))}
       </div>
 
-
-
       {/* Table Container Wrapper */}
-      <div
-        ref={tabloKapsayiciRef}
-        className="premium-tablo-kapsayici"
-        style={{
-          background: pdfYukleniyor ? '#FFFFFF' : 'rgba(255, 255, 255, 0.85)',
-          padding: pdfYukleniyor ? '20px' : '0px'
-        }}
-      >
+      <div ref={tabloKapsayiciRef} style={{ background: '#FFFFFF', borderRadius: '16px', padding: pdfYukleniyor ? '20px' : '0px', boxShadow: '0 8px 32px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
         {/* PDF Rapor Başlık Alanı (Sadece PDF oluşturulurken görünür) */}
         <div style={{ marginBottom: '16px', borderBottom: '2px solid #1D9596', paddingBottom: '12px', display: pdfYukleniyor ? 'flex' : 'none', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
@@ -701,6 +692,7 @@ export default function ProjeGelirleri() {
           </div>
         </div>
 
+        <div className="premium-tablo-kapsayici" style={{ background: 'transparent', boxShadow: 'none' }}>
         <table className="premium-tablo">
           <thead>
             {(() => {
@@ -1014,6 +1006,7 @@ export default function ProjeGelirleri() {
           </tfoot>
         </table>
       </div>
+    </div>
 
       {duzenlenenId && (
         <div className="glass-kutu form-grid" style={{ marginBottom: 24 }}>
