@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useSite } from '../../context/SiteContext'
 import { paraFormatla, sadeceSayiTuslari } from '../../lib/format'
-import jsPDF from 'jspdf'
-import 'jspdf-autotable'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 const tr2en = (text) => {
   if (typeof text !== 'string') return ''
@@ -268,7 +268,7 @@ export default function ProjeGelirleri() {
       paraFormatla(toplamKalanGenel) + ' TL'
     ])
 
-    doc.autoTable({
+    autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
       startY: 28,
