@@ -605,15 +605,15 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
 
 /* YENİ: GENİŞ EKRAN ADAPTİF (RESPONSIVE) TASARIM */
 @media (min-width: 768px) {
-  /* Geniş sayfa kısıtlamasını artırıyoruz */
+  /* Geniş sayfa kısıtlamasını kaldırıyoruz */
   .icerik:has(.sayfa-genis) {
-    max-width: 1200px;
+    max-width: 100% !important;
   }
   
   /* Sayfa içerik sınırını kaldırıyoruz, icerik'e ayak uydurur */
   .sayfa-genis {
-    max-width: 1400px !important;
-    margin: 0 auto;
+    max-width: 100% !important;
+    margin: 0 !important;
   }
 
   /* Formların çok uzamasını engelleyen ızgara yapısı */
@@ -710,9 +710,7 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   position: sticky;
   top: 0;
   z-index: 10;
-  white-space: normal !important;
-  word-wrap: break-word !important;
-  word-break: break-word !important;
+  white-space: nowrap !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
   line-height: 1.4;
   height: auto !important;
@@ -753,9 +751,7 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   color: #1E293B;
   border-bottom: 1px solid rgba(226, 232, 240, 0.8);
   vertical-align: middle;
-  white-space: normal !important;
-  word-wrap: break-word !important;
-  word-break: break-word !important;
+  white-space: nowrap !important;
   line-height: 1.5;
   height: auto !important;
 }
