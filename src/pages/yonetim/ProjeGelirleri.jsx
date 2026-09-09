@@ -358,6 +358,18 @@ export default function ProjeGelirleri() {
   const tabloKapsayiciRef = useRef(null)
   const [pdfYukleniyor, setPdfYukleniyor] = useState(false)
 
+  const kaydirSol = () => {
+    if (tabloKapsayiciRef.current) {
+      tabloKapsayiciRef.current.scrollBy({ left: -350, behavior: 'smooth' })
+    }
+  }
+
+  const kaydirSag = () => {
+    if (tabloKapsayiciRef.current) {
+      tabloKapsayiciRef.current.scrollBy({ left: 350, behavior: 'smooth' })
+    }
+  }
+
   const excelIndir = () => {
     try {
       const data = []
@@ -677,10 +689,55 @@ export default function ProjeGelirleri() {
         ))}
       </div>
 
-      {/* Yatay Kaydırma Görsel Bilgi Çubuğu */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', background: 'rgba(29, 149, 150, 0.08)', border: '1px dashed #1D9596', borderRadius: '12px', marginBottom: '12px', fontSize: '13px', color: '#0F5859', fontWeight: '700' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>↔️ <span>Tabloyu Sağa - Sola Kaydırabilirsiniz</span></span>
-        <span style={{ fontSize: '12px', fontWeight: '600', color: '#1D9596' }}>{gorunenler.length} Kayıt Gösteriliyor</span>
+      {/* Yatay Kaydırma Görsel Bilgi & Kaydırma Butonları Çubuğu */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(29, 149, 150, 0.08)', border: '1px solid rgba(29, 149, 150, 0.25)', borderRadius: '12px', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '15px' }}>↔️</span>
+          <span style={{ fontSize: '13px', color: '#0F5859', fontWeight: '700' }}>Tabloyu Sağa - Sola Kaydırabilirsiniz</span>
+          <span style={{ fontSize: '12px', fontWeight: '600', color: '#1D9596', marginLeft: '6px' }}>({gorunenler.length} Kayıt)</span>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={kaydirSol}
+            style={{
+              padding: '6px 14px',
+              background: '#FFFFFF',
+              color: '#1D9596',
+              border: '1px solid #1D9596',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+            }}
+            title="Tabloyu sola kaydır"
+          >
+            ◀ Sol
+          </button>
+          <button
+            onClick={kaydirSag}
+            style={{
+              padding: '6px 14px',
+              background: '#1D9596',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              boxShadow: '0 2px 6px rgba(29, 149, 150, 0.3)'
+            }}
+            title="Tabloyu sağa kaydır"
+          >
+            Sağ ▶
+          </button>
+        </div>
       </div>
 
       {/* Table Container Wrapper */}

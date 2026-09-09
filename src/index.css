@@ -685,9 +685,9 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   background: #157374;
 }
 .premium-tablo {
-  width: max-content !important;
-  min-width: 100% !important;
-  table-layout: auto !important;
+  width: 1750px !important;
+  min-width: 1750px !important;
+  table-layout: fixed !important;
   border-collapse: separate;
   border-spacing: 0;
   text-align: left;
