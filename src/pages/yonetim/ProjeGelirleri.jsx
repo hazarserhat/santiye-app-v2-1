@@ -7,6 +7,7 @@ import { paraFormatla, sadeceSayiTuslari } from '../../lib/format'
 export default function ProjeGelirleri() {
   const { santiyeler } = useSite()
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
+  const [siralama, setSiralama] = useState('daire_artan')
   const [malikler, setMalikler] = useState([])
   const [asamalar, setAsamalar] = useState({}) // { malikId: [asama,...] }
   const [odemeToplamlari, setOdemeToplamlari] = useState({}) // { malikId: toplam }
@@ -162,7 +163,28 @@ export default function ProjeGelirleri() {
   }
   const renkArkaplan = { yesil: 'rgba(63,158,92,0.25)', sari: 'rgba(217,180,41,0.3)', kirmizi: 'rgba(214,69,69,0.18)', yok: 'transparent' }
 
-  const gorunenler = filtreSantiye === 'hepsi' ? malikler : malikler.filter((m) => m.santiye_id === filtreSantiye)
+  let gorunenler = filtreSantiye === 'hepsi' ? [...malikler] : malikler.filter((m) => m.santiye_id === filtreSantiye)
+
+  gorunenler.sort((a, b) => {
+    if (siralama === 'daire_artan') {
+      return (a.daire_no || '').localeCompare(b.daire_no || '', undefined, { numeric: true })
+    }
+    if (siralama === 'daire_azalan') {
+      return (b.daire_no || '').localeCompare(a.daire_no || '', undefined, { numeric: true })
+    }
+    if (siralama === 'isim_artan') {
+      return (a.ad_soyad || '').localeCompare(b.ad_soyad || '')
+    }
+    if (siralama === 'isim_azalan') {
+      return (b.ad_soyad || '').localeCompare(a.ad_soyad || '')
+    }
+    if (siralama === 'kalan_artan' || siralama === 'kalan_azalan') {
+      const kalanA = Math.max(0, Number(a.toplam_alacak || 0) - Number(a.devlet_destegi || 0) - (odemeToplamlari[a.id] || 0))
+      const kalanB = Math.max(0, Number(b.toplam_alacak || 0) - Number(b.devlet_destegi || 0) - (odemeToplamlari[b.id] || 0))
+      return siralama === 'kalan_artan' ? kalanA - kalanB : kalanB - kalanA
+    }
+    return 0
+  })
 
   // Genel toplamlar
   let toplamAlacakGenel = 0, toplamDevletGenel = 0, toplamAlinanGenel = 0, toplamKalanGenel = 0
@@ -186,7 +208,15 @@ export default function ProjeGelirleri() {
         🔴 Ödeme alınmadı · 🟡 Kısmi ödeme alındı · 🟢 Tamamen ödendi. Aşama başlığındaki tik, o aşamanın (iskan/ruhsat vb.) fiilen tamamlanıp tamamlanmadığını gösterir — ödemeden bağımsızdır.
       </p>
 
-      <div className="filtre-satiri">
+      <div className="filtre-satiri" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+        <select value={siralama} onChange={(e) => setSiralama(e.target.value)} style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #D3D1C7', fontSize: '13px', background: 'white' }}>
+          <option value="daire_artan">Daire No (Küçükten Büyüğe)</option>
+          <option value="daire_azalan">Daire No (Büyükten Küçüğe)</option>
+          <option value="isim_artan">İsim (A-Z)</option>
+          <option value="isim_azalan">İsim (Z-A)</option>
+          <option value="kalan_artan">Kalan Borç (En Az)</option>
+          <option value="kalan_azalan">Kalan Borç (En Çok)</option>
+        </select>
         <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
         {santiyeler.map((s) => (
           <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
