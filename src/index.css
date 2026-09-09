@@ -37,10 +37,13 @@ input, select, button { font-family: inherit; max-width: 100%; }
   padding: 16px;
   padding-bottom: calc(150px + env(safe-area-inset-bottom));
   width: 100%;
+  max-width: 100vw;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
-.sayfa { max-width: 480px; margin: 0 auto; width: 100%; }
-.sayfa-genis, .sayfa.sayfa-genis { max-width: 100% !important; margin: 0 !important; width: 100% !important; }
+.sayfa { max-width: 480px; margin: 0 auto; width: 100%; min-width: 0; }
+.sayfa-genis, .sayfa.sayfa-genis { max-width: 100% !important; margin: 0 !important; width: 100% !important; min-width: 0 !important; box-sizing: border-box; }
 .sayfa h2 { font-size: 18px; font-weight: 600; margin: 0 0 12px; word-break: break-word; color: #1A202C; }
 
 .filtre-satiri { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; padding: 2px 0 6px; }
