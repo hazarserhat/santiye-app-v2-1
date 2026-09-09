@@ -677,13 +677,25 @@ export default function ProjeGelirleri() {
         ))}
       </div>
 
-      {/* Table Container Wrapper */}
+      {/* Table Container Wrapper — viewport-pinned, bypasses all parent CSS */}
       <div
         ref={tabloKapsayiciRef}
         className="tablo-kaydirma-alani"
         style={{
+          display: 'block',
+          width: 'calc(100vw - 32px)',
+          maxWidth: 'calc(100vw - 32px)',
+          overflowX: 'auto',
+          overflowY: 'visible',
+          WebkitOverflowScrolling: 'touch',
           background: pdfYukleniyor ? '#FFFFFF' : 'rgba(255, 255, 255, 0.95)',
-          padding: pdfYukleniyor ? '20px' : '0px'
+          padding: pdfYukleniyor ? '20px' : '0px',
+          boxSizing: 'border-box',
+          borderRadius: '16px',
+          border: '1px solid rgba(226, 232, 240, 0.9)',
+          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.05)',
+          marginBottom: '24px',
+          position: 'relative',
         }}
       >
         {/* PDF Rapor Başlık Alanı (Sadece PDF oluşturulurken görünür) */}
@@ -699,7 +711,7 @@ export default function ProjeGelirleri() {
           </div>
         </div>
 
-        <table className="kaydirilabilir-tablo">
+        <table className="kaydirilabilir-tablo" style={{ minWidth: '1500px', width: 'max-content' }}>
           <thead>
             {(() => {
               const thStil = { background: 'linear-gradient(135deg, #1D9596 0%, #147576 100%)', color: '#FFFFFF', padding: '16px 14px', borderBottom: '3px solid #0F5859', fontSize: '14px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }

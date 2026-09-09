@@ -34,13 +34,16 @@ input, select, button { font-family: inherit; max-width: 100%; }
 /* İçerik: üstte sabit bar, altta hem ekleme çubuğu hem menü için yer bırakılıyor */
 .icerik {
   flex: 1;
+  min-width: 0;
+  overflow-x: clip;
   padding: 16px;
   padding-bottom: calc(150px + env(safe-area-inset-bottom));
   width: 100%;
+  box-sizing: border-box;
 }
 
-.sayfa { max-width: 480px; margin: 0 auto; width: 100%; }
-.sayfa-genis, .sayfa.sayfa-genis { max-width: 100% !important; margin: 0 !important; width: 100% !important; }
+.sayfa { max-width: 480px; margin: 0 auto; width: 100%; min-width: 0; }
+.sayfa-genis, .sayfa.sayfa-genis { max-width: 100% !important; margin: 0 !important; width: 100% !important; min-width: 0 !important; box-sizing: border-box; }
 .sayfa h2 { font-size: 18px; font-weight: 600; margin: 0 0 12px; word-break: break-word; color: #1A202C; }
 
 .filtre-satiri { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; padding: 2px 0 6px; }
@@ -600,20 +603,19 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   transform-origin: top center;
 }
 
-/* YENİ: GENİŞ EKRAN ADAPTİF (RESPONSIVE) TASARIM */
+/* GENİŞ EKRAN ADAPTİF TASARIM */
 @media (min-width: 768px) {
-  /* Geniş sayfa kısıtlamasını artırıyoruz */
+  /* icerik flex container içinde shrink olabilsin */
   .icerik:has(.sayfa-genis) {
-    max-width: 1200px;
-  }
-  
-  /* Sayfa içerik sınırını kaldırıyoruz, icerik'e ayak uydurur */
-  .sayfa-genis {
-    max-width: 1400px !important;
-    margin: 0 auto;
+    overflow-x: clip;
   }
 
-  /* Formların çok uzamasını engelleyen ızgara yapısı */
+  .sayfa-genis {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
   .form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -621,7 +623,6 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
     align-items: start;
   }
 
-  /* Listelerin kartları yan yana dizecek ızgara yapısı */
   .liste-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
