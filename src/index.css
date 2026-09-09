@@ -651,6 +651,7 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
 /* Premium Tablo Tasarımı (Glassmorphism & Desktop Uyumlu) */
 .premium-tablo-kapsayici {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -658,6 +659,8 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.05);
   margin-bottom: 24px;
+  width: 100%;
+  max-width: 100%;
 }
 .premium-tablo {
   width: 100%;
@@ -984,4 +987,26 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
 
 .kpi-deger.blue {
   color: #2563EB;
+}
+
+/* Mobil (Telefon / Dokunmatik Ekran) Sağ-Sol Kaydırma Uyumlandırması */
+@media (max-width: 768px) {
+  .premium-tablo-kapsayici {
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    margin-bottom: 16px;
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto !important;
+  }
+  .premium-tablo {
+    min-width: 1250px !important;
+  }
+  .premium-tablo th:first-child,
+  .premium-tablo td:first-child,
+  .premium-tablo tfoot td:first-child {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 12 !important;
+    box-shadow: 3px 0 8px rgba(0, 0, 0, 0.08) !important;
+  }
 }
