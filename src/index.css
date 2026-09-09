@@ -648,52 +648,110 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   box-shadow: 0 15px 50px rgba(0, 0, 0, 0.08), inset 0 2px 10px rgba(255, 255, 255, 0.5);
 }
 
-/* Premium Tablo Tasarımı (Glassmorphism & Desktop Uyumlu) */
-.premium-tablo-kapsayici {
-  overflow-x: auto;
-  background: rgba(255, 255, 255, 0.85);
+/* Premium & Responsive Tablo Tasarımı (Ekran Genişliğine Duyarlı & Sabit İlk Sütun) */
+.tablo-kaydirma-alani, .premium-tablo-kapsayici {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  max-height: 80vh !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-x pan-y !important;
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(226, 232, 240, 0.9);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.05);
   margin-bottom: 24px;
+  box-sizing: border-box !important;
+  position: relative !important;
 }
-.premium-tablo {
-  width: 100%;
-  table-layout: fixed;
-  border-collapse: separate;
-  border-spacing: 0;
+
+.tablo-kaydirma-alani::-webkit-scrollbar, .premium-tablo-kapsayici::-webkit-scrollbar {
+  height: 12px !important;
+  width: 8px !important;
+  display: block !important;
+}
+.tablo-kaydirma-alani::-webkit-scrollbar-track, .premium-tablo-kapsayici::-webkit-scrollbar-track {
+  background: #E2E8F0;
+  border-radius: 8px;
+}
+.tablo-kaydirma-alani::-webkit-scrollbar-thumb, .premium-tablo-kapsayici::-webkit-scrollbar-thumb {
+  background: #1D9596;
+  border-radius: 8px;
+  border: 2px solid #E2E8F0;
+}
+.tablo-kaydirma-alani::-webkit-scrollbar-thumb:hover, .premium-tablo-kapsayici::-webkit-scrollbar-thumb:hover {
+  background: #157374;
+}
+
+.kaydirilabilir-tablo, .premium-tablo {
+  width: max-content !important;
+  min-width: 1550px !important;
+  table-layout: auto !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
   text-align: left;
-  min-width: 1250px;
 }
-.premium-tablo tr {
+
+.kaydirilabilir-tablo tr, .premium-tablo tr {
   height: auto !important;
-  min-height: 60px !important;
+  min-height: 56px !important;
 }
-.premium-tablo th {
-  background: linear-gradient(135deg, #1D9596 0%, #167273 100%);
-  color: #FFFFFF;
+
+.kaydirilabilir-tablo th, .premium-tablo th {
+  background: linear-gradient(135deg, #1D9596 0%, #167273 100%) !important;
+  color: #FFFFFF !important;
   padding: 14px 12px !important;
-  font-size: 15px !important;
-  font-weight: 800;
-  border-bottom: 3px solid #135E5F;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  white-space: normal !important;
-  word-wrap: break-word !important;
-  word-break: break-word !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  border-bottom: 3px solid #135E5F !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  white-space: nowrap !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
   line-height: 1.4;
   height: auto !important;
 }
-.premium-tablo th:first-child {
+
+.kaydirilabilir-tablo td, .premium-tablo td {
+  padding: 14px 12px !important;
+  font-size: 14px !important;
+  color: #1E293B;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
+  vertical-align: middle;
+  white-space: nowrap !important;
+  line-height: 1.5;
+  height: auto !important;
+}
+
+/* İLK SÜTUN: MALİK ADI SABİTLENMESİ (STICKY LEFT COLUMN) */
+.kaydirilabilir-tablo th:first-child, .premium-tablo th:first-child,
+.kaydirilabilir-tablo td:first-child, .premium-tablo td:first-child,
+.kaydirilabilir-tablo tfoot td:first-child, .premium-tablo tfoot td:first-child {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 15 !important;
+  background: #FFFFFF !important;
+  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.08) !important;
+  min-width: 190px !important;
+  max-width: 220px !important;
+  white-space: nowrap !important;
+}
+
+.kaydirilabilir-tablo th:first-child, .premium-tablo th:first-child {
+  z-index: 25 !important;
+  background: #147576 !important;
+  color: #FFFFFF !important;
   border-top-left-radius: 16px;
 }
-.premium-tablo th:last-child {
+.kaydirilabilir-tablo th:last-child, .premium-tablo th:last-child {
   border-top-right-radius: 16px;
 }
 
