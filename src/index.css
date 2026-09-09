@@ -653,8 +653,12 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
 
 /* Premium Tablo Tasarımı (Glassmorphism & Desktop Uyumlu) */
 .premium-tablo-kapsayici {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   overflow-x: auto !important;
-  overflow-y: hidden;
+  overflow-y: hidden !important;
   touch-action: pan-x pan-y !important;
   -webkit-overflow-scrolling: touch !important;
   background: rgba(255, 255, 255, 0.85);
@@ -664,9 +668,7 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.05);
   margin-bottom: 24px;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
+  box-sizing: border-box !important;
 }
 .premium-tablo-kapsayici::-webkit-scrollbar {
   height: 12px !important;
@@ -685,9 +687,9 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   background: #157374;
 }
 .premium-tablo {
-  width: 1750px !important;
-  min-width: 1750px !important;
-  table-layout: fixed !important;
+  width: max-content !important;
+  min-width: 1300px !important;
+  table-layout: auto !important;
   border-collapse: separate;
   border-spacing: 0;
   text-align: left;
