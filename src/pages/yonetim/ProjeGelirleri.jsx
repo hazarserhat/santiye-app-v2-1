@@ -233,51 +233,90 @@ export default function ProjeGelirleri() {
 
     const tableColumn = [
       "Malik / Isim", "Iletisim", "Santiye", "Mesken", "Daire", 
-      "Toplam Alacak", "Devlet Destegi", "Kalan Bakiye", 
-      "Alinan", "Kalan Borc"
+      "Alacak(TL)", "Devlet(TL)", "Bakiye(TL)", 
+      "Alinan(TL)", "Kalan(TL)"
     ]
+
+    for (let i = 0; i < maxStageCount; i++) {
+      tableColumn.push(`Asama ${i + 1}`)
+    }
+
     const tableRows = []
+    const cellColors = []
 
     gorunenler.forEach(m => {
       const kalanBakiye = Number(m.toplam_alacak || 0) - Number(m.devlet_destegi || 0)
       const alinan = odemeToplamlari[m.id] || 0
       const kalan = Math.max(0, kalanBakiye - alinan)
       
+      const stages = asamalar[m.id] || []
+      const renkler = renkHesapla(m.id, stages)
+
       const rowData = [
         tr2en(m.ad_soyad || 'Isimsiz'),
         tr2en(m.telefon || '-'),
         tr2en(m.santiyeler?.ad || '-'),
         tr2en(m.mesken_turu || '-'),
         tr2en(m.daire_no || '-'),
-        paraFormatla(m.toplam_alacak) + ' TL',
-        paraFormatla(m.devlet_destegi) + ' TL',
-        paraFormatla(kalanBakiye) + ' TL',
-        paraFormatla(alinan) + ' TL',
-        paraFormatla(kalan) + ' TL'
+        paraFormatla(m.toplam_alacak),
+        paraFormatla(m.devlet_destegi),
+        paraFormatla(kalanBakiye),
+        paraFormatla(alinan),
+        paraFormatla(kalan)
       ]
+
+      const rowColors = {} 
+
+      for (let i = 0; i < maxStageCount; i++) {
+        const s = stages[i]
+        const r = renkler[i]
+        
+        let metin = '-'
+        if (s?.id) {
+          metin = `${tr2en(s.ad || 'Isimsiz')}\n${paraFormatla(s.tutar)}`
+        }
+        rowData.push(metin)
+
+        const colIndex = 10 + i 
+        if (r === 'yesil') rowColors[colIndex] = [210, 245, 220]
+        else if (r === 'sari') rowColors[colIndex] = [255, 245, 200]
+        else if (r === 'kirmizi') rowColors[colIndex] = [255, 220, 220]
+      }
+
       tableRows.push(rowData)
+      cellColors.push(rowColors)
     })
 
-    // Genel Toplam Satırı
-    tableRows.push([
+    const toplamRow = [
       "TOPLAM", "-", "-", "-", "-",
-      paraFormatla(toplamAlacakGenel) + ' TL',
-      paraFormatla(toplamDevletGenel) + ' TL',
-      paraFormatla(toplamAlacakGenel - toplamDevletGenel) + ' TL',
-      paraFormatla(toplamAlinanGenel) + ' TL',
-      paraFormatla(toplamKalanGenel) + ' TL'
-    ])
+      paraFormatla(toplamAlacakGenel),
+      paraFormatla(toplamDevletGenel),
+      paraFormatla(toplamAlacakGenel - toplamDevletGenel),
+      paraFormatla(toplamAlinanGenel),
+      paraFormatla(toplamKalanGenel)
+    ]
+    for (let i = 0; i < maxStageCount; i++) {
+       toplamRow.push("-")
+    }
+    tableRows.push(toplamRow)
 
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
       startY: 28,
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [15, 110, 86] }, // Koyu yeşil tema
+      styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
+      headStyles: { fillColor: [15, 110, 86], fontSize: 7 }, 
       didParseCell: function(data) {
         if (data.row.index === tableRows.length - 1) {
           data.cell.styles.fontStyle = 'bold'
           data.cell.styles.fillColor = [240, 240, 240]
+          return
+        }
+
+        const rowColorMap = cellColors[data.row.index]
+        if (rowColorMap && rowColorMap[data.column.index]) {
+          data.cell.styles.fillColor = rowColorMap[data.column.index]
+          data.cell.styles.textColor = [40, 40, 40]
         }
       }
     })
