@@ -1,13 +1,13 @@
 * { box-sizing: border-box; }
 html, body {
   margin: 0;
-  overflow-x: hidden;
+  overflow-x: clip;
   width: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #F8F7F2;
   color: #212124;
 }
-#root { overflow-x: hidden; width: 100%; }
+#root { overflow-x: clip; width: 100%; }
 input, select, button { font-family: inherit; max-width: 100%; }
 
 .login-ekrani { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 16px; }
@@ -18,7 +18,7 @@ input, select, button { font-family: inherit; max-width: 100%; }
 .login-form button { padding: 10px; border-radius: 8px; border: none; background: #1D9596; color: white; font-size: 14px; font-weight: 700; cursor: pointer; }
 .login-hata { color: #A32D2D; font-size: 13px; margin: 0; }
 
-.uygulama-govde { display: flex; flex-direction: column; min-height: 100vh; width: 100%; overflow-x: hidden; }
+.uygulama-govde { display: flex; flex-direction: column; min-height: 100vh; width: 100%; overflow-x: clip; }
 
 .ust-bar {
   display: flex; align-items: center; justify-content: space-between;
@@ -651,12 +651,12 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
 /* Premium & Responsive Tablo Tasarımı (Ekran Genişliğine Duyarlı & Sabit İlk Sütun) */
 .tablo-kaydirma-alani, .premium-tablo-kapsayici {
   display: block !important;
-  width: 100% !important;
-  max-width: 100% !important;
+  /* Viewport-relative width: bypasses parent flex/overflow-x constraints */
+  width: calc(100vw - 32px) !important;
+  max-width: calc(100vw - 32px) !important;
   min-width: 0 !important;
   overflow-x: auto !important;
-  overflow-y: auto !important;
-  max-height: 80vh !important;
+  overflow-y: visible !important;
   -webkit-overflow-scrolling: touch !important;
   touch-action: pan-x pan-y !important;
   background: rgba(255, 255, 255, 0.95);
