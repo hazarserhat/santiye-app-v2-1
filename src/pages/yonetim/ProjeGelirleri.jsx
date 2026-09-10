@@ -577,8 +577,9 @@ export default function ProjeGelirleri() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
         <div>
           <h2 style={{ margin: 0 }}>Proje Gelirleri & Malik Takibi</h2>
-          <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 0' }}>
-            🔴 Ödeme alınmadı · 🟡 Kısmi ödeme alındı · 🟢 Tamamen ödendi · 💡 <i>Hücrelere çift tıklayarak hızlıca düzenleyebilirsiniz</i>
+          <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 0', lineHeight: '1.4' }}>
+            🔴 Ödeme alınmadı · 🟡 Kısmi ödeme alındı · 🟢 Tamamen ödendi · ⭐ Ruha'ya aittir<br/>
+            💡 <i>Hücrelere çift tıklayarak hızlıca düzenleyebilirsiniz. Uzun içerikleri tam görmek için hücreye tıklayın.</i>
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -690,7 +691,7 @@ export default function ProjeGelirleri() {
 
       {/* Glassmorphism Filter & Sort Panel */}
       <div style={{ background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: '14px 18px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.9)', boxShadow: '0 8px 32px rgba(0,0,0,0.04)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-        <select value={siralama} onChange={(e) => setSiralama(e.target.value)} style={{ padding: '8px 14px', borderRadius: '10px', border: '1px solid #CBD5E0', fontSize: '13px', background: 'white', fontWeight: 600, color: '#1E293B', outline: 'none' }}>
+        <select value={siralama} onChange={(e) => setSiralama(e.target.value)} style={{ padding: '8px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.6)', fontSize: '13px', background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(8px)', fontWeight: 600, color: '#1E293B', outline: 'none', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.5)' }}>
           <option value="daire_artan">Daire No (Küçükten Büyüğe)</option>
           <option value="daire_azalan">Daire No (Büyükten Küçüğe)</option>
           <option value="isim_artan">İsim (A-Z)</option>
@@ -703,7 +704,7 @@ export default function ProjeGelirleri() {
           className="santiye-secici" 
           value={filtreSantiye} 
           onChange={(e) => setFiltreSantiye(e.target.value)} 
-          style={{ padding: '8px 14px', borderRadius: '10px', border: '1px solid #CBD5E0', fontSize: '13px', background: 'white', fontWeight: 600, color: '#1E293B', outline: 'none' }}
+          style={{ padding: '8px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.6)', fontSize: '13px', background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(8px)', fontWeight: 600, color: '#1E293B', outline: 'none', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.5)' }}
         >
           <option value="hepsi">Tüm Şantiyeler</option>
           {santiyeler.map((s) => (
@@ -836,7 +837,12 @@ export default function ProjeGelirleri() {
               )
             })()}
           </thead>
-          <tbody>
+          <tbody onClick={(e) => {
+            const td = e.target.closest('td');
+            if (td) {
+              td.classList.toggle('is-expanded');
+            }
+          }}>
             {gorunenler.map((m, index) => {
               const stages = asamalar[m.id] || []
               const renkler = renkHesapla(m.id, stages)
@@ -850,10 +856,12 @@ export default function ProjeGelirleri() {
 
               let cellBg = 'rgba(255, 255, 255, 0.95)'
               let stickyBg = '#FFFFFF'
+              let textColor = '#1E293B'
               
               if (isRuha) {
-                cellBg = 'rgba(29, 149, 150, 0.22)'
-                stickyBg = '#B2EBF2'
+                cellBg = '#1D9596'
+                stickyBg = '#1D9596'
+                textColor = '#FFFFFF'
               } else if (isKalanSifir) {
                 cellBg = 'rgba(34, 197, 94, 0.16)'
                 stickyBg = '#DCFCE7'
@@ -863,9 +871,9 @@ export default function ProjeGelirleri() {
               }
 
               return (
-                <tr key={m.id} className="premium-satir">
+                <tr key={m.id} className="premium-satir" style={{ color: textColor }}>
                   {/* Malik Adı */}
-                  <td style={{ position: 'sticky', left: 0, background: stickyBg, fontWeight: 700, zIndex: 5, boxShadow: '2px 0 5px rgba(0,0,0,0.03)', display: isColumnVisible('ad_soyad') ? '' : 'none' }}>
+                  <td className="td-expandable" style={{ position: 'sticky', left: 0, background: stickyBg, fontWeight: 700, zIndex: 5, boxShadow: '2px 0 5px rgba(0,0,0,0.03)', display: isColumnVisible('ad_soyad') ? '' : 'none', color: textColor }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       {hucreEdit?.malikId === m.id && hucreEdit?.alan === 'ad_soyad' ? (
                         <textarea
@@ -892,12 +900,12 @@ export default function ProjeGelirleri() {
                           ))}
                         </span>
                       )}
-                      {isRuha && <span style={{ fontSize: 9, background: '#1D9596', color: 'white', padding: '3px 8px', borderRadius: 6, fontWeight: 900, boxShadow: '0 2px 6px rgba(29,149,150,0.3)', letterSpacing: '0.5px' }}>⭐ BİZE AİT</span>}
+                      {isRuha && <span style={{ fontSize: 14 }} title="Ruha'ya ait">⭐</span>}
                     </div>
                   </td>
 
                   {/* Telefon */}
-                  <td style={{ background: cellBg, display: isColumnVisible('telefon') ? '' : 'none' }}>
+                  <td className="td-expandable" style={{ background: cellBg, display: isColumnVisible('telefon') ? '' : 'none', color: textColor }}>
                     {hucreEdit?.malikId === m.id && hucreEdit?.alan === 'telefon' ? (
                       <input
                         type="text"

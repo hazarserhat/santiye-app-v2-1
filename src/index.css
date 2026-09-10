@@ -707,7 +707,7 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   background: linear-gradient(135deg, #1D9596 0%, #167273 100%) !important;
   color: #FFFFFF !important;
   padding: 8px 6px !important;
-  font-size: 12px !important;
+  font-size: 10px !important;
   font-weight: 800 !important;
   border-bottom: 2px solid #135E5F !important;
   text-transform: uppercase !important;
@@ -723,13 +723,24 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
 
 .kaydirilabilir-tablo td, .premium-tablo td {
   padding: 6px 4px !important;
-  font-size: 12px !important;
+  font-size: 10px !important;
   color: #1E293B;
   border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
   vertical-align: middle;
-  white-space: nowrap !important;
   line-height: 1.3;
   height: auto !important;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap !important;
+  cursor: pointer;
+}
+
+.kaydirilabilir-tablo td.is-expanded, .premium-tablo td.is-expanded,
+.kaydirilabilir-tablo td.is-expanded div, .premium-tablo td.is-expanded div {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  max-width: none !important;
 }
 
 /* İLK SÜTUN: MALİK ADI SABİTLENMESİ (STICKY LEFT COLUMN) */
