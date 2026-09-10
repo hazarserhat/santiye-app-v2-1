@@ -695,7 +695,7 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   table-layout: auto !important;
   border-collapse: separate !important;
   border-spacing: 0 !important;
-  text-align: left;
+  text-align: center;
 }
 
 .kaydirilabilir-tablo tr, .premium-tablo tr {

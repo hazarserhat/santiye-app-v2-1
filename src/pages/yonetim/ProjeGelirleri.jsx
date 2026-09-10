@@ -873,8 +873,8 @@ export default function ProjeGelirleri() {
               return (
                 <tr key={m.id} className="premium-satir" style={{ color: textColor }}>
                   {/* Malik Adı */}
-                  <td className="td-expandable" style={{ position: 'sticky', left: 0, background: stickyBg, fontWeight: 700, zIndex: 5, boxShadow: '2px 0 5px rgba(0,0,0,0.03)', display: isColumnVisible('ad_soyad') ? '' : 'none', color: textColor }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <td className="td-expandable" style={{ position: 'sticky', left: 0, background: stickyBg, fontWeight: 700, zIndex: 5, boxShadow: '2px 0 5px rgba(0,0,0,0.03)', display: isColumnVisible('ad_soyad') ? '' : 'none', color: textColor, textAlign: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                       {hucreEdit?.malikId === m.id && hucreEdit?.alan === 'ad_soyad' ? (
                         <textarea
                           autoFocus
