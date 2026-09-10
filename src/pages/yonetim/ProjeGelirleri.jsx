@@ -772,14 +772,14 @@ export default function ProjeGelirleri() {
               const seciliSantiyeAd = santiyeler.find(s => s.id === filtreSantiye)?.ad
               return (
                 <tr>
-                  <th style={{ ...thStil, position: 'sticky', left: 0, zIndex: 11, display: isColumnVisible('ad_soyad') ? '' : 'none' }}>Malik / İsim</th>
+                  <th style={{ ...thStil, position: 'sticky', left: 0, zIndex: 11, display: isColumnVisible('ad_soyad') ? '' : 'none', textAlign: 'left' }}>Malik / İsim</th>
                   <th style={{ ...thStil, display: isColumnVisible('telefon') ? '' : 'none' }}>İletişim Bilgileri</th>
                   <th style={{ ...thStil, display: isColumnVisible('santiye') ? '' : 'none' }}>Şantiye</th>
                   <th style={{ ...thStil, display: isColumnVisible('mesken_turu') ? '' : 'none' }}>Mesken Türü</th>
                   <th style={{ ...thStil, display: isColumnVisible('daire_no') ? '' : 'none' }}>Daire No</th>
-                  <th style={{ ...thStil, display: isColumnVisible('toplam_alacak') ? '' : 'none' }}>Toplam Alacak</th>
-                  <th style={{ ...thStil, display: isColumnVisible('devlet_destegi') ? '' : 'none' }}>Devlet Desteği</th>
-                  <th style={{ ...thStil, display: isColumnVisible('kalan_bakiye') ? '' : 'none' }}>Kalan Bakiye</th>
+                  <th style={{ ...thStil, display: isColumnVisible('toplam_alacak') ? '' : 'none', textAlign: 'right' }}>Toplam Alacak</th>
+                  <th style={{ ...thStil, display: isColumnVisible('devlet_destegi') ? '' : 'none', textAlign: 'right' }}>Devlet Desteği</th>
+                  <th style={{ ...thStil, display: isColumnVisible('kalan_bakiye') ? '' : 'none', textAlign: 'right' }}>Kalan Bakiye</th>
                   {Array.from({ length: maxStageCount }).map((_, i) => (
                     <th key={i} style={{ ...thStil, minWidth: 165, display: isColumnVisible('asamalar') ? '' : 'none' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -840,8 +840,8 @@ export default function ProjeGelirleri() {
                       </div>
                     </th>
                   ))}
-                  <th style={{ ...thStil, display: isColumnVisible('alinan') ? '' : 'none' }}>Alınan</th>
-                  <th style={{ ...thStil, display: isColumnVisible('kalan') ? '' : 'none' }}>Kalan</th>
+                  <th style={{ ...thStil, display: isColumnVisible('alinan') ? '' : 'none', textAlign: 'right' }}>Alınan</th>
+                  <th style={{ ...thStil, display: isColumnVisible('kalan') ? '' : 'none', textAlign: 'right' }}>Kalan</th>
                   <th style={{ ...thStil, display: isColumnVisible('islemler') ? '' : 'none' }}>İşlemler</th>
                 </tr>
               )
@@ -883,8 +883,8 @@ export default function ProjeGelirleri() {
               return (
                 <tr key={m.id} className="premium-satir" style={{ color: textColor }}>
                   {/* Malik Adı */}
-                  <td className="td-expandable" style={{ position: 'sticky', left: 0, background: stickyBg, fontWeight: 700, zIndex: 5, boxShadow: '2px 0 5px rgba(0,0,0,0.03)', display: isColumnVisible('ad_soyad') ? '' : 'none', color: textColor, textAlign: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <td className="td-expandable" style={{ position: 'sticky', left: 0, background: stickyBg, fontWeight: 700, zIndex: 5, boxShadow: '2px 0 5px rgba(0,0,0,0.03)', display: isColumnVisible('ad_soyad') ? '' : 'none', color: textColor, textAlign: 'left' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 6 }}>
                       {hucreEdit?.malikId === m.id && hucreEdit?.alan === 'ad_soyad' ? (
                         <textarea
                           autoFocus
@@ -966,7 +966,7 @@ export default function ProjeGelirleri() {
                   </td>
 
                   {/* Toplam Alacak */}
-                  <td style={{ background: cellBg, fontWeight: 500, display: isColumnVisible('toplam_alacak') ? '' : 'none' }}>
+                  <td className="td-expandable" style={{ background: cellBg, fontWeight: 500, display: isColumnVisible('toplam_alacak') ? '' : 'none', textAlign: 'right', color: textColor }}>
                     {hucreEdit?.malikId === m.id && hucreEdit?.alan === 'toplam_alacak' ? (
                       <input
                         type="number"
@@ -982,7 +982,7 @@ export default function ProjeGelirleri() {
                   </td>
 
                   {/* Devlet Desteği */}
-                  <td style={{ background: cellBg, fontWeight: 500, display: isColumnVisible('devlet_destegi') ? '' : 'none' }}>
+                  <td className="td-expandable" style={{ background: cellBg, fontWeight: 500, display: isColumnVisible('devlet_destegi') ? '' : 'none', textAlign: 'right', color: textColor }}>
                     {hucreEdit?.malikId === m.id && hucreEdit?.alan === 'devlet_destegi' ? (
                       <input
                         type="number"
@@ -998,7 +998,7 @@ export default function ProjeGelirleri() {
                   </td>
 
                   {/* Kalan Bakiye */}
-                  <td style={{ background: cellBg, fontWeight: 600, display: isColumnVisible('kalan_bakiye') ? '' : 'none' }}>{paraFormatla(kalanBakiye)} ₺</td>
+                  <td className="td-expandable" style={{ background: cellBg, fontWeight: 600, display: isColumnVisible('kalan_bakiye') ? '' : 'none', textAlign: 'right', color: textColor }}>{paraFormatla(kalanBakiye)} ₺</td>
 
                   {/* Aşamalar */}
                   {Array.from({ length: maxStageCount }).map((_, i) => {
@@ -1056,11 +1056,11 @@ export default function ProjeGelirleri() {
                   })}
 
                   {/* Alınan */}
-                  <td style={{ background: cellBg, color: '#1D9596', fontWeight: 700, fontSize: 14, display: isColumnVisible('alinan') ? '' : 'none' }}>{paraFormatla(alinan)} ₺</td>
+                  <td className="td-expandable" style={{ background: cellBg, color: isRuha ? '#FFFFFF' : '#1D9596', fontWeight: 700, fontSize: 14, display: isColumnVisible('alinan') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(alinan)} ₺</td>
 
                   {/* Kalan */}
-                  <td style={{ background: cellBg, fontWeight: 700, fontSize: 14, display: isColumnVisible('kalan') ? '' : 'none' }}>
-                    {isKalanSifir ? <span className="pill-rozet pill-yesil" style={{ fontSize: 12, padding: '4px 10px' }}>✓ ÖDENDİ</span> : `${paraFormatla(kalan)} ₺`}
+                  <td className="td-expandable" style={{ background: cellBg, fontWeight: 700, fontSize: 14, display: isColumnVisible('kalan') ? '' : 'none', textAlign: 'right', color: textColor }}>
+                    {isKalanSifir ? <span className="pill-rozet pill-yesil" style={{ fontSize: 12, padding: '4px 10px', float: 'right' }}>✓ ÖDENDİ</span> : `${paraFormatla(kalan)} ₺`}
                   </td>
 
                   {/* İşlemler */}
@@ -1083,16 +1083,16 @@ export default function ProjeGelirleri() {
               <td style={{ color: '#64748B', background: '#E6F4F1', display: isColumnVisible('santiye') ? '' : 'none' }}>—</td>
               <td style={{ color: '#64748B', background: '#E6F4F1', display: isColumnVisible('mesken_turu') ? '' : 'none' }}>—</td>
               <td style={{ color: '#64748B', background: '#E6F4F1', display: isColumnVisible('daire_no') ? '' : 'none' }}>—</td>
-              <td style={{ fontSize: 14, color: '#1E293B', background: '#E6F4F1', fontWeight: 800, display: isColumnVisible('toplam_alacak') ? '' : 'none' }}>{paraFormatla(toplamAlacakGenel)} ₺</td>
-              <td style={{ fontSize: 14, color: '#1D4ED8', background: '#E6F4F1', fontWeight: 800, display: isColumnVisible('devlet_destegi') ? '' : 'none' }}>{paraFormatla(toplamDevletGenel)} ₺</td>
-              <td style={{ fontSize: 14, color: '#D97706', background: '#E6F4F1', fontWeight: 800, display: isColumnVisible('kalan_bakiye') ? '' : 'none' }}>{paraFormatla(toplamAlacakGenel - toplamDevletGenel)} ₺</td>
+              <td style={{ fontSize: 14, color: '#1E293B', background: '#E6F4F1', fontWeight: 800, display: isColumnVisible('toplam_alacak') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(toplamAlacakGenel)} ₺</td>
+              <td style={{ fontSize: 14, color: '#1D4ED8', background: '#E6F4F1', fontWeight: 800, display: isColumnVisible('devlet_destegi') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(toplamDevletGenel)} ₺</td>
+              <td style={{ fontSize: 14, color: '#D97706', background: '#E6F4F1', fontWeight: 800, display: isColumnVisible('kalan_bakiye') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(toplamAlacakGenel - toplamDevletGenel)} ₺</td>
               {Array.from({ length: maxStageCount }).map((_, i) => (
-                <td key={i} style={{ background: '#E2F2F0', color: '#0F5859', fontWeight: 800, fontSize: 13, display: isColumnVisible('asamalar') ? '' : 'none' }}>
+                <td key={i} style={{ background: '#E2F2F0', color: '#0F5859', fontWeight: 800, fontSize: 13, display: isColumnVisible('asamalar') ? '' : 'none', textAlign: 'right' }}>
                   {paraFormatla(asamaToplamlari[i])} ₺
                 </td>
               ))}
-              <td style={{ color: '#059669', fontSize: 15, fontWeight: 900, background: '#E6F4F1', display: isColumnVisible('alinan') ? '' : 'none' }}>{paraFormatla(toplamAlinanGenel)} ₺</td>
-              <td style={{ color: '#DC2626', fontSize: 15, fontWeight: 900, background: '#E6F4F1', display: isColumnVisible('kalan') ? '' : 'none' }}>{paraFormatla(toplamKalanGenel)} ₺</td>
+              <td style={{ color: '#059669', fontSize: 15, fontWeight: 900, background: '#E6F4F1', display: isColumnVisible('alinan') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(toplamAlinanGenel)} ₺</td>
+              <td style={{ color: '#DC2626', fontSize: 15, fontWeight: 900, background: '#E6F4F1', display: isColumnVisible('kalan') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(toplamKalanGenel)} ₺</td>
               <td style={{ background: '#E6F4F1', display: isColumnVisible('islemler') ? '' : 'none' }}></td>
             </tr>
           </tfoot>
