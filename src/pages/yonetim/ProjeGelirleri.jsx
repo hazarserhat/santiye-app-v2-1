@@ -641,23 +641,23 @@ export default function ProjeGelirleri() {
         </div>
       </div>
 
-      {/* Desktop Dashboard Summary KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px' }}>
-        <div style={{ background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.9)', borderRadius: '16px', padding: '16px 20px', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Toplam Alacak</span>
-          <span style={{ fontSize: '22px', fontWeight: '800', color: '#0F172A' }}>{paraFormatla(toplamAlacakGenel)} ₺</span>
+      {/* Dashboard Summary KPI Cards */}
+      <div className="kpi-grid">
+        <div className="kpi-card">
+          <span>Toplam Alacak</span>
+          <span style={{ color: '#0F172A' }}>{paraFormatla(toplamAlacakGenel)} ₺</span>
         </div>
-        <div style={{ background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.9)', borderRadius: '16px', padding: '16px 20px', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Devlet Desteği</span>
-          <span style={{ fontSize: '22px', fontWeight: '800', color: '#2563EB' }}>{paraFormatla(toplamDevletGenel)} ₺</span>
+        <div className="kpi-card">
+          <span>Devlet Desteği</span>
+          <span style={{ color: '#2563EB' }}>{paraFormatla(toplamDevletGenel)} ₺</span>
         </div>
-        <div style={{ background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.9)', borderRadius: '16px', padding: '16px 20px', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Toplam Tahsilat (Alınan)</span>
-          <span style={{ fontSize: '22px', fontWeight: '800', color: '#1D9596' }}>{paraFormatla(toplamAlinanGenel)} ₺</span>
+        <div className="kpi-card">
+          <span>Toplam Tahsilat (Alınan)</span>
+          <span style={{ color: '#1D9596' }}>{paraFormatla(toplamAlinanGenel)} ₺</span>
         </div>
-        <div style={{ background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.9)', borderRadius: '16px', padding: '16px 20px', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Kalan Borç</span>
-          <span style={{ fontSize: '22px', fontWeight: '800', color: '#D97706' }}>{paraFormatla(toplamKalanGenel)} ₺</span>
+        <div className="kpi-card">
+          <span>Kalan Borç</span>
+          <span style={{ color: '#D97706' }}>{paraFormatla(toplamKalanGenel)} ₺</span>
         </div>
       </div>
 
