@@ -641,7 +641,7 @@ export default function ProjeGelirleri() {
         </div>
       </div>
 
-      {/* Mobile KPI Grid Inline Styles */}
+      {/* Mobile KPI Grid & Filter Inline Styles */}
       <style>{`
         @media (max-width: 767px) {
           .kpi-grid-inline {
@@ -659,6 +659,12 @@ export default function ProjeGelirleri() {
           .kpi-card-inline span:last-child {
             font-size: 14px !important;
           }
+          .santiye-butonlari { display: none !important; }
+          .santiye-secici { display: block !important; width: 100%; margin-top: 5px; }
+        }
+        @media (min-width: 768px) {
+          .santiye-secici { display: none !important; }
+          .santiye-butonlari { display: flex !important; flex-wrap: wrap; gap: 10px; align-items: center; }
         }
       `}</style>
 
@@ -692,10 +698,26 @@ export default function ProjeGelirleri() {
           <option value="kalan_artan">Kalan Borç (En Az)</option>
           <option value="kalan_azalan">Kalan Borç (En Çok)</option>
         </select>
-        <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
-        {santiyeler.map((s) => (
-          <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
-        ))}
+        {/* MOBİL İÇİN ŞANTİYE SEÇİCİ */}
+        <select 
+          className="santiye-secici" 
+          value={filtreSantiye} 
+          onChange={(e) => setFiltreSantiye(e.target.value)} 
+          style={{ padding: '8px 14px', borderRadius: '10px', border: '1px solid #CBD5E0', fontSize: '13px', background: 'white', fontWeight: 600, color: '#1E293B', outline: 'none' }}
+        >
+          <option value="hepsi">Tüm Şantiyeler</option>
+          {santiyeler.map((s) => (
+            <option key={s.id} value={s.id}>{s.ad}</option>
+          ))}
+        </select>
+
+        {/* BİLGİSAYAR İÇİN ŞANTİYE BUTONLARI */}
+        <div className="santiye-butonlari">
+          <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
+          {santiyeler.map((s) => (
+            <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
+          ))}
+        </div>
       </div>
 
       {/* Table Container Wrapper — viewport-pinned, bypasses all parent CSS */}
