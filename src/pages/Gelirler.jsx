@@ -34,6 +34,7 @@ export default function Gelirler() {
   const [tutar, setTutar] = useState('')
   const [tarih, setTarih] = useState(bugun())
   const [tahsilatNoktasi, setTahsilatNoktasi] = useState('Merkez Kasa')
+  const [gecmisDonemMi, setGecmisDonemMi] = useState(false)
   const [notMetni, setNotMetni] = useState('')
   const [belge, setBelge] = useState(null)
   const [yukleniyor, setYukleniyor] = useState(false)
@@ -52,6 +53,7 @@ export default function Gelirler() {
   const [duzNot, setDuzNot] = useState('')
   const [duzOdemeYapan, setDuzOdemeYapan] = useState('')
   const [duzTahsilatNoktasi, setDuzTahsilatNoktasi] = useState('')
+  const [duzGecmisDonemMi, setDuzGecmisDonemMi] = useState(false)
 
   const TAHSILAT_NOKTALARI = [
     'Merkez Kasa', 'Serhat Kasa', 'Fuat Kasa', 'Abdullah Kasa',
@@ -196,7 +198,7 @@ export default function Gelirler() {
       odeme_yapan_adi: odemeYapanAdi,
       tutar: temizleTutar(tutar),
       tarih,
-      tahsilat_noktasi: tahsilatNoktasi,
+      tahsilat_noktasi: gecmisDonemMi ? 'Geçmiş Dönem (Devir)' : tahsilatNoktasi,
       belge_url: belgeUrl,
       not_metni: notMetni,
       ekleyen: profile?.id,
@@ -204,7 +206,7 @@ export default function Gelirler() {
 
     if (error) { alert('Gelir eklenemedi: ' + error.message); setYukleniyor(false); return }
 
-    setMalikId(''); setSecilenCariId(null); setOdemeYapanAdi(''); setTutar(''); setNotMetni(''); setBelge(null); setTarih(bugun()); setTahsilatNoktasi('Merkez Kasa')
+    setMalikId(''); setSecilenCariId(null); setOdemeYapanAdi(''); setTutar(''); setNotMetni(''); setBelge(null); setTarih(bugun()); setTahsilatNoktasi('Merkez Kasa'); setGecmisDonemMi(false);
     setYukleniyor(false)
     gelirleriYukle()
   }
@@ -266,7 +268,7 @@ export default function Gelirler() {
       tarih: duzTarih,
       not_metni: duzNot,
       odeme_yapan_adi: duzOdemeYapan,
-      tahsilat_noktasi: duzTahsilatNoktasi,
+      tahsilat_noktasi: duzGecmisDonemMi ? 'Geçmiş Dönem (Devir)' : duzTahsilatNoktasi,
     }).eq('id', id)
     if (error) { alert('Güncellenemedi: ' + error.message); return }
     setDuzenlenenId(null)
@@ -444,7 +446,15 @@ export default function Gelirler() {
               <p style={{ fontSize: 11, color: '#888780', margin: 0 }}>💡 Görüntü kopyaladıktan sonra Ctrl+V ile de yapıştırabilirsiniz.</p>
             </div>
 
-            <button className="ekle-buton-genis" onClick={gelirEkle} disabled={yukleniyor}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, marginBottom: 4, cursor: 'pointer', background: gecmisDonemMi ? '#FEF3C7' : '#F8F9FA', padding: '10px 12px', borderRadius: 8, border: `1px solid ${gecmisDonemMi ? '#F59E0B' : '#E2E8F0'}` }}>
+              <input type="checkbox" checked={gecmisDonemMi} onChange={(e) => setGecmisDonemMi(e.target.checked)} style={{ width: 16, height: 16, accentColor: '#D97706', cursor: 'pointer' }} />
+              <div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: gecmisDonemMi ? '#B45309' : '#475569', display: 'block' }}>Geçmiş Dönem (Devir) Tahsilatıdır</span>
+                <span style={{ fontSize: 11, color: '#64748B' }}>İşaretlerseniz bu tutar sadece bakiyeden düşer, güncel kasa ve banka toplamlarına <b>eklenmez</b>.</span>
+              </div>
+            </label>
+
+            <button className="ekle-buton-genis" onClick={gelirEkle} disabled={yukleniyor} style={{ marginTop: 8 }}>
               {yukleniyor ? 'Ekleniyor...' : 'Geliri kaydet'}
             </button>
           </div>
@@ -520,6 +530,11 @@ export default function Gelirler() {
                     </div>
                     <input type="date" value={duzTarih} onChange={(e) => setDuzTarih(e.target.value)} />
                     <textarea value={duzNot} onChange={(e) => setDuzNot(e.target.value)} placeholder="Not" rows={2} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical' }} />
+                    
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', background: duzGecmisDonemMi ? '#FEF3C7' : '#f9f9f9', padding: '6px 8px', borderRadius: 6, border: `1px solid ${duzGecmisDonemMi ? '#F59E0B' : '#eee'}` }}>
+                      <input type="checkbox" checked={duzGecmisDonemMi} onChange={(e) => setDuzGecmisDonemMi(e.target.checked)} style={{ width: 14, height: 14, accentColor: '#D97706' }} />
+                      <span style={{ fontSize: 12, fontWeight: duzGecmisDonemMi ? 600 : 400, color: duzGecmisDonemMi ? '#B45309' : '#555' }}>Geçmiş Dönem Tahsilatıdır (Kasa etkilenmez)</span>
+                    </label>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button onClick={() => setDuzenlenenId(null)} style={{ flex: 1, padding: '8px', background: '#f0f0ed', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Vazgeç</button>
                       <button onClick={() => gelirDuzenle(g.id)} style={{ flex: 1, padding: '8px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>Kaydet</button>
@@ -540,6 +555,7 @@ export default function Gelirler() {
                             setDuzNot(g.not_metni || '')
                             setDuzOdemeYapan(g.odeme_yapan_adi || '')
                             setDuzTahsilatNoktasi(g.tahsilat_noktasi || 'Merkez Kasa')
+                            setDuzGecmisDonemMi(g.tahsilat_noktasi === 'Geçmiş Dönem (Devir)')
                           }} aria-label="Düzenle">✎</button>
                         )}
                         <input

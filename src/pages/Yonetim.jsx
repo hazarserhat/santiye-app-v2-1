@@ -129,6 +129,8 @@ export default function Yonetim() {
     const nokta = g.tahsilat_noktasi || 'Elden / Belirtilmeyen'
     const isBuAy = buAyMi(g.tarih)
 
+    if (nokta === 'Geçmiş Dönem (Devir)') return // Kasa ve Banka hesaplarına yansıtma
+
     if (BANKALAR.includes(nokta)) {
       malikBankaDetay[nokta] += tutar
       malikHavaleToplam += tutar
