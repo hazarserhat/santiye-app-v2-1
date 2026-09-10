@@ -661,11 +661,16 @@ export default function ProjeGelirleri() {
             font-size: 14px !important;
           }
           .santiye-butonlari { display: none !important; }
-          .santiye-secici { display: block !important; width: 100%; margin-top: 5px; }
+          .mobil-filtre-satiri { display: flex; flex-direction: row; align-items: center; justify-content: space-between; width: 100%; gap: 10px; }
+          .mobil-filtre-satiri select { flex: 1; width: 100%; }
+          .mobil-ayirici { width: 1px; height: 30px; background: rgba(0,0,0,0.15); }
+          .santiye-secici { display: block !important; margin-top: 0 !important; }
         }
         @media (min-width: 768px) {
           .santiye-secici { display: none !important; }
           .santiye-butonlari { display: flex !important; flex-wrap: wrap; gap: 10px; align-items: center; }
+          .mobil-filtre-satiri { display: contents; }
+          .mobil-ayirici { width: 1px; height: 28px; background: rgba(0,0,0,0.15); margin: 0 4px; }
         }
       `}</style>
 
@@ -691,26 +696,31 @@ export default function ProjeGelirleri() {
 
       {/* Glassmorphism Filter & Sort Panel */}
       <div style={{ background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: '14px 18px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.9)', boxShadow: '0 8px 32px rgba(0,0,0,0.04)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-        <select value={siralama} onChange={(e) => setSiralama(e.target.value)} style={{ padding: '8px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.6)', fontSize: '13px', background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(8px)', fontWeight: 600, color: '#1E293B', outline: 'none', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.5)' }}>
-          <option value="daire_artan">Daire No (Küçükten Büyüğe)</option>
-          <option value="daire_azalan">Daire No (Büyükten Küçüğe)</option>
-          <option value="isim_artan">İsim (A-Z)</option>
-          <option value="isim_azalan">İsim (Z-A)</option>
-          <option value="kalan_artan">Kalan Borç (En Az)</option>
-          <option value="kalan_azalan">Kalan Borç (En Çok)</option>
-        </select>
-        {/* MOBİL İÇİN ŞANTİYE SEÇİCİ */}
-        <select 
-          className="santiye-secici" 
-          value={filtreSantiye} 
-          onChange={(e) => setFiltreSantiye(e.target.value)} 
-          style={{ padding: '8px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.6)', fontSize: '13px', background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(8px)', fontWeight: 600, color: '#1E293B', outline: 'none', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.5)' }}
-        >
-          <option value="hepsi">Tüm Şantiyeler</option>
-          {santiyeler.map((s) => (
-            <option key={s.id} value={s.id}>{s.ad}</option>
-          ))}
-        </select>
+        <div className="mobil-filtre-satiri">
+          <select value={siralama} onChange={(e) => setSiralama(e.target.value)} style={{ padding: '8px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.6)', fontSize: '13px', background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(8px)', fontWeight: 600, color: '#1E293B', outline: 'none', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.5)' }}>
+            <option value="daire_artan">Daire No (Küçükten Büyüğe)</option>
+            <option value="daire_azalan">Daire No (Büyükten Küçüğe)</option>
+            <option value="isim_artan">İsim (A-Z)</option>
+            <option value="isim_azalan">İsim (Z-A)</option>
+            <option value="kalan_artan">Kalan Borç (En Az)</option>
+            <option value="kalan_azalan">Kalan Borç (En Çok)</option>
+          </select>
+
+          <div className="mobil-ayirici" />
+
+          {/* MOBİL İÇİN ŞANTİYE SEÇİCİ */}
+          <select 
+            className="santiye-secici" 
+            value={filtreSantiye} 
+            onChange={(e) => setFiltreSantiye(e.target.value)} 
+            style={{ padding: '8px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.6)', fontSize: '13px', background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(8px)', fontWeight: 600, color: '#1E293B', outline: 'none', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.5)' }}
+          >
+            <option value="hepsi">Tüm Şantiyeler</option>
+            {santiyeler.map((s) => (
+              <option key={s.id} value={s.id}>{s.ad}</option>
+            ))}
+          </select>
+        </div>
 
         {/* BİLGİSAYAR İÇİN ŞANTİYE BUTONLARI */}
         <div className="santiye-butonlari">
