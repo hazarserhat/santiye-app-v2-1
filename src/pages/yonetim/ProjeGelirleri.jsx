@@ -25,6 +25,7 @@ export default function ProjeGelirleri() {
   const [malikler, setMalikler] = useState([])
   const [asamalar, setAsamalar] = useState({}) // { malikId: [asama,...] }
   const [odemeToplamlari, setOdemeToplamlari] = useState({}) // { malikId: toplam }
+  const [yukleniyor, setYukleniyor] = useState(false)
 
   const [duzenlenenId, setDuzenlenenId] = useState(null)
   const [taslak, setTaslak] = useState({})
@@ -139,8 +140,8 @@ export default function ProjeGelirleri() {
   }
   const veriIceAktar = async () => {
     if (!window.confirm('8917 (Seçili şantiye) için veriler içe aktarılacak onaylıyor musunuz?')) return
-    const s_id = seciliSantiyeId
-    if (!s_id) { alert('Önce 8917 şantiyesini seçiniz!'); return }
+    const s_id = filtreSantiye
+    if (!s_id || s_id === 'hepsi') { alert('Önce yukarıdan bir şantiye (8917) seçiniz!'); return }
 
     setYukleniyor(true)
     const YENI_VERILER = [
