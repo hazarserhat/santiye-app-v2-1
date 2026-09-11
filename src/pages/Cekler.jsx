@@ -230,6 +230,7 @@ export default function Cekler({ yon = 'verilen' }) {
     setOdeyen(c.odeyen || '')
     setOdenen(c.odenen || '')
     setSecilenCariId(c.cari_id || null)
+    setMalikId(c.malik_id || '')
     setCekSeriNo(c.cek_seri_no || '')
     setBanka(c.banka || (bankalar[0]?.ad ?? ''))
     setYeniBankaAcik(false)
@@ -326,6 +327,7 @@ export default function Cekler({ yon = 'verilen' }) {
       odeyen,
       odenen,
       cari_id: finalCariId || null,
+      malik_id: malikId || null,
       cek_seri_no: cekSeriNo,
       banka,
       verilis_tarihi: verilisTarihi,
