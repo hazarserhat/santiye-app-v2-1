@@ -90,9 +90,16 @@ export default function ProjeGelirleri() {
     ;(a || []).forEach((r) => { if (!harita[r.malik_id]) harita[r.malik_id] = []; harita[r.malik_id].push(r) })
     setAsamalar(harita)
 
-    const { data: g } = await supabase.from('gelirler').select('malik_id, tutar').not('malik_id', 'is', null)
     const odemeHarita = {}
+    
+    // Nakit & Havale Gelirleri
+    const { data: g } = await supabase.from('gelirler').select('malik_id, tutar').not('malik_id', 'is', null)
     ;(g || []).forEach((r) => { odemeHarita[r.malik_id] = (odemeHarita[r.malik_id] || 0) + Number(r.tutar) })
+
+    // Çek Gelirleri
+    const { data: c } = await supabase.from('cekler').select('malik_id, tutar').eq('yon', 'alinan').not('malik_id', 'is', null)
+    ;(c || []).forEach((r) => { odemeHarita[r.malik_id] = (odemeHarita[r.malik_id] || 0) + Number(r.tutar) })
+
     setOdemeToplamlari(odemeHarita)
   }
 
