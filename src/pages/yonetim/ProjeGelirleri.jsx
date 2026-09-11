@@ -97,16 +97,15 @@ export default function ProjeGelirleri() {
     ;(g || []).forEach((r) => { odemeHarita[r.malik_id] = (odemeHarita[r.malik_id] || 0) + Number(r.tutar) })
 
     // Çek Gelirleri
-    const { data: c } = await supabase.from('cekler').select('malik_id, odeyen, tutar').eq('yon', 'alinan')
+    const { data: c, error: cErr } = await supabase.from('cekler').select('odeyen, tutar').eq('yon', 'alinan')
+    if (cErr) console.error("Çekler yüklenirken hata:", cErr)
     ;(c || []).forEach((r) => { 
-      let mId = r.malik_id
-      if (!mId && r.odeyen) {
+      if (r.odeyen) {
         // İsimden eşleştirme (fallback)
         const matched = (m || []).find(malik => malik.ad_soyad?.trim().toLowerCase() === r.odeyen.trim().toLowerCase())
-        if (matched) mId = matched.id
-      }
-      if (mId) {
-        odemeHarita[mId] = (odemeHarita[mId] || 0) + Number(r.tutar) 
+        if (matched) {
+          odemeHarita[matched.id] = (odemeHarita[matched.id] || 0) + Number(r.tutar) 
+        }
       }
     })
 

@@ -335,7 +335,6 @@ export default function Cekler({ yon = 'verilen' }) {
       odeyen,
       odenen,
       cari_id: finalCariId || null,
-      malik_id: finalMalikId || null,
       cek_seri_no: cekSeriNo,
       banka,
       verilis_tarihi: verilisTarihi,
