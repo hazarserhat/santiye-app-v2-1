@@ -137,6 +137,54 @@ export default function ProjeGelirleri() {
     await supabase.from('malikler').delete().eq('id', id)
     yenile()
   }
+  const veriIceAktar = async () => {
+    if (!window.confirm('8917 (Seçili şantiye) için veriler içe aktarılacak onaylıyor musunuz?')) return
+    const s_id = seciliSantiyeId
+    if (!s_id) { alert('Önce 8917 şantiyesini seçiniz!'); return }
+
+    setYukleniyor(true)
+    const YENI_VERILER = [
+      { no: '1', tur: 'Konut', ad: 'Ruha Gayrimenkul A.Ş.', toplam: 0, destek: 0, asama1: 0, asama2: 0, asama3: 0 },
+      { no: '2', tur: 'Konut', ad: 'Zuhal Arıca', toplam: 2334089, destek: 1750000, asama1: 194696.33, asama2: 194696.33, asama3: 194696.33 },
+      { no: '3', tur: 'Konut', ad: 'Mazhar Soysal', toplam: 2520869, destek: 1750000, asama1: 256956.33, asama2: 256956.33, asama3: 256956.33 },
+      { no: '4', tur: 'Konut', ad: 'Esra Toska', toplam: 1943699, destek: 1750000, asama1: 64566.33, asama2: 64566.33, asama3: 64566.33 },
+      { no: '5', tur: 'Konut', ad: 'Meliha Karasu', toplam: 2639009, destek: 1750000, asama1: 296336.33, asama2: 296336.33, asama3: 296336.33 },
+      { no: '6', tur: 'Konut', ad: 'Dilek Dirican', toplam: 2645609, destek: 1750000, asama1: 298536.33, asama2: 298536.33, asama3: 298536.33 },
+      { no: '7', tur: 'Konut', ad: 'İbrahim Dirican', toplam: 2269739, destek: 1750000, asama1: 173246.33, asama2: 173246.33, asama3: 173246.33 },
+      { no: '8', tur: 'Konut', ad: 'Nurhan Söylemez', toplam: 2645609, destek: 1750000, asama1: 298536.33, asama2: 298536.33, asama3: 298536.33 },
+      { no: '9', tur: 'Konut', ad: 'Fatma Aslan', toplam: 2269739, destek: 1750000, asama1: 173246.33, asama2: 173246.33, asama3: 173246.33 },
+      { no: '10', tur: 'Konut', ad: 'Sabır Ailesi', toplam: 2633069, destek: 1750000, asama1: 294356.33, asama2: 294356.33, asama3: 294356.33 },
+      { no: '11', tur: 'Konut', ad: 'Gülsüm Solak', toplam: 2532077, destek: 1750000, asama1: 260692.33, asama2: 260692.33, asama3: 260692.33 },
+      { no: '12', tur: 'Konut', ad: 'Ekrem Kara', toplam: 2152077, destek: 1750000, asama1: 134025.67, asama2: 134025.67, asama3: 134025.67 },
+      { no: '13', tur: 'Dep. Dük.', ad: 'Nilgün Alkaç', toplam: 1480000, destek: 875000, asama1: 201666.67, asama2: 201666.67, asama3: 201666.67 },
+      { no: '14', tur: 'Dep. Dük.', ad: 'Nilgün Alkaç', toplam: 2400000, destek: 875000, asama1: 508333.33, asama2: 508333.33, asama3: 508333.33 }
+    ]
+
+    for (const v of YENI_VERILER) {
+      const { data: malik, error } = await supabase.from('malikler').insert({
+        santiye_id: s_id,
+        ad_soyad: v.ad,
+        daire_no: v.no,
+        mesken_turu: v.tur,
+        toplam_alacak: v.toplam,
+        devlet_destegi: v.destek
+      }).select().single()
+
+      if (error) { console.error('Hata:', error); continue; }
+
+      const asamalar = [
+        { malik_id: malik.id, ad: 'Sözleşme', tutar: v.asama1, tamamlandi: false, sira: 1 },
+        { malik_id: malik.id, ad: 'Subasman Seviyesinde', tutar: v.asama2, tamamlandi: false, sira: 2 },
+        { malik_id: malik.id, ad: 'Karkas İnşaat Tamamlanınca', tutar: v.asama3, tamamlandi: false, sira: 3 }
+      ]
+
+      await supabase.from('malik_asamalari').insert(asamalar)
+    }
+
+    alert('İçe aktarım tamamlandı!')
+    setYukleniyor(false)
+    yenile()
+  }
 
   const duzenlemeyiAc = (m) => {
     setDuzenlenenId(m.id)
@@ -673,6 +721,10 @@ export default function ProjeGelirleri() {
           .mobil-ayirici { width: 1px; height: 28px; background: rgba(0,0,0,0.15); margin: 0 4px; }
         }
       `}</style>
+
+      <button onClick={veriIceAktar} disabled={yukleniyor} style={{ width: '100%', padding: 12, background: '#DC2626', color: 'white', fontWeight: 'bold', borderRadius: 12, marginBottom: 16, cursor: 'pointer', border: 'none' }}>
+        🚨 8917 Şantiyesi İçin Verileri İçe Aktar
+      </button>
 
       {/* Dashboard Summary KPI Cards */}
       <div className="kpi-grid-inline" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px' }}>
