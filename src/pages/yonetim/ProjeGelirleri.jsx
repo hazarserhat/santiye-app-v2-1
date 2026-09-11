@@ -26,6 +26,7 @@ export default function ProjeGelirleri() {
   const [asamalar, setAsamalar] = useState({}) // { malikId: [asama,...] }
   const [odemeToplamlari, setOdemeToplamlari] = useState({}) // { malikId: toplam }
   const [yukleniyor, setYukleniyor] = useState(false)
+  const dosyaInputRef = useRef(null)
 
   const [duzenlenenId, setDuzenlenenId] = useState(null)
   const [taslak, setTaslak] = useState({})
@@ -138,53 +139,94 @@ export default function ProjeGelirleri() {
     await supabase.from('malikler').delete().eq('id', id)
     yenile()
   }
-  const veriIceAktar = async () => {
-    if (!window.confirm('8917 (Seçili şantiye) için veriler içe aktarılacak onaylıyor musunuz?')) return
+  const sablonIndir = () => {
+    const templateData = [{
+      "Daire No": "1",
+      "Nitelik": "Konut",
+      "Malik Adı Soyadı": "Ahmet Yılmaz",
+      "Telefon": "05551234567",
+      "Toplam Yükümlülük": 2000000,
+      "Devlet Desteği": 1500000,
+      "Aşama 1 Adı": "Sözleşme",
+      "Aşama 1 Tutar": 166666.66,
+      "Aşama 2 Adı": "Subasman",
+      "Aşama 2 Tutar": 166666.66,
+      "Aşama 3 Adı": "Karkas",
+      "Aşama 3 Tutar": 166666.68,
+      "Aşama 4 Adı": "",
+      "Aşama 4 Tutar": ""
+    }]
+    const ws = XLSX.utils.json_to_sheet(templateData)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Şablon")
+    XLSX.writeFile(wb, "Santiye_Malik_Yukleme_Sablonu.xlsx")
+  }
+
+  const exceldenYukle = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
     const s_id = filtreSantiye
-    if (!s_id || s_id === 'hepsi') { alert('Önce yukarıdan bir şantiye (8917) seçiniz!'); return }
-
-    setYukleniyor(true)
-    const YENI_VERILER = [
-      { no: '1', tur: 'Konut', ad: 'Ruha Gayrimenkul A.Ş.', toplam: 0, destek: 0, asama1: 0, asama2: 0, asama3: 0 },
-      { no: '2', tur: 'Konut', ad: 'Zuhal Arıca', toplam: 2334089, destek: 1750000, asama1: 194696.33, asama2: 194696.33, asama3: 194696.33 },
-      { no: '3', tur: 'Konut', ad: 'Mazhar Soysal', toplam: 2520869, destek: 1750000, asama1: 256956.33, asama2: 256956.33, asama3: 256956.33 },
-      { no: '4', tur: 'Konut', ad: 'Esra Toska', toplam: 1943699, destek: 1750000, asama1: 64566.33, asama2: 64566.33, asama3: 64566.33 },
-      { no: '5', tur: 'Konut', ad: 'Meliha Karasu', toplam: 2639009, destek: 1750000, asama1: 296336.33, asama2: 296336.33, asama3: 296336.33 },
-      { no: '6', tur: 'Konut', ad: 'Dilek Dirican', toplam: 2645609, destek: 1750000, asama1: 298536.33, asama2: 298536.33, asama3: 298536.33 },
-      { no: '7', tur: 'Konut', ad: 'İbrahim Dirican', toplam: 2269739, destek: 1750000, asama1: 173246.33, asama2: 173246.33, asama3: 173246.33 },
-      { no: '8', tur: 'Konut', ad: 'Nurhan Söylemez', toplam: 2645609, destek: 1750000, asama1: 298536.33, asama2: 298536.33, asama3: 298536.33 },
-      { no: '9', tur: 'Konut', ad: 'Fatma Aslan', toplam: 2269739, destek: 1750000, asama1: 173246.33, asama2: 173246.33, asama3: 173246.33 },
-      { no: '10', tur: 'Konut', ad: 'Sabır Ailesi', toplam: 2633069, destek: 1750000, asama1: 294356.33, asama2: 294356.33, asama3: 294356.33 },
-      { no: '11', tur: 'Konut', ad: 'Gülsüm Solak', toplam: 2532077, destek: 1750000, asama1: 260692.33, asama2: 260692.33, asama3: 260692.33 },
-      { no: '12', tur: 'Konut', ad: 'Ekrem Kara', toplam: 2152077, destek: 1750000, asama1: 134025.67, asama2: 134025.67, asama3: 134025.67 },
-      { no: '13', tur: 'Dep. Dük.', ad: 'Nilgün Alkaç', toplam: 1480000, destek: 875000, asama1: 201666.67, asama2: 201666.67, asama3: 201666.67 },
-      { no: '14', tur: 'Dep. Dük.', ad: 'Nilgün Alkaç', toplam: 2400000, destek: 875000, asama1: 508333.33, asama2: 508333.33, asama3: 508333.33 }
-    ]
-
-    for (const v of YENI_VERILER) {
-      const { data: malik, error } = await supabase.from('malikler').insert({
-        santiye_id: s_id,
-        ad_soyad: v.ad,
-        daire_no: v.no,
-        mesken_turu: v.tur,
-        toplam_alacak: v.toplam,
-        devlet_destegi: v.destek
-      }).select().single()
-
-      if (error) { console.error('Hata:', error); continue; }
-
-      const asamalar = [
-        { malik_id: malik.id, ad: 'Sözleşme', tutar: v.asama1, tamamlandi: false, sira: 1 },
-        { malik_id: malik.id, ad: 'Subasman Seviyesinde', tutar: v.asama2, tamamlandi: false, sira: 2 },
-        { malik_id: malik.id, ad: 'Karkas İnşaat Tamamlanınca', tutar: v.asama3, tamamlandi: false, sira: 3 }
-      ]
-
-      await supabase.from('malik_asamalari').insert(asamalar)
+    if (!s_id || s_id === 'hepsi') { 
+      alert('Lütfen yukarıdan verilerin yükleneceği spesifik bir şantiye seçiniz (Tüm şantiyeler seçili olmamalıdır)!')
+      if(dosyaInputRef.current) dosyaInputRef.current.value = ''
+      return 
     }
 
-    alert('İçe aktarım tamamlandı!')
-    setYukleniyor(false)
-    yenile()
+    const seciliSantiye = santiyeler.find(s => s.id === s_id)
+    if (!window.confirm(`Veriler "${seciliSantiye?.ad}" şantiyesine yüklenecek, onaylıyor musunuz?`)) {
+      if(dosyaInputRef.current) dosyaInputRef.current.value = ''
+      return
+    }
+
+    setYukleniyor(true)
+    const reader = new FileReader()
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target.result
+        const wb = XLSX.read(bstr, { type: 'binary' })
+        const wsname = wb.SheetNames[0]
+        const ws = wb.Sheets[wsname]
+        const data = XLSX.utils.sheet_to_json(ws)
+
+        for (const row of data) {
+          if (!row['Malik Adı Soyadı']) continue // Boş satırları atla
+          
+          const { data: malik, error } = await supabase.from('malikler').insert({
+            santiye_id: s_id,
+            ad_soyad: String(row['Malik Adı Soyadı'] || '').trim(),
+            daire_no: String(row['Daire No'] || '').trim(),
+            mesken_turu: String(row['Nitelik'] || '').trim(),
+            telefon: String(row['Telefon'] || '').trim(),
+            toplam_alacak: Number(row['Toplam Yükümlülük']) || 0,
+            devlet_destegi: Number(row['Devlet Desteği']) || 0
+          }).select().single()
+
+          if (error) { console.error('Malik eklenemedi:', error); continue; }
+
+          const asamalar = []
+          for (let i = 1; i <= 4; i++) {
+            const ad = String(row[`Aşama ${i} Adı`] || '').trim()
+            const tutar = Number(row[`Aşama ${i} Tutar`]) || 0
+            if (ad || tutar > 0) {
+              asamalar.push({ malik_id: malik.id, ad, tutar, tamamlandi: false, sira: i })
+            }
+          }
+
+          if (asamalar.length > 0) {
+            await supabase.from('malik_asamalari').insert(asamalar)
+          }
+        }
+        alert('İçe aktarım tamamlandı!')
+      } catch (err) {
+        alert('Excel okunurken hata oluştu: ' + err.message)
+      } finally {
+        if(dosyaInputRef.current) dosyaInputRef.current.value = ''
+        setYukleniyor(false)
+        yenile()
+      }
+    }
+    reader.readAsBinaryString(file)
   }
 
   const duzenlemeyiAc = (m) => {
@@ -723,9 +765,21 @@ export default function ProjeGelirleri() {
         }
       `}</style>
 
-      <button onClick={veriIceAktar} disabled={yukleniyor} style={{ width: '100%', padding: 12, background: '#DC2626', color: 'white', fontWeight: 'bold', borderRadius: 12, marginBottom: 16, cursor: 'pointer', border: 'none' }}>
-        🚨 8917 Şantiyesi İçin Verileri İçe Aktar
-      </button>
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+        <button onClick={sablonIndir} disabled={yukleniyor} style={{ flex: 1, padding: 12, background: '#1D9596', color: 'white', fontWeight: 'bold', borderRadius: 12, cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          📥 Örnek Şablonu İndir
+        </button>
+        <button onClick={() => dosyaInputRef.current?.click()} disabled={yukleniyor} style={{ flex: 1, padding: 12, background: '#0F172A', color: 'white', fontWeight: 'bold', borderRadius: 12, cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          {yukleniyor ? '⏳ Yükleniyor...' : '📤 Excel\'den Toplu Veri Yükle'}
+        </button>
+        <input 
+          type="file" 
+          ref={dosyaInputRef} 
+          style={{ display: 'none' }} 
+          accept=".xlsx, .xls" 
+          onChange={exceldenYukle} 
+        />
+      </div>
 
       {/* Dashboard Summary KPI Cards */}
       <div className="kpi-grid-inline" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px' }}>
