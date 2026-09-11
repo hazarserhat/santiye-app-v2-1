@@ -97,8 +97,18 @@ export default function ProjeGelirleri() {
     ;(g || []).forEach((r) => { odemeHarita[r.malik_id] = (odemeHarita[r.malik_id] || 0) + Number(r.tutar) })
 
     // Çek Gelirleri
-    const { data: c } = await supabase.from('cekler').select('malik_id, tutar').eq('yon', 'alinan').not('malik_id', 'is', null)
-    ;(c || []).forEach((r) => { odemeHarita[r.malik_id] = (odemeHarita[r.malik_id] || 0) + Number(r.tutar) })
+    const { data: c } = await supabase.from('cekler').select('malik_id, odeyen, tutar').eq('yon', 'alinan')
+    ;(c || []).forEach((r) => { 
+      let mId = r.malik_id
+      if (!mId && r.odeyen) {
+        // İsimden eşleştirme (fallback)
+        const matched = (m || []).find(malik => malik.ad_soyad?.trim().toLowerCase() === r.odeyen.trim().toLowerCase())
+        if (matched) mId = matched.id
+      }
+      if (mId) {
+        odemeHarita[mId] = (odemeHarita[mId] || 0) + Number(r.tutar) 
+      }
+    })
 
     setOdemeToplamlari(odemeHarita)
   }

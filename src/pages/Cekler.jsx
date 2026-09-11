@@ -273,6 +273,14 @@ export default function Cekler({ yon = 'verilen' }) {
       }
     }
 
+    let finalMalikId = malikId
+    if (!finalMalikId && odeyen.trim()) {
+      const bulunan = malikler.find(m => m.ad_soyad.toLowerCase() === odeyen.trim().toLowerCase())
+      if (bulunan) {
+        finalMalikId = bulunan.id
+      }
+    }
+
     let belgeUrl = null
     // Mevcut kaydı güncelliyorsak ve yeni belge seçilmediyse eski belgeyi koruyabiliriz
     if (belge) {
@@ -327,7 +335,7 @@ export default function Cekler({ yon = 'verilen' }) {
       odeyen,
       odenen,
       cari_id: finalCariId || null,
-      malik_id: malikId || null,
+      malik_id: finalMalikId || null,
       cek_seri_no: cekSeriNo,
       banka,
       verilis_tarihi: verilisTarihi,
