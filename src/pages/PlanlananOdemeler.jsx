@@ -93,10 +93,6 @@ export default function PlanlananOdemeler() {
       .select('*, masraf_kategorileri(ad), taseronlar(ad)')
       .order('vade_tarihi', { ascending: true })
       
-    if (aktifSantiye) {
-      query = query.eq('santiye_id', aktifSantiye.id)
-    }
-
     const { data, error } = await query
     if (error) {
       console.error('Planlanan ödemeler yüklenirken hata:', error)
@@ -137,6 +133,7 @@ export default function PlanlananOdemeler() {
       siklik: siklik,
       not_metni: notMetni,
       cari_id: finalCariId || null,
+      durum: 'bekliyor',
       ekleyen: profile?.id
     })
 
@@ -275,6 +272,7 @@ export default function PlanlananOdemeler() {
         siklik: plan.siklik,
         not_metni: plan.not_metni,
         cari_id: plan.cari_id,
+        durum: 'bekliyor',
         ekleyen: profile?.id
       })
     }
