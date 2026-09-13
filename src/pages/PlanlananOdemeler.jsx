@@ -35,7 +35,27 @@ export default function PlanlananOdemeler() {
   const [odeTarihi, setOdeTarihi] = useState(bugun())
   const [odeYukleniyor, setOdeYukleniyor] = useState(false)
 
+  // Çekle Ödeme State'leri
+  const [odeTip, setOdeTip] = useState('masraf') // 'masraf' | 'cek'
+  const [odeCekBanka, setOdeCekBanka] = useState('')
+  const [odeCekSeriNo, setOdeCekSeriNo] = useState('')
+  const [odeCekVadesi, setOdeCekVadesi] = useState('')
+  const [bankalar, setBankalar] = useState([])
+
+  // Düzenleme State'leri
+  const [duzenlenenId, setDuzenlenenId] = useState(null)
+  const [duzBaslik, setDuzBaslik] = useState('')
+  const [duzTutar, setDuzTutar] = useState('')
+  const [duzVadeTarihi, setDuzVadeTarihi] = useState('')
+  const [duzSiklik, setDuzSiklik] = useState('bir_kez')
+  const [duzKategoriId, setDuzKategoriId] = useState('')
+  const [duzNotMetni, setDuzNotMetni] = useState('')
+  const [duzOdenenKisi, setDuzOdenenKisi] = useState('')
+  const [duzCariId, setDuzCariId] = useState(null)
+  const [duzSantiyeId, setDuzSantiyeId] = useState('')
+
   const [filtreDurum, setFiltreDurum] = useState('bekliyor') // 'bekliyor' | 'odendi' | 'iptal'
+  const [secilenSantiyeId, setSecilenSantiyeId] = useState('')
 
   useEffect(() => {
     odemeleriYukle()
@@ -43,6 +63,10 @@ export default function PlanlananOdemeler() {
     supabase.from('masraf_kategorileri').select('*').order('ad').then(({ data }) => {
       setKategoriler(data || [])
       if (data?.length) setKategoriId(data[0].id)
+    })
+
+    supabase.from('cek_bankalari').select('*').order('ad').then(({ data }) => {
+      setBankalar(data || [])
     })
 
     supabase.from('odeme_yontemleri').select('*').order('sira').then(({ data }) => {
@@ -53,6 +77,10 @@ export default function PlanlananOdemeler() {
       if (filtrelenmis?.length) setOdeYontemiId(filtrelenmis[0].id)
     })
   }, [aktifSantiye, profile])
+
+  useEffect(() => {
+    if (aktifSantiye) setSecilenSantiyeId(aktifSantiye.id)
+  }, [aktifSantiye])
 
   const odemeleriYukle = async () => {
     let query = supabase
@@ -96,7 +124,7 @@ export default function PlanlananOdemeler() {
     }
 
     const { error } = await supabase.from('planlanan_odemeler').insert({
-      santiye_id: aktifSantiye ? aktifSantiye.id : null,
+      santiye_id: secilenSantiyeId === 'genel' ? null : secilenSantiyeId,
       baslik: baslik,
       tutar: temizleTutar(tutar),
       vade_tarihi: vadeTarihi,
@@ -136,44 +164,92 @@ export default function PlanlananOdemeler() {
     odemeleriYukle()
   }
 
+  const odemeDuzenle = async (id) => {
+    if (!duzBaslik.trim() || !duzTutar) return
+    const guncelTutar = temizleTutar(duzTutar)
+
+    const { error } = await supabase.from('planlanan_odemeler').update({
+      santiye_id: duzSantiyeId === 'genel' ? null : duzSantiyeId,
+      baslik: duzBaslik,
+      tutar: guncelTutar,
+      vade_tarihi: duzVadeTarihi,
+      siklik: duzSiklik,
+      kategori_id: duzKategoriId || null,
+      not_metni: duzNotMetni,
+      cari_id: duzCariId || null
+    }).eq('id', id)
+
+    if (error) { alert('Güncellenemedi: ' + error.message); return }
+    setDuzenlenenId(null)
+    odemeleriYukle()
+  }
+
   const masrafaAktar = async (plan) => {
-    if (!odeYontemiId) {
+    if (odeTip === 'masraf' && !odeYontemiId) {
       alert("Lütfen ödemenin yapıldığı hesabı / kasayı seçiniz.")
       return
     }
-    setOdeYukleniyor(true)
-
-    // 1. Masraflar tablosuna insert
-    const taksit = parseInt(odeTaksitSayisi) || 1
-    const finalBaslik = taksit > 1 ? `${plan.baslik} (Planlı Ödemeden, ${taksit} Taksit)` : `${plan.baslik} (Planlı Ödemeden)`
-
-    const masrafData = {
-      santiye_id: plan.santiye_id,
-      kategori_id: plan.kategori_id,
-      baslik: finalBaslik,
-      odenen_kisi: plan.taseronlar?.ad || '',
-      cari_id: plan.cari_id,
-      aciklama: plan.not_metni,
-      tutar: plan.tutar,
-      taksit_sayisi: taksit,
-      odeme_yontemi_id: odeYontemiId,
-      harcama_tarihi: odeTarihi,
-      ekleyen: profile?.id
-    }
-
-    const { data: yeniMasraf, error: masrafErr } = await supabase.from('masraflar').insert([masrafData]).select().single()
-    
-    if (masrafErr) {
-      alert("Masrafa aktarılırken hata: " + masrafErr.message)
-      setOdeYukleniyor(false)
+    if (odeTip === 'cek' && (!odeCekBanka || !odeCekVadesi)) {
+      alert("Lütfen Çek Bankası ve Vadesi seçiniz.")
       return
+    }
+    setOdeYukleniyor(true)
+    let yeniMasrafId = null
+
+    if (odeTip === 'masraf') {
+      const taksit = parseInt(odeTaksitSayisi) || 1
+      const finalBaslik = taksit > 1 ? `${plan.baslik} (Planlı Ödemeden, ${taksit} Taksit)` : `${plan.baslik} (Planlı Ödemeden)`
+
+      const masrafData = {
+        santiye_id: plan.santiye_id,
+        kategori_id: plan.kategori_id,
+        baslik: finalBaslik,
+        odenen_kisi: plan.taseronlar?.ad || '',
+        cari_id: plan.cari_id,
+        aciklama: plan.not_metni,
+        tutar: plan.tutar,
+        taksit_sayisi: taksit,
+        odeme_yontemi_id: odeYontemiId,
+        harcama_tarihi: odeTarihi,
+        ekleyen: profile?.id
+      }
+
+      const { data: yeniMasraf, error: masrafErr } = await supabase.from('masraflar').insert([masrafData]).select().single()
+      if (masrafErr) {
+        alert("Masrafa aktarılırken hata: " + masrafErr.message)
+        setOdeYukleniyor(false)
+        return
+      }
+      yeniMasrafId = yeniMasraf.id
+    } else {
+      const cekData = {
+        odeme_konusu: plan.baslik + " (Planlı Ödemeden)",
+        santiye_id: plan.santiye_id,
+        odeyen: profile?.ad_soyad || 'Firma',
+        odenen: plan.taseronlar?.ad || '',
+        cari_id: plan.cari_id,
+        cek_seri_no: odeCekSeriNo,
+        banka: odeCekBanka,
+        verilis_tarihi: odeTarihi,
+        cek_vadesi: odeCekVadesi,
+        tutar: plan.tutar,
+        aciklama: plan.not_metni,
+        yon: 'verilen',
+        ekleyen: profile?.id
+      }
+      const { error: cekErr } = await supabase.from('cekler').insert([cekData])
+      if (cekErr) {
+        alert("Çeklere aktarılırken hata: " + cekErr.message)
+        setOdeYukleniyor(false)
+        return
+      }
     }
 
     // 2. Planlanan ödemeyi "odendi" yap
     await supabase.from('planlanan_odemeler').update({ 
       durum: 'odendi', 
       odenen_tarih: odeTarihi,
-      masraf_id: yeniMasraf.id
+      masraf_id: yeniMasrafId
     }).eq('id', plan.id)
 
     // 3. Tekrarlayan ödemeyse (Aylık veya Haftalık) yeni planı oluştur
@@ -201,6 +277,10 @@ export default function PlanlananOdemeler() {
     setOdeModalId(null)
     setOdeTarihi(bugun())
     setOdeTaksitSayisi(1)
+    setOdeTip('masraf')
+    setOdeCekBanka('')
+    setOdeCekSeriNo('')
+    setOdeCekVadesi('')
     setOdeYukleniyor(false)
     odemeleriYukle()
   }
@@ -244,6 +324,11 @@ export default function PlanlananOdemeler() {
     <div>
       <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
         <p style={{ fontWeight: 600, fontSize: 13, marginBottom: 10, color: '#0F6E56' }}>Yeni Ödeme Planla</p>
+        
+        <select value={secilenSantiyeId} onChange={e => setSecilenSantiyeId(e.target.value)} style={{ marginBottom: 8, width: '100%', padding: 8, borderRadius: 6 }}>
+          {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+          <option value="genel">Genel Gider (Şantiyeye Bağlı Değil)</option>
+        </select>
         
         <input type="text" placeholder="Ödeme Başlığı (Maaş, Hakediş vb.)..." value={baslik} onChange={e => setBaslik(e.target.value)} />
         
@@ -299,28 +384,90 @@ export default function PlanlananOdemeler() {
         {gorunenler.map(plan => (
           <div key={plan.id} className="kart" style={{ background: filtreDurum === 'bekliyor' ? vadeRengiGetir(plan.vade_tarihi) : '#fff', borderColor: filtreDurum === 'bekliyor' && vadeRengiGetir(plan.vade_tarihi) !== '#ffffff' ? '#F59E0B' : '#E2E8F0' }}>
             
-            {odeModalId === plan.id ? (
+            {duzenlenenId === plan.id && yonetici ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <p style={{ fontWeight: 700, color: '#0F6E56', fontSize: 14, margin: 0 }}>Ödemeyi Masrafa Aktar</p>
+                <p style={{ fontWeight: 700, color: '#0F6E56', fontSize: 13, margin: '0 0 4px 0' }}>Planı Düzenle</p>
+                <select value={duzSantiyeId} onChange={e => setDuzSantiyeId(e.target.value)} style={{ padding: 8, borderRadius: 6 }}>
+                  <option value="genel">Genel Gider (Şantiyeye Bağlı Değil)</option>
+                  {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
+                </select>
+                <input type="text" value={duzBaslik} onChange={(e) => setDuzBaslik(e.target.value)} placeholder="Ödeme Başlığı" />
+                <CariAramaSecici deger={duzOdenenKisi} onDegisti={(isim, id) => { setDuzOdenenKisi(isim); setDuzCariId(id || null); }} placeholder="İlgili Kişi / Firma" />
                 <div className="ekleme-satiri-2">
-                  <select value={odeYontemiId} onChange={e => setOdeYontemiId(e.target.value)}>
-                    <option value="">Ödeme Yapılan Kasa/Banka...</option>
-                    {odemeYontemleri.map(o => <option key={o.id} value={o.id}>{o.ad}</option>)}
+                  <input type="text" value={duzTutar} onChange={(e) => setDuzTutar(formatInputTutar(e.target.value))} placeholder="Tutar (₺)" onKeyDown={sadeceSayiTuslari} />
+                  <select value={duzKategoriId} onChange={e => setDuzKategoriId(e.target.value)}>
+                    <option value="">Kategori...</option>
+                    {kategoriler.map(k => <option key={k.id} value={k.id}>{k.ad}</option>)}
                   </select>
+                </div>
+                <div className="ekleme-satiri-2">
+                  <input type="date" value={duzVadeTarihi} onChange={e => setDuzVadeTarihi(e.target.value)} />
+                  <select value={duzSiklik} onChange={e => setDuzSiklik(e.target.value)}>
+                    <option value="bir_kez">Tek Seferlik (1 Kez)</option>
+                    <option value="haftalik">Haftalık</option>
+                    <option value="aylik">Aylık</option>
+                    <option value="manuel">Manuel</option>
+                  </select>
+                </div>
+                <textarea value={duzNotMetni} onChange={(e) => setDuzNotMetni(e.target.value)} placeholder="Açıklama / Not" rows={2} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical' }} />
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => setDuzenlenenId(null)} style={{ flex: 1, padding: '8px', background: '#f0f0ed', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Vazgeç</button>
+                  <button onClick={() => odemeDuzenle(plan.id)} style={{ flex: 1, padding: '8px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>Değişiklikleri Kaydet</button>
+                </div>
+              </div>
+            ) : odeModalId === plan.id ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <p style={{ fontWeight: 700, color: '#0F6E56', fontSize: 14, margin: 0 }}>Ödemeyi Gerçekleştir</p>
+                
+                <div className="gorunum-secici" style={{ marginBottom: 4 }}>
+                  <button className={odeTip === 'masraf' ? 'secili-tab' : ''} onClick={() => setOdeTip('masraf')} style={{ padding: '6px 8px', fontSize: 12 }}>Nakit / Kasa ile</button>
+                  <button className={odeTip === 'cek' ? 'secili-tab' : ''} onClick={() => setOdeTip('cek')} style={{ padding: '6px 8px', fontSize: 12 }}>Çek Keserek</button>
+                </div>
+                
+                <div className="ekleme-satiri-2">
+                  <label style={{ fontSize: 11, color: '#666', marginTop: 4 }}>İşlem Tarihi:</label>
                   <input type="date" value={odeTarihi} onChange={e => setOdeTarihi(e.target.value)} />
                 </div>
-                {isOdeKrediKarti && (
-                  <div style={{ padding: 8, background: '#FFF3E0', borderRadius: 6, border: '1px solid #FFE0B2', marginBottom: 8 }}>
-                    <label style={{ fontSize: 12, fontWeight: 'bold', color: '#E65100', display: 'block', marginBottom: 4 }}>Taksit Sayısı</label>
-                    <select value={odeTaksitSayisi} onChange={(e) => setOdeTaksitSayisi(e.target.value)} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #FFCC80' }}>
-                      <option value={1}>Peşin (Tek Çekim)</option>
-                      {[2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n} Taksit</option>)}
-                    </select>
-                  </div>
+
+                {odeTip === 'masraf' ? (
+                  <>
+                    <div className="ekleme-satiri-2">
+                      <select value={odeYontemiId} onChange={e => setOdeYontemiId(e.target.value)}>
+                        <option value="">Ödeme Yapılan Kasa/Banka...</option>
+                        {odemeYontemleri.map(o => <option key={o.id} value={o.id}>{o.ad}</option>)}
+                      </select>
+                    </div>
+                    {isOdeKrediKarti && (
+                      <div style={{ padding: 8, background: '#FFF3E0', borderRadius: 6, border: '1px solid #FFE0B2', marginBottom: 8 }}>
+                        <label style={{ fontSize: 12, fontWeight: 'bold', color: '#E65100', display: 'block', marginBottom: 4 }}>Taksit Sayısı</label>
+                        <select value={odeTaksitSayisi} onChange={(e) => setOdeTaksitSayisi(e.target.value)} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #FFCC80' }}>
+                          <option value={1}>Peşin (Tek Çekim)</option>
+                          {[2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n} Taksit</option>)}
+                        </select>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="ekleme-satiri-2">
+                      <select value={odeCekBanka} onChange={e => setOdeCekBanka(e.target.value)}>
+                        <option value="">-- Çek Bankası Seç --</option>
+                        {bankalar.map(b => <option key={b.id} value={b.ad}>{b.ad}</option>)}
+                      </select>
+                      <input type="text" placeholder="Çek Seri No" value={odeCekSeriNo} onChange={e => setOdeCekSeriNo(e.target.value)} />
+                    </div>
+                    <div className="ekleme-satiri-2">
+                      <label style={{ fontSize: 11, color: '#666', marginTop: 4 }}>Çek Vadesi:</label>
+                      <input type="date" value={odeCekVadesi} onChange={e => setOdeCekVadesi(e.target.value)} />
+                    </div>
+                  </>
                 )}
-                <div style={{ display: 'flex', gap: 6 }}>
+
+                <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
                   <button onClick={() => setOdeModalId(null)} style={{ flex: 1, padding: '8px', background: '#f0f0ed', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Vazgeç</button>
-                  <button onClick={() => masrafaAktar(plan)} disabled={odeYukleniyor} style={{ flex: 1, padding: '8px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>{odeYukleniyor ? 'Aktarılıyor...' : 'Onayla & Masrafa Yaz'}</button>
+                  <button onClick={() => masrafaAktar(plan)} disabled={odeYukleniyor} style={{ flex: 1, padding: '8px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>
+                    {odeYukleniyor ? 'İşleniyor...' : (odeTip === 'masraf' ? 'Masrafa Yaz' : 'Çeklere Aktar')}
+                  </button>
                 </div>
               </div>
             ) : (
@@ -330,7 +477,21 @@ export default function PlanlananOdemeler() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <span className="kart-tutar">{paraFormatla(plan.tutar)} ₺</span>
                     {filtreDurum === 'bekliyor' && yonetici && (
-                      <button className="sil-buton" onClick={() => odemeIptalEt(plan.id)} aria-label="İptal Et" title="İptal Et/Sil">🗑</button>
+                      <>
+                        <button className="sil-buton" onClick={() => {
+                          setDuzenlenenId(plan.id)
+                          setDuzSantiyeId(plan.santiye_id || 'genel')
+                          setDuzBaslik(plan.baslik)
+                          setDuzTutar(formatInputTutar(plan.tutar))
+                          setDuzVadeTarihi(plan.vade_tarihi)
+                          setDuzSiklik(plan.siklik || 'bir_kez')
+                          setDuzKategoriId(plan.kategori_id || '')
+                          setDuzNotMetni(plan.not_metni || '')
+                          setDuzOdenenKisi(plan.taseronlar?.ad || '')
+                          setDuzCariId(plan.cari_id || null)
+                        }} aria-label="Düzenle" title="Düzenle">✎</button>
+                        <button className="sil-buton" onClick={() => odemeIptalEt(plan.id)} aria-label="İptal Et" title="İptal Et/Sil">🗑</button>
+                      </>
                     )}
                   </div>
                 </div>
