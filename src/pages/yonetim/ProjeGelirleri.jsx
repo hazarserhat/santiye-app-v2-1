@@ -43,6 +43,7 @@ export default function ProjeGelirleri() {
     mesken_turu: true,
     daire_no: true,
     toplam_alacak: true,
+    iskonto_farki: true,
     devlet_destegi: true,
     kalan_bakiye: true,
     asamalar: true,
@@ -86,7 +87,7 @@ export default function ProjeGelirleri() {
 
   const hucreKaydet = async (malikId, alan, yeniDeger) => {
     let val = yeniDeger
-    if (alan === 'toplam_alacak' || alan === 'devlet_destegi') {
+    if (alan === 'toplam_alacak' || alan === 'devlet_destegi' || alan === 'iskonto_farki') {
       val = Number(yeniDeger) || 0
     } else if (alan === 'ad_soyad') {
       const m = malikler.find(x => x.id === malikId)
@@ -534,8 +535,8 @@ export default function ProjeGelirleri() {
       return (b.ad_soyad || '').localeCompare(a.ad_soyad || '')
     }
     if (siralama === 'kalan_artan' || siralama === 'kalan_azalan') {
-      const kalanA = Math.max(0, Number(a.toplam_alacak || 0) - Number(a.devlet_destegi || 0) - (odemeToplamlari[a.id] || 0))
-      const kalanB = Math.max(0, Number(b.toplam_alacak || 0) - Number(b.devlet_destegi || 0) - (odemeToplamlari[b.id] || 0))
+      const kalanA = Math.max(0, Number(a.toplam_alacak || 0) + Number(a.iskonto_farki || 0) - Number(a.devlet_destegi || 0) - (odemeToplamlari[a.id] || 0))
+      const kalanB = Math.max(0, Number(b.toplam_alacak || 0) + Number(b.iskonto_farki || 0) - Number(b.devlet_destegi || 0) - (odemeToplamlari[b.id] || 0))
       return siralama === 'kalan_artan' ? kalanA - kalanB : kalanB - kalanA
     }
     return 0
@@ -553,9 +554,9 @@ export default function ProjeGelirleri() {
   })
 
   gorunenler.forEach((m) => {
-    const kalanBakiye = Number(m.toplam_alacak || 0) - Number(m.devlet_destegi || 0)
+    const kalanBakiye = Number(m.toplam_alacak || 0) + Number(m.iskonto_farki || 0) - Number(m.devlet_destegi || 0)
     const alinan = odemeToplamlari[m.id] || 0
-    toplamAlacakGenel += Number(m.toplam_alacak || 0)
+    toplamAlacakGenel += Number(m.toplam_alacak || 0) + Number(m.iskonto_farki || 0)
     toplamDevletGenel += Number(m.devlet_destegi || 0)
     toplamAlinanGenel += alinan
     toplamKalanGenel += Math.max(0, kalanBakiye - alinan)
@@ -600,7 +601,8 @@ export default function ProjeGelirleri() {
         'Şantiye',
         'Mesken Türü',
         'Daire No',
-        'Toplam Alacak (TL)',
+        'Sözleşme Tutarı (TL)',
+        'İskonto / Fiyat Farkı (TL)',
         'Devlet Desteği (TL)',
         'Kalan Bakiye (TL)'
       ]
@@ -616,7 +618,7 @@ export default function ProjeGelirleri() {
       // Body Rows
       gorunenler.forEach((m) => {
         const stages = asamalar[m.id] || []
-        const kalanBakiye = Number(m.toplam_alacak || 0) - Number(m.devlet_destegi || 0)
+        const kalanBakiye = Number(m.toplam_alacak || 0) + Number(m.iskonto_farki || 0) - Number(m.devlet_destegi || 0)
         const alinan = odemeToplamlari[m.id] || 0
         const kalan = Math.max(0, kalanBakiye - alinan)
 
@@ -627,6 +629,7 @@ export default function ProjeGelirleri() {
           m.mesken_turu || '',
           m.daire_no || '',
           Number(m.toplam_alacak || 0),
+          Number(m.iskonto_farki || 0),
           Number(m.devlet_destegi || 0),
           kalanBakiye
         ]
@@ -645,14 +648,17 @@ export default function ProjeGelirleri() {
         data.push(row)
       })
 
-      // Total Row
+      const toplamSozlesmeEx = gorunenler.reduce((acc, m) => acc + Number(m.toplam_alacak || 0), 0)
+      const toplamIskontoEx = gorunenler.reduce((acc, m) => acc + Number(m.iskonto_farki || 0), 0)
+      
       const totalRow = [
         'TOPLAM',
         '—',
         '—',
         '—',
         '—',
-        toplamAlacakGenel,
+        toplamSozlesmeEx,
+        toplamIskontoEx,
         toplamDevletGenel,
         toplamAlacakGenel - toplamDevletGenel
       ]
@@ -673,7 +679,8 @@ export default function ProjeGelirleri() {
         { wch: 20 }, // Şantiye
         { wch: 15 }, // Mesken Türü
         { wch: 10 }, // Daire No
-        { wch: 18 }, // Toplam Alacak
+        { wch: 18 }, // Sözleşme Tutarı
+        { wch: 22 }, // İskonto/Fiyat Farkı
         { wch: 18 }, // Devlet Desteği
         { wch: 18 }  // Kalan Bakiye
       ]
@@ -1069,7 +1076,8 @@ export default function ProjeGelirleri() {
                   <th style={{ ...thStil, display: isColumnVisible('santiye') ? '' : 'none' }}>Şantiye</th>
                   <th style={{ ...thStil, display: isColumnVisible('mesken_turu') ? '' : 'none' }}>Mesken Türü</th>
                   <th style={{ ...thStil, display: isColumnVisible('daire_no') ? '' : 'none' }}>Daire No</th>
-                  <th style={{ ...thStil, display: isColumnVisible('toplam_alacak') ? '' : 'none', textAlign: 'right' }}>Toplam Alacak</th>
+                  <th style={{ ...thStil, display: isColumnVisible('toplam_alacak') ? '' : 'none', textAlign: 'right' }}>Sözleşme Tutarı</th>
+                  <th style={{ ...thStil, display: isColumnVisible('iskonto_farki') ? '' : 'none', textAlign: 'right' }}>İskonto / Fark</th>
                   <th style={{ ...thStil, display: isColumnVisible('devlet_destegi') ? '' : 'none', textAlign: 'right' }}>Devlet Desteği</th>
                   <th style={{ ...thStil, display: isColumnVisible('kalan_bakiye') ? '' : 'none', textAlign: 'right' }}>Kalan Bakiye</th>
                   {Array.from({ length: maxStageCount }).map((_, i) => (
@@ -1277,6 +1285,22 @@ export default function ProjeGelirleri() {
                       />
                     ) : (
                       <span onDoubleClick={() => hucreCiftTik(m.id, 'toplam_alacak')} title={hizliDuzenleModu ? "Çift tıklayarak düzenle" : "Hızlı Düzenleme modunu açarak düzenleyebilirsiniz"} style={{ cursor: hizliDuzenleModu ? 'pointer' : 'default' }}>{paraFormatla(m.toplam_alacak)} ₺</span>
+                    )}
+                  </td>
+
+                  {/* İskonto / Fiyat Farkı */}
+                  <td className="td-expandable" style={{ background: cellBg, fontWeight: 500, display: isColumnVisible('iskonto_farki') ? '' : 'none', textAlign: 'right', color: (Number(m.iskonto_farki || 0) < 0 ? '#10B981' : (Number(m.iskonto_farki || 0) > 0 ? '#EF4444' : textColor)) }}>
+                    {hucreEdit?.malikId === m.id && hucreEdit?.alan === 'iskonto_farki' ? (
+                      <input
+                        type="number"
+                        autoFocus
+                        style={{ padding: '3px 6px', border: '2px solid #1D9596', borderRadius: 4, width: 110 }}
+                        defaultValue={m.iskonto_farki ?? ''}
+                        onBlur={(e) => hucreKaydet(m.id, 'iskonto_farki', e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') hucreKaydet(m.id, 'iskonto_farki', e.target.value) }}
+                      />
+                    ) : (
+                      <span onDoubleClick={() => hucreCiftTik(m.id, 'iskonto_farki')} title={hizliDuzenleModu ? "Çift tıklayarak düzenle" : "Hızlı Düzenleme modunu açarak düzenleyebilirsiniz"} style={{ cursor: hizliDuzenleModu ? 'pointer' : 'default' }}>{paraFormatla(m.iskonto_farki || 0)} ₺</span>
                     )}
                   </td>
 
@@ -1623,13 +1647,13 @@ export default function ProjeGelirleri() {
             {/* Quick Actions */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
               <button
-                onClick={() => setSeciliSutunlarPDF({ ad_soyad: true, telefon: true, santiye: true, mesken_turu: true, daire_no: true, toplam_alacak: true, devlet_destegi: true, kalan_bakiye: true, asamalar: true, alinan: true, kalan: true })}
+                onClick={() => setSeciliSutunlarPDF({ ad_soyad: true, telefon: true, santiye: true, mesken_turu: true, daire_no: true, toplam_alacak: true, iskonto_farki: true, devlet_destegi: true, kalan_bakiye: true, asamalar: true, alinan: true, kalan: true })}
                 style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '6px', border: '1px solid #CBD5E0', background: '#F1F5F9', fontWeight: 600, cursor: 'pointer' }}
               >
                 ✓ Tümünü Seç
               </button>
               <button
-                onClick={() => setSeciliSutunlarPDF({ ad_soyad: true, telefon: false, santiye: false, mesken_turu: false, daire_no: true, toplam_alacak: true, devlet_destegi: true, kalan_bakiye: true, asamalar: false, alinan: true, kalan: true })}
+                onClick={() => setSeciliSutunlarPDF({ ad_soyad: true, telefon: false, santiye: false, mesken_turu: false, daire_no: true, toplam_alacak: true, iskonto_farki: true, devlet_destegi: true, kalan_bakiye: true, asamalar: false, alinan: true, kalan: true })}
                 style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '6px', border: '1px solid #CBD5E0', background: '#F1F5F9', fontWeight: 600, cursor: 'pointer' }}
               >
                 📋 Özet Rapor (Büyük Yazı)
@@ -1644,7 +1668,8 @@ export default function ProjeGelirleri() {
                 { key: 'santiye', label: 'Şantiye' },
                 { key: 'mesken_turu', label: 'Mesken Türü' },
                 { key: 'daire_no', label: 'Daire No' },
-                { key: 'toplam_alacak', label: 'Toplam Alacak' },
+                { key: 'toplam_alacak', label: 'Sözleşme Tutarı' },
+                { key: 'iskonto_farki', label: 'İskonto / Fiyat Farkı' },
                 { key: 'devlet_destegi', label: 'Devlet Desteği' },
                 { key: 'kalan_bakiye', label: 'Kalan Bakiye' },
                 { key: 'asamalar', label: 'Aşamalar (Aşama 1..N)' },
