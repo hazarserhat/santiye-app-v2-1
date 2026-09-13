@@ -339,16 +339,16 @@ export default function PlanlananOdemeler() {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-        <div style={{ flex: 1, background: '#FEF2F2', padding: 12, borderRadius: 8, border: '1px solid #FCA5A5' }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 100px', background: '#FEF2F2', padding: 12, borderRadius: 8, border: '1px solid #FCA5A5' }}>
           <p style={{ margin: 0, fontSize: 11, color: '#B91C1C', fontWeight: 600 }}>Vadesi Geçenler</p>
           <p style={{ margin: '4px 0 0 0', fontSize: 16, fontWeight: 700, color: '#991B1B' }}>{paraFormatla(vadesiGecmisToplami)} ₺</p>
         </div>
-        <div style={{ flex: 1, background: '#F0FDF4', padding: 12, borderRadius: 8, border: '1px solid #86EFAC' }}>
+        <div style={{ flex: '1 1 100px', background: '#F0FDF4', padding: 12, borderRadius: 8, border: '1px solid #86EFAC' }}>
           <p style={{ margin: 0, fontSize: 11, color: '#15803D', fontWeight: 600 }}>Gelecek Ödemeler</p>
           <p style={{ margin: '4px 0 0 0', fontSize: 16, fontWeight: 700, color: '#166534' }}>{paraFormatla(vadesiGelmemisToplami)} ₺</p>
         </div>
-        <div style={{ flex: 1, background: '#EFF6FF', padding: 12, borderRadius: 8, border: '1px solid #93C5FD' }}>
+        <div style={{ flex: '1 1 100px', background: '#EFF6FF', padding: 12, borderRadius: 8, border: '1px solid #93C5FD' }}>
           <p style={{ margin: 0, fontSize: 11, color: '#1D4ED8', fontWeight: 600 }}>Toplam Bekleyen</p>
           <p style={{ margin: '4px 0 0 0', fontSize: 16, fontWeight: 700, color: '#1E3A8A' }}>{paraFormatla(toplamBekleyen)} ₺</p>
         </div>
