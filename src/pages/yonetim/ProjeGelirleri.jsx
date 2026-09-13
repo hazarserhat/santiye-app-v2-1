@@ -115,8 +115,7 @@ export default function ProjeGelirleri() {
   const [yeniDaireNo, setYeniDaireNo] = useState('')
   const [yeniSantiyeId, setYeniSantiyeId] = useState('')
 
-  // Dinamik olarak tablodaki maksimum aşama sayısını buluyoruz (en az 4 olsun ki daralmasın)
-  const maxStageCount = Math.max(4, ...Object.values(asamalar).map((a) => a?.length || 0))
+  // maxStageCount hesaplaması gorunenler tanımlandıktan sonra yapılacak
 
   const yenile = async () => {
     const { data: m, error: e1 } = await supabase.from('malikler').select('*, santiyeler(ad)').order('ad_soyad')
@@ -444,6 +443,18 @@ export default function ProjeGelirleri() {
 
   let gorunenler = filtreSantiye === 'hepsi' ? [...malikler] : malikler.filter((m) => m.santiye_id === filtreSantiye)
 
+  // Dinamik olarak filtrelenmiş (GÖRÜNEN) tablodaki maksimum aktif aşama sayısını buluyoruz
+  let maxStageCount = 0
+  gorunenler.forEach(m => {
+    const mAsama = asamalar[m.id] || []
+    mAsama.forEach((a, index) => {
+      // Aşamanın bir tutarı varsa VEYA özel bir başlığı girilmişse VEYA tamamlandı olarak işaretlenmişse bu aktiftir
+      if ((a.tutar && Number(a.tutar) > 0) || (a.ad && a.ad.trim() !== '') || a.tamamlandi) {
+        if (index + 1 > maxStageCount) maxStageCount = index + 1
+      }
+    })
+  })
+
   const topluAsamaGuncelle = async (stageIndex, yeniAd) => {
     if (yeniAd === undefined) return
     const trimAd = yeniAd.trim()
@@ -535,8 +546,8 @@ export default function ProjeGelirleri() {
       return (b.ad_soyad || '').localeCompare(a.ad_soyad || '')
     }
     if (siralama === 'kalan_artan' || siralama === 'kalan_azalan') {
-      const kalanA = Math.max(0, Number(a.toplam_alacak || 0) + Number(a.iskonto_farki || 0) - Number(a.devlet_destegi || 0) - (odemeToplamlari[a.id] || 0))
-      const kalanB = Math.max(0, Number(b.toplam_alacak || 0) + Number(b.iskonto_farki || 0) - Number(b.devlet_destegi || 0) - (odemeToplamlari[b.id] || 0))
+      const kalanA = Number(a.toplam_alacak || 0) + Number(a.iskonto_farki || 0) - Number(a.devlet_destegi || 0) - (odemeToplamlari[a.id] || 0)
+      const kalanB = Number(b.toplam_alacak || 0) + Number(b.iskonto_farki || 0) - Number(b.devlet_destegi || 0) - (odemeToplamlari[b.id] || 0)
       return siralama === 'kalan_artan' ? kalanA - kalanB : kalanB - kalanA
     }
     return 0
@@ -564,7 +575,7 @@ export default function ProjeGelirleri() {
     toplamAlacakGenel += Number(m.toplam_alacak || 0) + Number(m.iskonto_farki || 0)
     toplamDevletGenel += Number(m.devlet_destegi || 0)
     toplamAlinanGenel += alinan
-    toplamKalanGenel += Math.max(0, kalanBakiye - alinan)
+    toplamKalanGenel += (kalanBakiye - alinan)
   })
 
   const hucreCiftTik = (malikId, alan, asamaId = null) => {
@@ -625,7 +636,7 @@ export default function ProjeGelirleri() {
         const stages = asamalar[m.id] || []
         const kalanBakiye = Number(m.toplam_alacak || 0) + Number(m.iskonto_farki || 0) - Number(m.devlet_destegi || 0)
         const alinan = odemeToplamlari[m.id] || 0
-        const kalan = Math.max(0, kalanBakiye - alinan)
+        const kalan = kalanBakiye - alinan
 
         const row = [
           (m.ad_soyad || '').replace('[R_SATIS]', '').trim(),
@@ -1161,9 +1172,9 @@ export default function ProjeGelirleri() {
             {gorunenler.map((m, index) => {
               const stages = asamalar[m.id] || []
               const renkler = renkHesapla(m.id, stages)
-              const kalanBakiye = Number(m.toplam_alacak || 0) - Number(m.devlet_destegi || 0)
+              const kalanBakiye = Number(m.toplam_alacak || 0) + Number(m.iskonto_farki || 0) - Number(m.devlet_destegi || 0)
               const alinan = odemeToplamlari[m.id] || 0
-              const kalan = Math.max(0, kalanBakiye - alinan)
+              const kalan = kalanBakiye - alinan
               
               const hamAd = m.ad_soyad || ''
               const isRuhaSatilan = hamAd.includes('[R_SATIS]')
@@ -1184,9 +1195,15 @@ export default function ProjeGelirleri() {
                 cellBg = 'rgba(236, 72, 153, 0.15)'
                 stickyBg = '#FDF2F8'
                 textColor = '#831843'
-              } else if (isKalanSifir) {
-                cellBg = 'rgba(34, 197, 94, 0.16)'
-                stickyBg = '#DCFCE7'
+              } else if (kalan > 0 && Number(m.toplam_alacak || 0) > 0) {
+                cellBg = 'rgba(254, 226, 226, 0.55)'
+                stickyBg = '#FEE2E2'
+              } else if (kalan === 0 && Number(m.toplam_alacak || 0) > 0) {
+                cellBg = 'rgba(209, 250, 229, 0.55)'
+                stickyBg = '#D1FAE5'
+              } else if (kalan < 0) {
+                cellBg = 'rgba(254, 240, 138, 0.65)'
+                stickyBg = '#FEF08A'
               } else if (!isEven) {
                 cellBg = 'rgba(241, 245, 249, 0.75)'
                 stickyBg = '#F1F5F9'
