@@ -31,6 +31,7 @@ export default function PlanlananOdemeler() {
   // Masrafa Aktarma (Ödeme) Modalı State'leri
   const [odeModalId, setOdeModalId] = useState(null)
   const [odeYontemiId, setOdeYontemiId] = useState('')
+  const [odeTaksitSayisi, setOdeTaksitSayisi] = useState(1)
   const [odeTarihi, setOdeTarihi] = useState(bugun())
   const [odeYukleniyor, setOdeYukleniyor] = useState(false)
 
@@ -143,15 +144,18 @@ export default function PlanlananOdemeler() {
     setOdeYukleniyor(true)
 
     // 1. Masraflar tablosuna insert
+    const taksit = parseInt(odeTaksitSayisi) || 1
+    const finalBaslik = taksit > 1 ? `${plan.baslik} (Planlı Ödemeden, ${taksit} Taksit)` : `${plan.baslik} (Planlı Ödemeden)`
+
     const masrafData = {
       santiye_id: plan.santiye_id,
       kategori_id: plan.kategori_id,
-      baslik: plan.baslik + " (Planlı Ödemeden)",
+      baslik: finalBaslik,
       odenen_kisi: plan.taseronlar?.ad || '',
       cari_id: plan.cari_id,
       aciklama: plan.not_metni,
       tutar: plan.tutar,
-      taksit_sayisi: 1,
+      taksit_sayisi: taksit,
       odeme_yontemi_id: odeYontemiId,
       harcama_tarihi: odeTarihi,
       ekleyen: profile?.id
@@ -196,11 +200,15 @@ export default function PlanlananOdemeler() {
 
     setOdeModalId(null)
     setOdeTarihi(bugun())
+    setOdeTaksitSayisi(1)
     setOdeYukleniyor(false)
     odemeleriYukle()
   }
 
   let gorunenler = odemeler.filter(o => o.durum === filtreDurum)
+
+  const seciliOdeYontemi = odemeYontemleri.find(o => o.id === odeYontemiId)
+  const isOdeKrediKarti = seciliOdeYontemi && seciliOdeYontemi.ad.toLowerCase().includes('kart')
 
   // Vadeye Göre Kart Renkleri
   const vadeRengiGetir = (vadeStr) => {
@@ -301,6 +309,15 @@ export default function PlanlananOdemeler() {
                   </select>
                   <input type="date" value={odeTarihi} onChange={e => setOdeTarihi(e.target.value)} />
                 </div>
+                {isOdeKrediKarti && (
+                  <div style={{ padding: 8, background: '#FFF3E0', borderRadius: 6, border: '1px solid #FFE0B2', marginBottom: 8 }}>
+                    <label style={{ fontSize: 12, fontWeight: 'bold', color: '#E65100', display: 'block', marginBottom: 4 }}>Taksit Sayısı</label>
+                    <select value={odeTaksitSayisi} onChange={(e) => setOdeTaksitSayisi(e.target.value)} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #FFCC80' }}>
+                      <option value={1}>Peşin (Tek Çekim)</option>
+                      {[2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n} Taksit</option>)}
+                    </select>
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button onClick={() => setOdeModalId(null)} style={{ flex: 1, padding: '8px', background: '#f0f0ed', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Vazgeç</button>
                   <button onClick={() => masrafaAktar(plan)} disabled={odeYukleniyor} style={{ flex: 1, padding: '8px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>{odeYukleniyor ? 'Aktarılıyor...' : 'Onayla & Masrafa Yaz'}</button>
