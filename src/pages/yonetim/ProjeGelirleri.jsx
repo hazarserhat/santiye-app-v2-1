@@ -553,9 +553,14 @@ export default function ProjeGelirleri() {
     return t
   })
 
+  let toplamSozlesmeGenel = 0, toplamIskontoGenel = 0
+
   gorunenler.forEach((m) => {
     const kalanBakiye = Number(m.toplam_alacak || 0) + Number(m.iskonto_farki || 0) - Number(m.devlet_destegi || 0)
     const alinan = odemeToplamlari[m.id] || 0
+    toplamSozlesmeGenel += Number(m.toplam_alacak || 0)
+    toplamIskontoGenel += Number(m.iskonto_farki || 0)
+    
     toplamAlacakGenel += Number(m.toplam_alacak || 0) + Number(m.iskonto_farki || 0)
     toplamDevletGenel += Number(m.devlet_destegi || 0)
     toplamAlinanGenel += alinan
@@ -1409,9 +1414,10 @@ export default function ProjeGelirleri() {
               <td style={{ color: '#64748B', background: '#E6F4F1', display: isColumnVisible('santiye') ? '' : 'none' }}>—</td>
               <td style={{ color: '#64748B', background: '#E6F4F1', display: isColumnVisible('mesken_turu') ? '' : 'none' }}>—</td>
               <td style={{ color: '#64748B', background: '#E6F4F1', display: isColumnVisible('daire_no') ? '' : 'none' }}>—</td>
-              <td style={{ fontSize: 14, color: '#1E293B', background: '#E6F4F1', fontWeight: 800, display: isColumnVisible('toplam_alacak') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(toplamAlacakGenel)} ₺</td>
+              <td style={{ fontSize: 14, color: '#1E293B', background: '#E6F4F1', fontWeight: 800, display: isColumnVisible('toplam_alacak') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(toplamSozlesmeGenel)} ₺</td>
+              <td style={{ fontSize: 14, color: (toplamIskontoGenel < 0 ? '#10B981' : (toplamIskontoGenel > 0 ? '#EF4444' : '#1E293B')), background: '#E6F4F1', fontWeight: 800, display: isColumnVisible('iskonto_farki') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(toplamIskontoGenel)} ₺</td>
               <td style={{ fontSize: 14, color: '#1D4ED8', background: '#E6F4F1', fontWeight: 800, display: isColumnVisible('devlet_destegi') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(toplamDevletGenel)} ₺</td>
-              <td style={{ fontSize: 14, color: '#D97706', background: '#E6F4F1', fontWeight: 800, display: isColumnVisible('kalan_bakiye') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(toplamAlacakGenel - toplamDevletGenel)} ₺</td>
+              <td style={{ fontSize: 14, color: '#D97706', background: '#E6F4F1', fontWeight: 800, display: isColumnVisible('kalan_bakiye') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(toplamKalanGenel)} ₺</td>
               {Array.from({ length: maxStageCount }).map((_, i) => (
                 <td key={i} style={{ background: '#E2F2F0', color: '#0F5859', fontWeight: 800, fontSize: 13, display: isColumnVisible('asamalar') ? '' : 'none', textAlign: 'right' }}>
                   {paraFormatla(asamaToplamlari[i])} ₺
