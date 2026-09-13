@@ -582,14 +582,12 @@ export default function ProjeGelirleri() {
       const el = tabloKapsayiciRef.current
       const originalStyle = el.getAttribute('style') || ''
 
-      // Tablonun ve div'in en fazla 1250px genişliğe kadar uzamasına izin ver
-      // 1250'yi aşarsa kelimeler alta düşsün (white-space: normal). 
-      // Daha darsa kendi genişliğinde kalsın (sağda boşluk olmasın).
+      // Tablonun ve div'in içeriğine göre tamamen yayılmasına izin ver (kırpılma/ezilme olmasın)
       el.style.width = 'max-content'
-      el.style.maxWidth = '1250px'
+      el.style.maxWidth = 'none'
       el.style.overflow = 'visible'
 
-      // DOM'un yeni genişliğe göre metinleri alta kırması için minik bir bekleme
+      // DOM'un yeni genişliğe göre yerleşmesi için minik bir bekleme
       await new Promise(r => setTimeout(r, 100))
 
       const canvasWidth = el.scrollWidth
@@ -609,15 +607,15 @@ export default function ProjeGelirleri() {
       const imgWidth = canvas.width
       const imgHeight = canvas.height
 
-      // Standard A4 Landscape: 297mm x 210mm
+      // Geniş (çok sütunlu) tablolar için A3 Landscape (420mm x 297mm) en iyisidir
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
-        format: 'a4'
+        format: 'a3'
       })
 
-      const pdfWidth = 297
-      const pdfHeight = 210
+      const pdfWidth = 420
+      const pdfHeight = 297
       const marginX = 12 // 12mm 4 bir yandan kenarlık
       const marginY = 12 // 12mm 4 bir yandan kenarlık
       const printableWidth = pdfWidth - marginX * 2 // 273mm
@@ -811,25 +809,25 @@ export default function ProjeGelirleri() {
 
       {pdfYukleniyor && (
         <style>{`
-          /* PDF alımında tablo yatay uzamasını engelle, fontları şişir, kelime bölünmesini engelle */
+          /* PDF alımında tablo özgürce genişlesin (A3 kağıt için), fontları şişir */
           .sayfa-genis table {
-            min-width: 0 !important; /* 1500px minWidth inline style'ı ezer */
-            width: 100% !important;
-            max-width: 1250px !important;
+            min-width: 0 !important; 
+            width: max-content !important;
+            max-width: none !important;
             table-layout: auto !important;
           }
           .sayfa-genis table th, .sayfa-genis table td {
             white-space: normal !important;
-            padding: 16px 8px !important;
-            font-size: 13px !important;
-            line-height: 1.4 !important;
+            padding: 24px 16px !important;
+            font-size: 15px !important;
+            line-height: 1.5 !important;
           }
           .sayfa-genis table th {
-            font-size: 11px !important; /* Başlıklar biraz daha ufak olsun ki sığsın */
-            padding: 12px 6px !important;
+            font-size: 13px !important;
+            padding: 20px 14px !important;
           }
           .td-expandable, .pill-rozet {
-            font-size: 14px !important;
+            font-size: 15px !important;
           }
         `}</style>
       )}
