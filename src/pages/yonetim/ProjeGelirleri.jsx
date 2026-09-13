@@ -801,6 +801,31 @@ export default function ProjeGelirleri() {
         }
       `}</style>
 
+      {pdfYukleniyor && (
+        <style>{`
+          /* PDF alımında fontları ve hücre yüksekliklerini şişir, genişliği daraltarak uzamasını sağla */
+          .sayfa-genis table th, .sayfa-genis table td {
+            white-space: normal !important;
+            word-break: break-word !important;
+            padding: 22px 14px !important;
+            font-size: 13px !important;
+            line-height: 1.6 !important;
+          }
+          .sayfa-genis table th {
+            font-size: 12px !important;
+            padding: 18px 14px !important;
+          }
+          .sayfa-genis table {
+            width: 1350px !important; 
+            max-width: 1350px !important;
+            table-layout: fixed !important;
+          }
+          .td-expandable, .pill-rozet {
+            font-size: 13px !important;
+          }
+        `}</style>
+      )}
+
       <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
         <button onClick={sablonIndir} disabled={yukleniyor} style={{ flex: 1, padding: 12, background: '#1D9596', color: 'white', fontWeight: 'bold', borderRadius: 12, cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
           📥 Örnek Şablonu İndir
