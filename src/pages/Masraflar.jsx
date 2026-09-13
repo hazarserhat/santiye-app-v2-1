@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 import Cekler from './Cekler'
+import PlanlananOdemeler from './PlanlananOdemeler'
 import { paraFormatla, sadeceSayiTuslari, formatInputTutar, temizleTutar } from '../lib/format'
 import CariAramaSecici from '../components/CariAramaSecici'
 import { uploadToGoogleDrive, moveToSilinenler, getGoogleDriveInlineImageUrl, getGoogleDriveViewUrl } from '../lib/googleDrive'
@@ -13,7 +14,7 @@ export default function Masraflar() {
   const { aktifSantiye, santiyeler } = useSite()
   const { profile } = useAuth()
   const yonetici = profile?.rol === 'yonetici' || profile?.rol === 'koordinator'
-  const [sekme, setSekme] = useState('masraf') // 'masraf' | 'cek'
+  const [sekme, setSekme] = useState('masraf') // 'masraf' | 'cek' | 'planli'
 
   // Yüzde Dağılım Yardımcı Fonksiyonları
   const handleYuzdeDegisimi = (liste, setListe, degisenIndex, yeniDeger) => {
@@ -489,10 +490,11 @@ export default function Masraflar() {
         <div className="gorunum-secici" style={{ marginBottom: 14 }}>
           <button className={sekme === 'masraf' ? 'secili-tab' : ''} onClick={() => setSekme('masraf')}>Ödeme Girdileri</button>
           <button className={sekme === 'cek' ? 'secili-tab' : ''} onClick={() => setSekme('cek')}>Çek Girdileri</button>
+          <button className={sekme === 'planli' ? 'secili-tab' : ''} onClick={() => setSekme('planli')}>Planlanan Ödemeler</button>
         </div>
       )}
 
-      {sekme === 'cek' && yonetici ? <Cekler /> : (
+      {sekme === 'planli' && yonetici ? <PlanlananOdemeler /> : sekme === 'cek' && yonetici ? <Cekler /> : (
         <>
           {/* YENİ MASRAF EKLEME ALANI (EN ÜSTTE) */}
           <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
