@@ -85,8 +85,15 @@ export default function ProjeGelirleri() {
   }
 
   const hucreKaydet = async (malikId, alan, yeniDeger) => {
-    const isNumber = alan === 'toplam_alacak' || alan === 'devlet_destegi'
-    const val = isNumber ? Number(yeniDeger) || 0 : yeniDeger
+    let val = yeniDeger
+    if (alan === 'toplam_alacak' || alan === 'devlet_destegi') {
+      val = Number(yeniDeger) || 0
+    } else if (alan === 'ad_soyad') {
+      const m = malikler.find(x => x.id === malikId)
+      if (m && (m.ad_soyad || '').includes('[R_SATIS]')) {
+        val = (yeniDeger || '').replace('[R_SATIS]', '').trim() + ' [R_SATIS]'
+      }
+    }
     const { error } = await supabase.from('malikler').update({ [alan]: val }).eq('id', malikId)
     if (error) alert('Hücre güncellenemedi: ' + error.message)
     setHucreEdit(null)
@@ -186,7 +193,7 @@ export default function ProjeGelirleri() {
       if (!satisAliciAd.trim()) return alert('Alıcı Adı zorunludur')
       
       const { error: updErr } = await supabase.from('malikler').update({
-        ad_soyad: satisAliciAd,
+        ad_soyad: satisAliciAd.trim() + ' [R_SATIS]',
         telefon: satisTelefon,
         toplam_alacak: Number(satisBedeli) || 0
       }).eq('id', satisMulkId)
@@ -211,7 +218,7 @@ export default function ProjeGelirleri() {
       const cariAdi = cari?.firma || cari?.ad || 'Bilinmeyen Cari'
       
       const { error: updErr2 } = await supabase.from('malikler').update({
-        ad_soyad: `Cari: ${cariAdi}`,
+        ad_soyad: `Cari: ${cariAdi} [R_SATIS]`,
         toplam_alacak: Number(satisBedeli) || 0
       }).eq('id', satisMulkId)
       if (updErr2) return alert('Malik güncellenirken hata: ' + updErr2.message)
@@ -614,7 +621,7 @@ export default function ProjeGelirleri() {
         const kalan = Math.max(0, kalanBakiye - alinan)
 
         const row = [
-          m.ad_soyad || '',
+          (m.ad_soyad || '').replace('[R_SATIS]', '').trim(),
           m.telefon || '',
           m.santiyeler?.ad || '',
           m.mesken_turu || '',
@@ -1145,7 +1152,10 @@ export default function ProjeGelirleri() {
               const alinan = odemeToplamlari[m.id] || 0
               const kalan = Math.max(0, kalanBakiye - alinan)
               
-              const isRuha = (m.ad_soyad || '').toLowerCase().includes('ruha')
+              const hamAd = m.ad_soyad || ''
+              const isRuhaSatilan = hamAd.includes('[R_SATIS]')
+              const isRuha = hamAd.toLowerCase().includes('ruha') && !isRuhaSatilan
+              const temizAd = hamAd.replace('[R_SATIS]', '').trim()
               const isKalanSifir = kalan === 0 && Number(m.toplam_alacak || 0) > 0
               const isEven = index % 2 === 0
 
@@ -1157,6 +1167,10 @@ export default function ProjeGelirleri() {
                 cellBg = '#1D9596'
                 stickyBg = '#1D9596'
                 textColor = '#FFFFFF'
+              } else if (isRuhaSatilan) {
+                cellBg = 'rgba(236, 72, 153, 0.15)'
+                stickyBg = '#FDF2F8'
+                textColor = '#831843'
               } else if (isKalanSifir) {
                 cellBg = 'rgba(34, 197, 94, 0.16)'
                 stickyBg = '#DCFCE7'
@@ -1174,7 +1188,7 @@ export default function ProjeGelirleri() {
                         <textarea
                           autoFocus
                           style={{ padding: '3px 6px', border: '2px solid #1D9596', borderRadius: 4, width: '100%', resize: 'vertical', minHeight: '40px', fontFamily: 'inherit', fontSize: '13px' }}
-                          defaultValue={m.ad_soyad}
+                          defaultValue={temizAd}
                           onBlur={(e) => hucreKaydet(m.id, 'ad_soyad', e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
@@ -1187,7 +1201,7 @@ export default function ProjeGelirleri() {
                         />
                       ) : (
                         <span onDoubleClick={() => hucreCiftTik(m.id, 'ad_soyad')} title={hizliDuzenleModu ? "Çift tıklayarak düzenle (Alt+Enter ile alt satır)" : "Hızlı Düzenleme modunu açarak düzenleyebilirsiniz"} style={{ cursor: hizliDuzenleModu ? 'pointer' : 'default', display: 'inline-block' }}>
-                          {(m.ad_soyad || '').split('\n').map((line, i, arr) => (
+                          {(temizAd || '').split('\n').map((line, i, arr) => (
                             <span key={i}>
                               {line}
                               {i < arr.length - 1 && <br />}
@@ -1195,7 +1209,7 @@ export default function ProjeGelirleri() {
                           ))}
                         </span>
                       )}
-                      {isRuha && <span style={{ fontSize: 14 }} title="Ruha'ya ait">⭐</span>}
+                      {(isRuha || isRuhaSatilan) && <span style={{ fontSize: 14 }} title={isRuhaSatilan ? "Önceden Ruha'ya aitti, satıldı" : "Ruha'ya ait"}>⭐</span>}
                     </div>
                   </td>
 
