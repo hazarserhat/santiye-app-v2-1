@@ -323,8 +323,37 @@ export default function PlanlananOdemeler() {
     }
   }
 
+  // İstatistik Kartları Hesaplaması
+  const bekleyenOdemeler = odemeler.filter(o => o.durum === 'bekliyor')
+  const simdiTarih = new Date(bugun()).getTime()
+
+  const vadesiGecmisToplami = bekleyenOdemeler
+    .filter(o => new Date(o.vade_tarihi).getTime() < simdiTarih)
+    .reduce((acc, curr) => acc + Number(curr.tutar || 0), 0)
+
+  const vadesiGelmemisToplami = bekleyenOdemeler
+    .filter(o => new Date(o.vade_tarihi).getTime() >= simdiTarih)
+    .reduce((acc, curr) => acc + Number(curr.tutar || 0), 0)
+
+  const toplamBekleyen = vadesiGecmisToplami + vadesiGelmemisToplami
+
   return (
     <div>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+        <div style={{ flex: 1, background: '#FEF2F2', padding: 12, borderRadius: 8, border: '1px solid #FCA5A5' }}>
+          <p style={{ margin: 0, fontSize: 11, color: '#B91C1C', fontWeight: 600 }}>Vadesi Geçenler</p>
+          <p style={{ margin: '4px 0 0 0', fontSize: 16, fontWeight: 700, color: '#991B1B' }}>{paraFormatla(vadesiGecmisToplami)} ₺</p>
+        </div>
+        <div style={{ flex: 1, background: '#F0FDF4', padding: 12, borderRadius: 8, border: '1px solid #86EFAC' }}>
+          <p style={{ margin: 0, fontSize: 11, color: '#15803D', fontWeight: 600 }}>Gelecek Ödemeler</p>
+          <p style={{ margin: '4px 0 0 0', fontSize: 16, fontWeight: 700, color: '#166534' }}>{paraFormatla(vadesiGelmemisToplami)} ₺</p>
+        </div>
+        <div style={{ flex: 1, background: '#EFF6FF', padding: 12, borderRadius: 8, border: '1px solid #93C5FD' }}>
+          <p style={{ margin: 0, fontSize: 11, color: '#1D4ED8', fontWeight: 600 }}>Toplam Bekleyen</p>
+          <p style={{ margin: '4px 0 0 0', fontSize: 16, fontWeight: 700, color: '#1E3A8A' }}>{paraFormatla(toplamBekleyen)} ₺</p>
+        </div>
+      </div>
+
       <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
         <p style={{ fontWeight: 600, fontSize: 13, marginBottom: 10, color: '#0F6E56' }}>Yeni Ödeme Planla</p>
         
