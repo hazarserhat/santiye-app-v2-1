@@ -465,6 +465,20 @@ export default function ProjeGelirleri() {
   const tabloKapsayiciRef = useRef(null)
   const [pdfYukleniyor, setPdfYukleniyor] = useState(false)
 
+  const getDosyaAdi = (uzanti) => {
+    let santiyeAd = 'TÜM-ŞANTİYELER'
+    if (filtreSantiye !== 'hepsi') {
+      const s = santiyeler.find(x => x.id === filtreSantiye)
+      if (s && s.ad) {
+        santiyeAd = s.ad.trim().replace(/\s+/g, '-').toLocaleUpperCase('tr-TR')
+      }
+    }
+    const d = new Date()
+    const tarih = `${('0' + d.getDate()).slice(-2)}-${('0' + (d.getMonth() + 1)).slice(-2)}-${d.getFullYear()}`
+    
+    return `${santiyeAd}_${tarih}_GELİRLER-Raporu.${uzanti}`
+  }
+
   const excelIndir = () => {
     try {
       const data = []
@@ -567,7 +581,7 @@ export default function ProjeGelirleri() {
 
       const wb = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(wb, ws, 'Proje Gelirleri')
-      XLSX.writeFile(wb, `Proje_Gelirleri_Raporu_${new Date().toISOString().slice(0, 10)}.xlsx`)
+      XLSX.writeFile(wb, getDosyaAdi('xlsx'))
     } catch (err) {
       alert('Excel oluşturulurken bir hata oluştu: ' + err.message)
     }
@@ -676,7 +690,7 @@ export default function ProjeGelirleri() {
         }
       }
 
-      pdf.save(`Proje_Gelirleri_Raporu_${new Date().toISOString().slice(0, 10)}.pdf`)
+      pdf.save(getDosyaAdi('pdf'))
     } catch (err) {
       alert('PDF oluşturulurken bir hata oluştu: ' + err.message)
     } finally {
