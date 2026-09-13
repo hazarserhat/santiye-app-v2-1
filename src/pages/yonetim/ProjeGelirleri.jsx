@@ -582,8 +582,10 @@ export default function ProjeGelirleri() {
       const el = tabloKapsayiciRef.current
       const originalStyle = el.getAttribute('style') || ''
 
-      const fullWidth = Math.max(el.scrollWidth, 1200)
-      el.style.width = `${fullWidth}px`
+      const tableEl = el.querySelector('table')
+      const targetWidth = tableEl ? tableEl.offsetWidth : el.scrollWidth
+
+      el.style.width = `${targetWidth}px`
       el.style.maxWidth = 'none'
       el.style.overflow = 'visible'
 
@@ -593,7 +595,8 @@ export default function ProjeGelirleri() {
         useCORS: true,
         logging: false,
         backgroundColor: '#FFFFFF',
-        windowWidth: fullWidth + 50
+        width: targetWidth,
+        windowWidth: targetWidth + 50
       })
 
       el.setAttribute('style', originalStyle)
@@ -813,6 +816,9 @@ export default function ProjeGelirleri() {
           .sayfa-genis table th {
             font-size: 12px !important;
             padding: 20px 14px !important;
+          }
+          .sayfa-genis table {
+            width: max-content !important;
           }
           .td-expandable, .pill-rozet {
             font-size: 14px !important;
