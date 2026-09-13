@@ -582,12 +582,17 @@ export default function ProjeGelirleri() {
       const el = tabloKapsayiciRef.current
       const originalStyle = el.getAttribute('style') || ''
 
-      const tableEl = el.querySelector('table')
-      const targetWidth = tableEl ? tableEl.offsetWidth : el.scrollWidth
-
-      el.style.width = `${targetWidth}px`
-      el.style.maxWidth = 'none'
+      // Tablonun ve div'in en fazla 1250px genişliğe kadar uzamasına izin ver
+      // 1250'yi aşarsa kelimeler alta düşsün (white-space: normal). 
+      // Daha darsa kendi genişliğinde kalsın (sağda boşluk olmasın).
+      el.style.width = 'max-content'
+      el.style.maxWidth = '1250px'
       el.style.overflow = 'visible'
+
+      // DOM'un yeni genişliğe göre metinleri alta kırması için minik bir bekleme
+      await new Promise(r => setTimeout(r, 100))
+
+      const canvasWidth = el.scrollWidth
 
       const scale = 2
       const canvas = await html2canvas(el, {
@@ -595,8 +600,8 @@ export default function ProjeGelirleri() {
         useCORS: true,
         logging: false,
         backgroundColor: '#FFFFFF',
-        width: targetWidth,
-        windowWidth: targetWidth + 50
+        width: canvasWidth, // Kırpılmayı önlemek için gerçek scrollWidth
+        windowWidth: canvasWidth + 20
       })
 
       el.setAttribute('style', originalStyle)
@@ -806,19 +811,22 @@ export default function ProjeGelirleri() {
 
       {pdfYukleniyor && (
         <style>{`
-          /* PDF alımında fontları ve hücre yüksekliklerini şişir, kelime parçalanmasını (word-break) engelle */
+          /* PDF alımında tablo yatay uzamasını engelle, fontları şişir, kelime bölünmesini engelle */
+          .sayfa-genis table {
+            min-width: 0 !important; /* 1500px minWidth inline style'ı ezer */
+            width: 100% !important;
+            max-width: 1250px !important;
+            table-layout: auto !important;
+          }
           .sayfa-genis table th, .sayfa-genis table td {
             white-space: normal !important;
-            padding: 24px 14px !important;
-            font-size: 14px !important;
-            line-height: 1.5 !important;
+            padding: 16px 8px !important;
+            font-size: 13px !important;
+            line-height: 1.4 !important;
           }
           .sayfa-genis table th {
-            font-size: 12px !important;
-            padding: 20px 14px !important;
-          }
-          .sayfa-genis table {
-            width: max-content !important;
+            font-size: 11px !important; /* Başlıklar biraz daha ufak olsun ki sığsın */
+            padding: 12px 6px !important;
           }
           .td-expandable, .pill-rozet {
             font-size: 14px !important;
