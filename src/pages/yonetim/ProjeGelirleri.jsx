@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useSite } from '../../context/SiteContext'
+import { useAuth } from '../../context/AuthContext'
 import { paraFormatla, sadeceSayiTuslari } from '../../lib/format'
 import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas'
@@ -20,6 +21,7 @@ const tr2en = (text) => {
 
 export default function ProjeGelirleri() {
   const { santiyeler } = useSite()
+  const { profile } = useAuth()
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [siralama, setSiralama] = useState('daire_artan')
   const [malikler, setMalikler] = useState([])
@@ -47,6 +49,28 @@ export default function ProjeGelirleri() {
     alinan: true,
     kalan: true
   })
+
+  // Satış Modalı Stateleri
+  const [cariler, setCariler] = useState([])
+  const [satisModuAcik, setSatisModuAcik] = useState(false)
+  const [satisMulkId, setSatisMulkId] = useState(null)
+  const [satisTuru, setSatisTuru] = useState('vatandas')
+  const [satisAliciAd, setSatisAliciAd] = useState('')
+  const [satisTelefon, setSatisTelefon] = useState('')
+  const [satisBedeli, setSatisBedeli] = useState('')
+  const [satisPesinat, setSatisPesinat] = useState('')
+  const [satisKasa, setSatisKasa] = useState('Merkez Kasa')
+  const [satisSeciliCariId, setSatisSeciliCariId] = useState('')
+
+  const TAHSILAT_NOKTALARI = [
+    'Merkez Kasa', 'Serhat Kasa', 'Fuat Kasa', 'Abdullah Kasa',
+    'Ruha Ziraat', 'Ruha QNB', 'Ruha Garanti', 'Şantiye Şefleri'
+  ]
+
+  const carileriYukle = async () => {
+    const { data } = await supabase.from('taseronlar').select('id, firma_unvani, ad_soyad').order('firma_unvani')
+    setCariler(data || [])
+  }
 
   const isColumnVisible = (key) => {
     if (!pdfYukleniyor) return true
@@ -112,7 +136,10 @@ export default function ProjeGelirleri() {
     setOdemeToplamlari(odemeHarita)
   }
 
-  useEffect(() => { yenile() }, [])
+  useEffect(() => { 
+    yenile()
+    carileriYukle()
+  }, [])
 
   useEffect(() => {
     if (santiyeler.length && !yeniSantiyeId) setYeniSantiyeId(santiyeler[0].id)
@@ -132,6 +159,68 @@ export default function ProjeGelirleri() {
     const bosAsamalar = Array.from({ length: 4 }).map((_, i) => ({ malik_id: data.id, ad: '', tutar: 0, tamamlandi: false, sira: i + 1 }))
     await supabase.from('malik_asamalari').insert(bosAsamalar)
     setYeniAd(''); setYeniTelefon(''); setYeniMeskenTuru(''); setYeniDaireNo(''); setYeniAcik(false)
+    yenile()
+  }
+  const satisModaliniAc = (m) => {
+    setSatisMulkId(m.id)
+    setSatisTuru('vatandas')
+    setSatisAliciAd('')
+    setSatisTelefon('')
+    setSatisBedeli(m.toplam_alacak || '')
+    setSatisPesinat('')
+    setSatisKasa('Merkez Kasa')
+    setSatisSeciliCariId('')
+    setSatisModuAcik(true)
+  }
+
+  const satisKaydet = async () => {
+    if (satisTuru === 'vatandas') {
+      if (!satisAliciAd.trim()) return alert('Alıcı Adı zorunludur')
+      
+      const { error: updErr } = await supabase.from('malikler').update({
+        ad_soyad: satisAliciAd,
+        telefon: satisTelefon,
+        toplam_alacak: Number(satisBedeli) || 0
+      }).eq('id', satisMulkId)
+      if (updErr) return alert('Malik güncellenirken hata: ' + updErr.message)
+      
+      if (Number(satisPesinat) > 0) {
+        const mulk = malikler.find(x => x.id === satisMulkId)
+        await supabase.from('gelirler').insert({
+          santiye_id: mulk?.santiye_id,
+          malik_id: satisMulkId,
+          odeme_yapan_adi: satisAliciAd,
+          tutar: Number(satisPesinat),
+          tarih: new Date().toISOString().slice(0, 10),
+          tahsilat_noktasi: satisKasa,
+          not_metni: 'Satış Peşinatı',
+          ekleyen: profile?.id
+        })
+      }
+    } else {
+      if (!satisSeciliCariId) return alert('Lütfen bir cari/taşeron seçiniz.')
+      const cari = cariler.find(c => c.id === satisSeciliCariId)
+      const cariAdi = cari?.firma_unvani || cari?.ad_soyad || 'Bilinmeyen Cari'
+      
+      const { error: updErr2 } = await supabase.from('malikler').update({
+        ad_soyad: `Cari: ${cariAdi}`,
+        toplam_alacak: Number(satisBedeli) || 0
+      }).eq('id', satisMulkId)
+      if (updErr2) return alert('Malik güncellenirken hata: ' + updErr2.message)
+      
+      const mulk = malikler.find(x => x.id === satisMulkId)
+      await supabase.from('gelirler').insert({
+        santiye_id: mulk?.santiye_id,
+        cari_id: satisSeciliCariId,
+        tutar: Number(satisBedeli) || 0,
+        tarih: new Date().toISOString().slice(0, 10),
+        tahsilat_noktasi: 'Cari Mahsup',
+        not_metni: `Daire Satışı Karşılığı Mahsup (${mulk?.daire_no || ''} nolu)`,
+        ekleyen: profile?.id
+      })
+    }
+    
+    setSatisModuAcik(false)
     yenile()
   }
 
@@ -1254,6 +1343,9 @@ export default function ProjeGelirleri() {
                   {/* İşlemler */}
                   <td style={{ background: cellBg, display: isColumnVisible('islemler') ? '' : 'none' }}>
                     <div style={{ display: 'flex', gap: '8px' }}>
+                      {isRuha && (
+                        <button className="sil-buton" onClick={() => satisModaliniAc(m)} aria-label="Satış Yap" title="Meskeni Sat" style={{ fontSize: 16 }}>🛍️</button>
+                      )}
                       <button className="sil-buton" onClick={() => malikKopyala(m)} aria-label="Kopyala" title="Şablonu Kopyala" style={{ fontSize: 16 }}>📄</button>
                       <button className="sil-buton" onClick={() => duzenlemeyiAc(m)} aria-label="Düzenle" title="Düzenle" style={{ fontSize: 16 }}>✎</button>
                       <button className="sil-buton" onClick={() => malikSil(m.id)} aria-label="Sil" title="Sil" style={{ fontSize: 16 }}>🗑</button>
@@ -1378,6 +1470,74 @@ export default function ProjeGelirleri() {
           <div className="ekleme-satiri-2" style={{ marginTop: 10, gridColumn: '1 / -1' }}>
             <button onClick={() => setDuzenlenenId(null)}>Vazgeç</button>
             <button className="ekle-buton-genis" onClick={() => kaydet(duzenlenenId)}>Kaydet</button>
+          </div>
+        </div>
+      )}
+
+      {satisModuAcik && (
+        <div className="glass-kutu form-grid" style={{ marginBottom: 24, border: '2px solid #38B2AC' }}>
+          <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #E2E8F0', paddingBottom: 8 }}>
+            <p className="alt-baslik" style={{ margin: 0, color: '#2D3748', fontSize: 18, fontWeight: 800 }}>🛍️ Mesken Satış İşlemi</p>
+            <button onClick={() => setSatisModuAcik(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#A0AEC0' }}>✕</button>
+          </div>
+          
+          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 16, marginBottom: 10 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, cursor: 'pointer' }}>
+              <input type="radio" name="sturu" checked={satisTuru === 'vatandas'} onChange={() => setSatisTuru('vatandas')} style={{ width: 18, height: 18, accentColor: '#1D9596' }} />
+              Yeni Malike (Vatandaş) Satış
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, cursor: 'pointer' }}>
+              <input type="radio" name="sturu" checked={satisTuru === 'cari'} onChange={() => setSatisTuru('cari')} style={{ width: 18, height: 18, accentColor: '#1D9596' }} />
+              Cariye (Taşeron/Tedarikçi) Satış
+            </label>
+          </div>
+
+          {satisTuru === 'vatandas' ? (
+            <>
+              <div>
+                <label className="premium-label">Alıcı Adı Soyadı</label>
+                <input className="premium-input" type="text" placeholder="Ad Soyad" value={satisAliciAd} onChange={(e) => setSatisAliciAd(e.target.value)} />
+              </div>
+              <div>
+                <label className="premium-label">İletişim (Telefon)</label>
+                <input className="premium-input" type="text" placeholder="05xx" value={satisTelefon} onChange={(e) => setSatisTelefon(e.target.value)} />
+              </div>
+              <div>
+                <label className="premium-label">Satış Bedeli (₺)</label>
+                <input className="premium-input" type="number" value={satisBedeli} onChange={(e) => setSatisBedeli(e.target.value)} onKeyDown={sadeceSayiTuslari} />
+              </div>
+              <div>
+                <label className="premium-label">Alınan Peşinat (₺)</label>
+                <input className="premium-input" type="number" placeholder="Varsa giriniz" value={satisPesinat} onChange={(e) => setSatisPesinat(e.target.value)} onKeyDown={sadeceSayiTuslari} />
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label className="premium-label">Peşinat Tahsilat Merkezi</label>
+                <select className="premium-input" value={satisKasa} onChange={(e) => setSatisKasa(e.target.value)} disabled={!satisPesinat || Number(satisPesinat) <= 0}>
+                  {TAHSILAT_NOKTALARI.map((k) => <option key={k} value={k}>{k}</option>)}
+                </select>
+                <span style={{ fontSize: 11, color: '#718096' }}>Sadece peşinat girildiğinde Kasa/Banka'ya gelir olarak işlenir.</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label className="premium-label">Alıcı Cari / Taşeron Seçin</label>
+                <select className="premium-input" value={satisSeciliCariId} onChange={(e) => setSatisSeciliCariId(e.target.value)}>
+                  <option value="">-- Cari Seçiniz --</option>
+                  {cariler.map(c => <option key={c.id} value={c.id}>{c.firma_unvani || c.ad_soyad}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="premium-label">Satış (Mahsup) Bedeli (₺)</label>
+                <input className="premium-input" type="number" value={satisBedeli} onChange={(e) => setSatisBedeli(e.target.value)} onKeyDown={sadeceSayiTuslari} />
+                <span style={{ fontSize: 11, color: '#718096' }}>Bu tutar carinin alacağından düşülecektir (Gelir işlenir).</span>
+              </div>
+            </>
+          )}
+
+          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 12, marginTop: 12 }}>
+            <button onClick={() => setSatisModuAcik(false)} style={{ flex: 1, padding: 12, background: '#EDF2F7', color: '#4A5568', border: 'none', borderRadius: 10, fontWeight: 600, cursor: 'pointer' }}>Vazgeç</button>
+            <button onClick={satisKaydet} style={{ flex: 2, padding: 12, background: '#38B2AC', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 10px rgba(56, 178, 172, 0.3)' }}>Satışı Onayla ve Kaydet</button>
           </div>
         </div>
       )}
