@@ -787,7 +787,7 @@ export default function ProjeGelirleri() {
           text-overflow: ellipsis;
           white-space: nowrap;
           max-width: 280px; /* Resize'ın etkili olabilmesi için başlangıç sınırı */
-          min-width: 50px;
+          min-width: 50px !important;
           min-height: 40px;
           position: relative;
         }
@@ -1026,7 +1026,7 @@ export default function ProjeGelirleri() {
               return (
                 <tr key={m.id} className="premium-satir" style={{ color: textColor }}>
                   {/* Malik Adı */}
-                  <td className="td-expandable" style={{ position: 'sticky', left: 0, background: stickyBg, fontWeight: 700, zIndex: 5, boxShadow: '2px 0 5px rgba(0,0,0,0.03)', display: isColumnVisible('ad_soyad') ? '' : 'none', color: textColor, textAlign: 'left' }}>
+                  <td className="td-expandable" style={{ position: pdfYukleniyor ? 'static' : 'sticky', left: 0, background: stickyBg, fontWeight: 700, zIndex: 5, boxShadow: '2px 0 5px rgba(0,0,0,0.03)', display: isColumnVisible('ad_soyad') ? '' : 'none', color: textColor, textAlign: 'left' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 6 }}>
                       {hucreEdit?.malikId === m.id && hucreEdit?.alan === 'ad_soyad' ? (
                         <textarea
@@ -1219,9 +1219,9 @@ export default function ProjeGelirleri() {
             })}
             {gorunenler.length === 0 && <tr><td colSpan={13 + maxStageCount} style={{ padding: '14px', textAlign: 'center', color: '#718096' }}>Henüz malik eklenmemiş.</td></tr>}
           </tbody>
-          <tfoot style={{ position: 'sticky', bottom: 0, zIndex: 10 }}>
+          <tfoot style={{ position: pdfYukleniyor ? 'static' : 'sticky', bottom: 0, zIndex: 10 }}>
             <tr style={{ background: 'linear-gradient(135deg, #E6F4F1 0%, #D2ECE9 100%)', color: '#0F5859', fontWeight: 800, borderTop: '3px solid #1D9596', boxShadow: '0 -4px 16px rgba(0,0,0,0.06)' }}>
-              <td style={{ position: 'sticky', left: 0, background: '#D2ECE9', color: '#0F5859', zIndex: 11, padding: '14px 16px', fontSize: 14, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 900, display: isColumnVisible('ad_soyad') ? '' : 'none' }}>TOPLAM</td>
+              <td style={{ position: pdfYukleniyor ? 'static' : 'sticky', left: 0, background: '#D2ECE9', color: '#0F5859', zIndex: 11, padding: '14px 16px', fontSize: 14, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 900, display: isColumnVisible('ad_soyad') ? '' : 'none' }}>TOPLAM</td>
               <td style={{ color: '#64748B', background: '#E6F4F1', display: isColumnVisible('telefon') ? '' : 'none' }}>—</td>
               <td style={{ color: '#64748B', background: '#E6F4F1', display: isColumnVisible('santiye') ? '' : 'none' }}>—</td>
               <td style={{ color: '#64748B', background: '#E6F4F1', display: isColumnVisible('mesken_turu') ? '' : 'none' }}>—</td>
