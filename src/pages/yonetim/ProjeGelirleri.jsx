@@ -639,9 +639,9 @@ export default function ProjeGelirleri() {
 
       if (imgHeight <= maxPageCanvasHeight) {
         // Fits cleanly on a single page!
-        const imgData = canvas.toDataURL('image/png')
+        const imgData = canvas.toDataURL('image/jpeg', 0.85)
         const scaledHeight = (imgHeight * printableWidth) / imgWidth
-        pdf.addImage(imgData, 'PNG', marginX, marginY, printableWidth, scaledHeight)
+        pdf.addImage(imgData, 'JPEG', marginX, marginY, printableWidth, scaledHeight, undefined, 'FAST')
       } else {
         // Multi-page slicing at natural row boundaries
         const bodyRows = Array.from(el.querySelectorAll('tbody tr'))
@@ -683,10 +683,10 @@ export default function ProjeGelirleri() {
             0, 0, imgWidth, sliceHeightPx
           )
 
-          const sliceImgData = pageCanvas.toDataURL('image/png')
+          const sliceImgData = pageCanvas.toDataURL('image/jpeg', 0.85)
           const sliceScaledHeight = (sliceHeightPx * printableWidth) / imgWidth
 
-          pdf.addImage(sliceImgData, 'PNG', marginX, marginY, printableWidth, sliceScaledHeight)
+          pdf.addImage(sliceImgData, 'JPEG', marginX, marginY, printableWidth, sliceScaledHeight, undefined, 'FAST')
         }
       }
 
