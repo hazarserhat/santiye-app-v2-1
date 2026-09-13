@@ -779,6 +779,26 @@ export default function ProjeGelirleri() {
           .mobil-filtre-satiri { display: contents; }
           .mobil-ayirici { width: 1px; height: 28px; background: rgba(0,0,0,0.15); margin: 0 4px; }
         }
+        
+        /* Dinamik Tablo Boyutlandırma ve Taşan Metin için 3 Nokta */
+        .sayfa-genis table th, .sayfa-genis table td {
+          resize: both;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          max-width: 280px; /* Resize'ın etkili olabilmesi için başlangıç sınırı */
+          min-width: 50px;
+          min-height: 40px;
+          position: relative;
+        }
+        .sayfa-genis table td:hover, .sayfa-genis table th:hover {
+          overflow: auto; /* Üzerine gelindiğinde scrollbar veya tam içerik gösterebilir, ancak resize cursor'ı çıkarır */
+        }
+        
+        /* İçerideki esnek alanların (aşamalar vb.) bozulmaması için */
+        .sayfa-genis table td > div {
+          white-space: normal;
+        }
       `}</style>
 
       <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
