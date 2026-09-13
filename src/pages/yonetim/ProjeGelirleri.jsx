@@ -1195,18 +1195,20 @@ export default function ProjeGelirleri() {
                 cellBg = 'rgba(236, 72, 153, 0.15)'
                 stickyBg = '#FDF2F8'
                 textColor = '#831843'
-              } else if (kalan > 0 && Number(m.toplam_alacak || 0) > 0) {
-                cellBg = 'rgba(254, 226, 226, 0.55)'
-                stickyBg = '#FEE2E2'
-              } else if (kalan === 0 && Number(m.toplam_alacak || 0) > 0) {
-                cellBg = 'rgba(209, 250, 229, 0.55)'
-                stickyBg = '#D1FAE5'
-              } else if (kalan < 0) {
-                cellBg = 'rgba(254, 240, 138, 0.65)'
-                stickyBg = '#FEF08A'
               } else if (!isEven) {
                 cellBg = 'rgba(241, 245, 249, 0.75)'
                 stickyBg = '#F1F5F9'
+              }
+
+              let kalanCellBg = cellBg
+              if (!isRuha && !isRuhaSatilan) {
+                if (kalan > 0 && Number(m.toplam_alacak || 0) > 0) {
+                  kalanCellBg = 'rgba(254, 226, 226, 0.55)'
+                } else if (kalan === 0 && Number(m.toplam_alacak || 0) > 0) {
+                  kalanCellBg = 'rgba(209, 250, 229, 0.55)'
+                } else if (kalan < 0) {
+                  kalanCellBg = 'rgba(254, 240, 138, 0.65)'
+                }
               }
 
               return (
@@ -1404,7 +1406,7 @@ export default function ProjeGelirleri() {
                   <td className="td-expandable" style={{ background: cellBg, color: isRuha ? '#FFFFFF' : '#1D9596', fontWeight: 700, fontSize: 14, display: isColumnVisible('alinan') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(alinan)} ₺</td>
 
                   {/* Kalan */}
-                  <td className="td-expandable" style={{ background: cellBg, fontWeight: 700, fontSize: 14, display: isColumnVisible('kalan') ? '' : 'none', textAlign: 'right', color: textColor }}>
+                  <td className="td-expandable" style={{ background: kalanCellBg, fontWeight: 700, fontSize: 14, display: isColumnVisible('kalan') ? '' : 'none', textAlign: 'right', color: textColor }}>
                     {isKalanSifir ? <span className="pill-rozet pill-yesil" style={{ fontSize: 12, padding: '4px 10px', float: 'right' }}>✓ ÖDENDİ</span> : `${paraFormatla(kalan)} ₺`}
                   </td>
 
