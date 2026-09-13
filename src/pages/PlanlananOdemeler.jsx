@@ -16,6 +16,7 @@ export default function PlanlananOdemeler() {
   const [odemeler, setOdemeler] = useState([])
   const [kategoriler, setKategoriler] = useState([])
   const [odemeYontemleri, setOdemeYontemleri] = useState([])
+  const [santiyeler, setSantiyeler] = useState([])
   
   const [yukleniyor, setYukleniyor] = useState(false)
   const [baslik, setBaslik] = useState('')
@@ -75,6 +76,10 @@ export default function PlanlananOdemeler() {
         : data?.filter(o => o.yonetici_gorebilir)
       setOdemeYontemleri(filtrelenmis || [])
       if (filtrelenmis?.length) setOdeYontemiId(filtrelenmis[0].id)
+    })
+
+    supabase.from('santiyeler').select('*').order('ad').then(({ data }) => {
+      setSantiyeler(data || [])
     })
   }, [aktifSantiye, profile])
 
