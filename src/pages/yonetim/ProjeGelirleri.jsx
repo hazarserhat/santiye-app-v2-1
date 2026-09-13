@@ -61,6 +61,8 @@ export default function ProjeGelirleri() {
   const [satisPesinat, setSatisPesinat] = useState('')
   const [satisKasa, setSatisKasa] = useState('Merkez Kasa')
   const [satisSeciliCariId, setSatisSeciliCariId] = useState('')
+  const [satisTarih, setSatisTarih] = useState(new Date().toISOString().slice(0, 10))
+  const [gecmisDonemMi, setGecmisDonemMi] = useState(false)
 
   const TAHSILAT_NOKTALARI = [
     'Merkez Kasa', 'Serhat Kasa', 'Fuat Kasa', 'Abdullah Kasa',
@@ -68,7 +70,11 @@ export default function ProjeGelirleri() {
   ]
 
   const carileriYukle = async () => {
-    const { data } = await supabase.from('taseronlar').select('id, firma_unvani, ad_soyad').order('firma_unvani')
+    let query = supabase.from('taseronlar').select('id, ad, firma, sifat, sef_gorunur').order('ad')
+    if (profile?.rol !== 'yonetici' && profile?.rol !== 'koordinator') {
+      query = query.eq('sef_gorunur', true)
+    }
+    const { data } = await query
     setCariler(data || [])
   }
 
@@ -170,6 +176,8 @@ export default function ProjeGelirleri() {
     setSatisPesinat('')
     setSatisKasa('Merkez Kasa')
     setSatisSeciliCariId('')
+    setSatisTarih(new Date().toISOString().slice(0, 10))
+    setGecmisDonemMi(false)
     setSatisModuAcik(true)
   }
 
@@ -191,8 +199,8 @@ export default function ProjeGelirleri() {
           malik_id: satisMulkId,
           odeme_yapan_adi: satisAliciAd,
           tutar: Number(satisPesinat),
-          tarih: new Date().toISOString().slice(0, 10),
-          tahsilat_noktasi: satisKasa,
+          tarih: satisTarih,
+          tahsilat_noktasi: gecmisDonemMi ? 'Geçmiş Dönem (Devir)' : satisKasa,
           not_metni: 'Satış Peşinatı',
           ekleyen: profile?.id
         })
@@ -200,7 +208,7 @@ export default function ProjeGelirleri() {
     } else {
       if (!satisSeciliCariId) return alert('Lütfen bir cari/taşeron seçiniz.')
       const cari = cariler.find(c => c.id === satisSeciliCariId)
-      const cariAdi = cari?.firma_unvani || cari?.ad_soyad || 'Bilinmeyen Cari'
+      const cariAdi = cari?.firma || cari?.ad || 'Bilinmeyen Cari'
       
       const { error: updErr2 } = await supabase.from('malikler').update({
         ad_soyad: `Cari: ${cariAdi}`,
@@ -213,7 +221,7 @@ export default function ProjeGelirleri() {
         santiye_id: mulk?.santiye_id,
         cari_id: satisSeciliCariId,
         tutar: Number(satisBedeli) || 0,
-        tarih: new Date().toISOString().slice(0, 10),
+        tarih: satisTarih,
         tahsilat_noktasi: 'Cari Mahsup',
         not_metni: `Daire Satışı Karşılığı Mahsup (${mulk?.daire_no || ''} nolu)`,
         ekleyen: profile?.id
@@ -1492,6 +1500,13 @@ export default function ProjeGelirleri() {
             </label>
           </div>
 
+          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 16, marginBottom: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label className="premium-label">İşlem/Tahsilat Tarihi</label>
+              <input type="date" className="premium-input" value={satisTarih} onChange={(e) => setSatisTarih(e.target.value)} style={{ marginTop: 0 }} />
+            </div>
+          </div>
+
           {satisTuru === 'vatandas' ? (
             <>
               <div>
@@ -1512,10 +1527,13 @@ export default function ProjeGelirleri() {
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
                 <label className="premium-label">Peşinat Tahsilat Merkezi</label>
-                <select className="premium-input" value={satisKasa} onChange={(e) => setSatisKasa(e.target.value)} disabled={!satisPesinat || Number(satisPesinat) <= 0}>
+                <select className="premium-input" value={satisKasa} onChange={(e) => setSatisKasa(e.target.value)} disabled={!satisPesinat || Number(satisPesinat) <= 0 || gecmisDonemMi}>
                   {TAHSILAT_NOKTALARI.map((k) => <option key={k} value={k}>{k}</option>)}
                 </select>
-                <span style={{ fontSize: 11, color: '#718096' }}>Sadece peşinat girildiğinde Kasa/Banka'ya gelir olarak işlenir.</span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginTop: 8, cursor: 'pointer', fontWeight: 600 }}>
+                  <input type="checkbox" checked={gecmisDonemMi} onChange={(e) => setGecmisDonemMi(e.target.checked)} style={{ width: 16, height: 16, accentColor: '#1D9596' }} />
+                  Geçmiş Dönem (Devir) - Kasaya yansımaz
+                </label>
               </div>
             </>
           ) : (
@@ -1524,7 +1542,7 @@ export default function ProjeGelirleri() {
                 <label className="premium-label">Alıcı Cari / Taşeron Seçin</label>
                 <select className="premium-input" value={satisSeciliCariId} onChange={(e) => setSatisSeciliCariId(e.target.value)}>
                   <option value="">-- Cari Seçiniz --</option>
-                  {cariler.map(c => <option key={c.id} value={c.id}>{c.firma_unvani || c.ad_soyad}</option>)}
+                  {cariler.map(c => <option key={c.id} value={c.id}>{c.ad} {c.firma ? `(${c.firma})` : ''}</option>)}
                 </select>
               </div>
               <div>
