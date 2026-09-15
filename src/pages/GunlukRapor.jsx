@@ -80,6 +80,14 @@ export default function GunlukRapor() {
   const raporEkle = async () => {
     if (!yeniSantiyeId) { alert('Lütfen şantiye seçin.'); return }
     setYukleniyor(true)
+    
+    // Profil yoksa (sayfa yenilenmesi vb. nedeniyle) auth'dan çek
+    let kullaniciId = profile?.id
+    if (!kullaniciId) {
+      const { data: { user } } = await supabase.auth.getUser()
+      kullaniciId = user?.id
+    }
+
     const { data, error } = await supabase.from('gunluk_raporlar').insert({
       santiye_id: yeniSantiyeId,
       tarih: yeniTarih,
@@ -88,7 +96,7 @@ export default function GunlukRapor() {
       yapilan_is: alanlar.yapilan_is,
       diger: alanlar.diger,
       sorunlar: alanlar.sorunlar,
-      olusturan: profile?.id,
+      olusturan: kullaniciId,
     }).select().single()
 
     if (error) { alert('Rapor eklenemedi: ' + error.message); setYukleniyor(false); return }
@@ -146,6 +154,41 @@ export default function GunlukRapor() {
     setDuzenlenenId(null)
     setYukleniyor(false)
     raporlariYukle()
+  }
+
+  const raporSil = async (r) => {
+    if (!window.confirm('Bu günlük raporu tamamen silmek istediğinize emin misiniz?')) return
+    setYukleniyor(true)
+
+    try {
+      // Önce fotoğrafları bulup Google Drive'da silinenlere taşıyalım
+      let raporFotolari = fotograflar[r.id]
+      if (!raporFotolari) {
+        const { data } = await supabase.from('gunluk_rapor_fotograflari').select('*').eq('rapor_id', r.id)
+        raporFotolari = data || []
+      }
+
+      for (const foto of raporFotolari) {
+        if (foto.url && isGoogleDriveUrl(foto.url)) {
+          await moveToSilinenler(foto.url, 'GunlukRapor')
+        }
+      }
+
+      // Veritabanından raporu sil (cascade ile fotoğraflar tablosundan da silinecektir, veya ayrı tabloysa ayrıca silebiliriz)
+      // Biz güvene almak için önce fotoğrafları tablodan da silelim (cascade yoksa diye)
+      await supabase.from('gunluk_rapor_fotograflari').delete().eq('rapor_id', r.id)
+
+      const { error } = await supabase.from('gunluk_raporlar').delete().eq('id', r.id)
+      
+      if (error) throw error
+
+      setDetayAcikId(null)
+      raporlariYukle()
+    } catch (error) {
+      alert('Rapor silinirken hata oluştu: ' + error.message)
+    } finally {
+      setYukleniyor(false)
+    }
   }
 
   const canEdit = (r) => {
@@ -334,27 +377,50 @@ export default function GunlukRapor() {
                     Paylaş
                   </button>
                   {canEdit(r) && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); raporDuzenlemeyiAc(r) }} 
-                      style={{ 
-                        padding: '6px 10px', 
-                        background: '#fff', 
-                        border: '1px solid rgba(29, 149, 150, 0.2)', 
-                        borderRadius: 8, 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 4, 
-                        cursor: 'pointer', 
-                        color: '#1D9596', 
-                        fontWeight: 700,
-                        fontSize: 11,
-                        boxShadow: '0 2px 4px rgba(29, 149, 150, 0.05)', 
-                        transition: 'all 0.2s' 
-                      }}
-                      title="Düzenle"
-                    >
-                      ✎ Düzenle
-                    </button>
+                    <>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); raporDuzenlemeyiAc(r) }} 
+                        style={{ 
+                          padding: '6px 10px', 
+                          background: '#fff', 
+                          border: '1px solid rgba(29, 149, 150, 0.2)', 
+                          borderRadius: 8, 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 4, 
+                          cursor: 'pointer', 
+                          color: '#1D9596', 
+                          fontWeight: 700,
+                          fontSize: 11,
+                          boxShadow: '0 2px 4px rgba(29, 149, 150, 0.05)', 
+                          transition: 'all 0.2s' 
+                        }}
+                        title="Düzenle"
+                      >
+                        ✎ Düzenle
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); raporSil(r) }} 
+                        style={{ 
+                          padding: '6px 10px', 
+                          background: '#fff', 
+                          border: '1px solid rgba(239, 68, 68, 0.2)', 
+                          borderRadius: 8, 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 4, 
+                          cursor: 'pointer', 
+                          color: '#EF4444', 
+                          fontWeight: 700,
+                          fontSize: 11,
+                          boxShadow: '0 2px 4px rgba(239, 68, 68, 0.05)', 
+                          transition: 'all 0.2s' 
+                        }}
+                        title="Sil"
+                      >
+                        🗑 Sil
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

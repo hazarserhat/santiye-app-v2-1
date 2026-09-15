@@ -103,8 +103,10 @@ export async function compressImage(file, {
   quality = 0.82,
   maxSizeBytes = 300 * 1024
 } = {}) {
+  const isImageFile = file.type ? file.type.startsWith('image/') : (file.name && file.name.match(/\.(jpg|jpeg|png|heic|webp)$/i) !== null) || (!file.type && !file.name?.includes('.pdf'))
+  
   // Eğer File nesnesi değilse, resim değilse (örn. PDF) veya zaten küçükse sıkıştırma yapma
-  if (!file || !file.type || !file.type.startsWith('image/')) return file
+  if (!file || !isImageFile) return file
   if (file.size <= maxSizeBytes) return file
   if (file.type === 'image/svg+xml' || file.type === 'image/gif') return file
 
@@ -237,7 +239,12 @@ export async function uploadToGoogleDrive({
 
   // 1. Görselleri istemci tarafında optimize et (Yükleme süresini 10 kat hızlandırır)
   let processedFile = file
-  if (compress && typeof window !== 'undefined' && file.type && file.type.startsWith('image/')) {
+  
+  // Android cihazlarda kameradan direkt çekilen fotoğrafların type özelliği bazen boş gelebilir.
+  // Bu yüzden file.name üzerinden de kontrol yapıyoruz veya null ise de deniyoruz.
+  const isImageFile = file.type ? file.type.startsWith('image/') : (file.name && file.name.match(/\.(jpg|jpeg|png|heic|webp)$/i) !== null) || (!file.type && !file.name?.includes('.pdf'))
+  
+  if (compress && typeof window !== 'undefined' && isImageFile) {
     try {
       processedFile = await compressImage(file)
     } catch (err) {
