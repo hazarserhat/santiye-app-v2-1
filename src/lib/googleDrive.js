@@ -373,14 +373,18 @@ export async function moveToSilinenler(
  */
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
+    if (!file) return reject(new Error("Dosya bulunamadı"))
     const reader = new FileReader()
     reader.onload = () => {
       const dataUrl = reader.result
+      if (!dataUrl) return reject(new Error("Dosya okunamadı (boş sonuç)"))
       // "data:image/jpeg;base64," ön ekini ayıkla
-      const base64 = dataUrl.split(',')[1]
+      const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl
       resolve(base64)
     }
-    reader.onerror = (error) => reject(error)
+    reader.onerror = () => {
+      reject(new Error(reader.error?.message || "Dosya okunurken bir hata oluştu. Lütfen dosyanın cihazınıza tam olarak indirildiğinden emin olun."))
+    }
     reader.readAsDataURL(file)
   })
 }

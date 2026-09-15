@@ -116,7 +116,8 @@ export default function GunlukRapor() {
         await supabase.from('gunluk_rapor_fotograflari').insert({ rapor_id: data.id, url: driveSonuc.url })
       } catch (err) {
         console.error('Fotoğraf yükleme hatası:', err)
-        alert('Bazı fotoğraflar Google Drive\'a yüklenemedi: ' + err.message)
+        const hataMesaji = err.message || (typeof err === 'string' ? err : 'Bilinmeyen hata')
+        alert('Bazı fotoğraflar yüklenemedi: ' + hataMesaji)
       }
     }
 
