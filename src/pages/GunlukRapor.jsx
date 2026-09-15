@@ -199,6 +199,22 @@ export default function GunlukRapor() {
     return farkGun >= 0 && farkGun <= 2;
   }
 
+  const canDelete = (r) => {
+    // Yönetici her zaman silebilir
+    if (profile?.sistem_yoneticisi || profile?.rol === 'yonetici') return true;
+    
+    // Şantiye şefleri sadece KENDİ ekledikleri raporu silebilir
+    if (r.olusturan !== profile?.id) return false;
+    
+    // Ve sadece yükledikleri "takvim gününde" silebilirler (created_at)
+    const raporEklenmeTarihi = new Date(r.created_at);
+    const suAn = new Date();
+    
+    return raporEklenmeTarihi.getDate() === suAn.getDate() && 
+           raporEklenmeTarihi.getMonth() === suAn.getMonth() && 
+           raporEklenmeTarihi.getFullYear() === suAn.getFullYear();
+  }
+
   // WhatsApp ile Çoklu Görsel ve Metin Paylaşım Fonksiyonu
   const raporPaylas = async (r) => {
     try {
@@ -377,50 +393,50 @@ export default function GunlukRapor() {
                     Paylaş
                   </button>
                   {canEdit(r) && (
-                    <>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); raporDuzenlemeyiAc(r) }} 
-                        style={{ 
-                          padding: '6px 10px', 
-                          background: '#fff', 
-                          border: '1px solid rgba(29, 149, 150, 0.2)', 
-                          borderRadius: 8, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: 4, 
-                          cursor: 'pointer', 
-                          color: '#1D9596', 
-                          fontWeight: 700,
-                          fontSize: 11,
-                          boxShadow: '0 2px 4px rgba(29, 149, 150, 0.05)', 
-                          transition: 'all 0.2s' 
-                        }}
-                        title="Düzenle"
-                      >
-                        ✎ Düzenle
-                      </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); raporSil(r) }} 
-                        style={{ 
-                          padding: '6px 10px', 
-                          background: '#fff', 
-                          border: '1px solid rgba(239, 68, 68, 0.2)', 
-                          borderRadius: 8, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: 4, 
-                          cursor: 'pointer', 
-                          color: '#EF4444', 
-                          fontWeight: 700,
-                          fontSize: 11,
-                          boxShadow: '0 2px 4px rgba(239, 68, 68, 0.05)', 
-                          transition: 'all 0.2s' 
-                        }}
-                        title="Sil"
-                      >
-                        🗑 Sil
-                      </button>
-                    </>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); raporDuzenlemeyiAc(r) }} 
+                      style={{ 
+                        padding: '6px 10px', 
+                        background: '#fff', 
+                        border: '1px solid rgba(29, 149, 150, 0.2)', 
+                        borderRadius: 8, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 4, 
+                        cursor: 'pointer', 
+                        color: '#1D9596', 
+                        fontWeight: 700,
+                        fontSize: 11,
+                        boxShadow: '0 2px 4px rgba(29, 149, 150, 0.05)', 
+                        transition: 'all 0.2s' 
+                      }}
+                      title="Düzenle"
+                    >
+                      ✎ Düzenle
+                    </button>
+                  )}
+                  {canDelete(r) && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); raporSil(r) }} 
+                      style={{ 
+                        padding: '6px 10px', 
+                        background: '#fff', 
+                        border: '1px solid rgba(239, 68, 68, 0.2)', 
+                        borderRadius: 8, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 4, 
+                        cursor: 'pointer', 
+                        color: '#EF4444', 
+                        fontWeight: 700,
+                        fontSize: 11,
+                        boxShadow: '0 2px 4px rgba(239, 68, 68, 0.05)', 
+                        transition: 'all 0.2s' 
+                      }}
+                      title="Sil"
+                    >
+                      🗑 Sil
+                    </button>
                   )}
                 </div>
               </div>
