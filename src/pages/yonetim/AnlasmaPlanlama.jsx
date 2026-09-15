@@ -86,12 +86,12 @@ export default function AnlasmaPlanlama() {
     
     if (aktif) {
       setAktifAnlasma(aktif)
-      // O anlaşmaya ait şantiyeleri bul
       const aitOlduguSantiyeler = anlasmaSantiyeler.filter(as => as.anlasma_id === aktif.id).map(as => as.santiye_id)
       setForm({
         tedarikci: aktif.tedarikci || '',
         tutar: aktif.tutar || '',
         para_birimi: aktif.para_birimi || 'TL',
+        fiyat_tipi: aktif.fiyat_tipi || 'Toplam Fiyat',
         detay: aktif.detay || '',
         seciliSantiyeler: aitOlduguSantiyeler
       })
@@ -101,6 +101,7 @@ export default function AnlasmaPlanlama() {
         tedarikci: '',
         tutar: '',
         para_birimi: 'TL',
+        fiyat_tipi: 'Toplam Fiyat',
         detay: '',
         seciliSantiyeler: [santiyeId]
       })
@@ -124,11 +125,12 @@ export default function AnlasmaPlanlama() {
           tedarikci: form.tedarikci,
           tutar: form.tutar,
           para_birimi: form.para_birimi,
+          fiyat_tipi: form.fiyat_tipi,
           detay: form.detay,
         }).eq('id', anlasmaId)
         if (error) throw error
 
-        // İlişkileri güncelle (önce eskileri sil, yenileri ekle)
+        // İlişkileri güncelle
         await supabase.from('planlama_anlasma_santiyeler').delete().eq('anlasma_id', anlasmaId)
       } else {
         // Yeni oluştur
@@ -137,6 +139,7 @@ export default function AnlasmaPlanlama() {
           tedarikci: form.tedarikci,
           tutar: form.tutar,
           para_birimi: form.para_birimi,
+          fiyat_tipi: form.fiyat_tipi,
           detay: form.detay,
           olusturan: profile?.id
         }).select().single()
@@ -165,7 +168,7 @@ export default function AnlasmaPlanlama() {
             folderName,
             adSoyad: `Sözleşme-${form.tedarikci}`,
             date: islemZamani,
-            compress: true // Pdf değilse resimleri sıkıştırır
+            compress: true
           })
           await supabase.from('planlama_dosyalari').insert({
             anlasma_id: anlasmaId,
@@ -187,7 +190,6 @@ export default function AnlasmaPlanlama() {
     if (!window.confirm('Bu anlaşmayı tamamen silmek istediğinize emin misiniz?')) return
     setYukleniyor(true)
     try {
-      // Dosyaları Google Drive'dan silinenlere taşıyalım
       const anlasmaDosyalari = dosyalar.filter(d => d.anlasma_id === aktifAnlasma.id)
       for (const d of anlasmaDosyalari) {
         if (d.url && isGoogleDriveUrl(d.url)) {
@@ -195,8 +197,6 @@ export default function AnlasmaPlanlama() {
         }
       }
       
-      // Cascade delete sayesinde anlasmalar'dan silince ilişkiler ve dosyalar da silinecek
-      // Biz yine de dosyaları tablodan uçuralım garanti olsun
       await supabase.from('planlama_dosyalari').delete().eq('anlasma_id', aktifAnlasma.id)
       const { error } = await supabase.from('planlama_anlasmalar').delete().eq('id', aktifAnlasma.id)
       if (error) throw error
@@ -247,7 +247,6 @@ export default function AnlasmaPlanlama() {
                     <div style={{ color: '#444', fontSize: 14, fontWeight: 600 }}>{kalem.ad}</div>
                   </td>
                   {gecerliSantiyeler.map(santiye => {
-                    // Bu hücredeki anlaşmayı bul
                     const ilgiliAnlasmalar = anlasmalar.filter(a => a.kalem_id === kalem.id)
                     const hucreAnlasmasi = ilgiliAnlasmalar.find(a => 
                       anlasmaSantiyeler.some(as => as.anlasma_id === a.id && as.santiye_id === santiye.id)
@@ -275,7 +274,12 @@ export default function AnlasmaPlanlama() {
                             onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.25)' }}
                           >
                             <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{hucreAnlasmasi.tedarikci}</div>
-                            <div style={{ fontSize: 11, opacity: 0.9 }}>{Number(hucreAnlasmasi.tutar).toLocaleString('tr-TR')} {hucreAnlasmasi.para_birimi}</div>
+                            <div style={{ fontSize: 11, opacity: 0.9 }}>
+                              {Number(hucreAnlasmasi.tutar).toLocaleString('tr-TR')} {hucreAnlasmasi.para_birimi} 
+                              <span style={{ opacity: 0.7, fontSize: 10, display: 'block', marginTop: 2 }}>
+                                ({hucreAnlasmasi.fiyat_tipi === 'Birim Fiyat' ? 'Birim' : 'Toplam'})
+                              </span>
+                            </div>
                           </div>
                         ) : (
                           <div 
@@ -362,7 +366,18 @@ export default function AnlasmaPlanlama() {
               </div>
 
               <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-                <div style={{ flex: 2 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 13, color: '#444', fontWeight: 600, display: 'block', marginBottom: 6 }}>Fiyat Tipi</label>
+                  <select 
+                    value={form.fiyat_tipi}
+                    onChange={e => setForm({...form, fiyat_tipi: e.target.value})}
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.1)', background: '#fcfcf9', fontSize: 14, outline: 'none' }}
+                  >
+                    <option value="Birim Fiyat">Birim Fiyat</option>
+                    <option value="Toplam Fiyat">Toplam Fiyat</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
                   <label style={{ fontSize: 13, color: '#444', fontWeight: 600, display: 'block', marginBottom: 6 }}>Tutar</label>
                   <input 
                     type="number" 
@@ -373,7 +388,7 @@ export default function AnlasmaPlanlama() {
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 13, color: '#444', fontWeight: 600, display: 'block', marginBottom: 6 }}>Para Birimi</label>
+                  <label style={{ fontSize: 13, color: '#444', fontWeight: 600, display: 'block', marginBottom: 6 }}>Birim</label>
                   <select 
                     value={form.para_birimi}
                     onChange={e => setForm({...form, para_birimi: e.target.value})}
