@@ -239,6 +239,46 @@ export default function AnlasmaPlanlama() {
     }
   }
 
+  const anlasmaPaylas = async () => {
+    if (!aktifAnlasma) return
+
+    const kalemAdi = kalemler.find(k => k.id === seciliHems?.kalemId)?.ad || 'Genel'
+    const santiyeAdlari = form.seciliSantiyeler.map(sId => santiyeler.find(s => s.id === sId)?.ad).filter(Boolean).join(', ')
+    
+    let metin = `📋 *Planlama & Satın Alım Anlaşması*\n\n`
+    metin += `🏗️ *Şantiyeler:* ${santiyeAdlari}\n`
+    metin += `🛠️ *İmalat Kalemi:* ${kalemAdi}\n`
+    metin += `🏢 *Tedarikçi:* ${aktifAnlasma.tedarikci}\n`
+    metin += `💰 *Tutar:* ${Number(aktifAnlasma.tutar).toLocaleString('tr-TR')} ${aktifAnlasma.para_birimi} (${aktifAnlasma.fiyat_tipi})\n`
+    if (aktifAnlasma.detay) metin += `📝 *Notlar:* ${aktifAnlasma.detay}\n\n`
+
+    const anlasmaDosyalari = dosyalar.filter(d => d.anlasma_id === aktifAnlasma.id)
+    if (anlasmaDosyalari.length > 0) {
+      metin += `📎 *İlgili Dosyalar/Sözleşmeler:*\n`
+      anlasmaDosyalari.forEach((d, i) => {
+        metin += `${i+1}. Dosya: ${getGoogleDriveViewUrl(d.url)}\n`
+      })
+    }
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${kalemAdi} Anlaşması`,
+          text: metin
+        })
+      } catch (err) {
+        console.error('Paylaşım hatası:', err)
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(metin)
+        alert('Anlaşma detayları panoya kopyalandı! WhatsApp veya istediğiniz bir yere yapıştırabilirsiniz.')
+      } catch (err) {
+        alert('Kopyalama işlemi başarısız oldu.')
+      }
+    }
+  }
+
   const santiyeSecimDegistir = (sId) => {
     setForm(prev => {
       const yeniSantiyeler = prev.seciliSantiyeler.includes(sId)
@@ -250,8 +290,27 @@ export default function AnlasmaPlanlama() {
 
   return (
     <div className="sayfa">
+      <style>{`
+        @media print {
+          .ust-bar { display: none !important; }
+          .alt-menu { display: none !important; }
+          .btn-print-hide { display: none !important; }
+          .sayfa { padding: 0 !important; margin: 0 !important; background: white !important; }
+          body { background: white !important; }
+          table { width: 100% !important; border: 1px solid #ddd; }
+          th, td { border: 1px solid #ddd !important; }
+        }
+      `}</style>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#1D9596', letterSpacing: '-0.3px' }}>Anlaşma & Planlama</h2>
+        <button 
+          onClick={() => window.print()}
+          className="btn-print-hide"
+          style={{ padding: '8px 16px', background: '#fff', border: '1px solid #1D9596', color: '#1D9596', borderRadius: 8, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          Matrisi Yazdır
+        </button>
       </div>
 
       <div style={{ background: '#fff', borderRadius: 16, border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
@@ -275,7 +334,7 @@ export default function AnlasmaPlanlama() {
                   <td style={{ padding: '14px 20px', background: '#fff', borderRight: '1px solid rgba(0,0,0,0.04)', position: 'sticky', left: 0, zIndex: 1, boxShadow: '2px 0 5px rgba(0,0,0,0.01)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ color: '#444', fontSize: 14, fontWeight: 600 }}>{kalem.ad}</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <div className="btn-print-hide" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {index > 0 && (
                           <button onClick={() => kalemSiraDegistir(index, 'yukari')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: '#aaa' }} title="Yukarı Taşı">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
@@ -327,6 +386,7 @@ export default function AnlasmaPlanlama() {
                         ) : (
                           <div 
                             onClick={() => hucreTikla(kalem.id, santiye.id)}
+                            className="btn-print-hide"
                             style={{
                               background: 'rgba(0,0,0,0.02)',
                               border: '1px dashed rgba(0,0,0,0.1)',
@@ -350,7 +410,7 @@ export default function AnlasmaPlanlama() {
                   })}
                 </tr>
               ))}
-              <tr>
+              <tr className="btn-print-hide">
                 <td style={{ padding: '14px 20px', background: '#fff', position: 'sticky', left: 0, zIndex: 1 }}>
                   {!kalemEkleAcik ? (
                     <button 
@@ -381,14 +441,23 @@ export default function AnlasmaPlanlama() {
       </div>
 
       {modalAcik && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+        <div className="btn-print-hide" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
             
             <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: '#fff', zIndex: 10 }}>
               <h3 style={{ margin: 0, fontSize: 18, color: '#2b2b2b' }}>
                 {aktifAnlasma ? 'Anlaşma Detayı' : 'Yeni Anlaşma Ekle'}
               </h3>
-              <button onClick={() => setModalAcik(false)} style={{ background: 'transparent', border: 'none', fontSize: 24, cursor: 'pointer', color: '#888' }}>&times;</button>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {aktifAnlasma && (
+                  <button onClick={anlasmaPaylas} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#16a34a', padding: '6px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }} title="WhatsApp veya panoya kopyala">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                    Paylaş
+                  </button>
+                )}
+                <button onClick={() => setModalAcik(false)} style={{ background: 'transparent', border: 'none', fontSize: 24, cursor: 'pointer', color: '#888' }}>&times;</button>
+              </div>
             </div>
 
             <div style={{ padding: 24 }}>
