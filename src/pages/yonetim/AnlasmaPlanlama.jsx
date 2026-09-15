@@ -44,7 +44,7 @@ export default function AnlasmaPlanlama() {
 
   const verileriGetir = async () => {
     // Kalemleri getir
-    const { data: kData } = await supabase.from('planlama_kalemleri').select('*').order('created_at', { ascending: true })
+    const { data: kData } = await supabase.from('planlama_kalemleri').select('*').order('sira', { ascending: true }).order('created_at', { ascending: true })
     if (kData) setKalemler(kData)
     
     // Anlaşmaları getir
@@ -62,12 +62,41 @@ export default function AnlasmaPlanlama() {
 
   const kalemEkle = async () => {
     if (!yeniKalemAd.trim()) return
-    const { error } = await supabase.from('planlama_kalemleri').insert({ ad: yeniKalemAd })
+    const { error } = await supabase.from('planlama_kalemleri').insert({ 
+      ad: yeniKalemAd,
+      sira: kalemler.length 
+    })
     if (error) alert('Kalem eklenemedi: ' + error.message)
     else {
       setYeniKalemAd('')
       setKalemEkleAcik(false)
       verileriGetir()
+    }
+  }
+
+  const kalemSiraDegistir = async (index, yon) => {
+    const yeni = [...kalemler]
+    if (yon === 'yukari' && index > 0) {
+      const gecici = yeni[index]
+      yeni[index] = yeni[index - 1]
+      yeni[index - 1] = gecici
+    } else if (yon === 'asagi' && index < yeni.length - 1) {
+      const gecici = yeni[index]
+      yeni[index] = yeni[index + 1]
+      yeni[index + 1] = gecici
+    } else {
+      return
+    }
+
+    setKalemler(yeni) // Anında UI güncelle
+
+    try {
+      // Arka planda DB'yi güncelle
+      for (let i = 0; i < yeni.length; i++) {
+        await supabase.from('planlama_kalemleri').update({ sira: i }).eq('id', yeni[i].id)
+      }
+    } catch (err) {
+      console.error('Sıralama hatası:', err)
     }
   }
 
@@ -241,10 +270,24 @@ export default function AnlasmaPlanlama() {
               </tr>
             </thead>
             <tbody>
-              {kalemler.map(kalem => (
+              {kalemler.map((kalem, index) => (
                 <tr key={kalem.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.03)' }}>
                   <td style={{ padding: '14px 20px', background: '#fff', borderRight: '1px solid rgba(0,0,0,0.04)', position: 'sticky', left: 0, zIndex: 1, boxShadow: '2px 0 5px rgba(0,0,0,0.01)' }}>
-                    <div style={{ color: '#444', fontSize: 14, fontWeight: 600 }}>{kalem.ad}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ color: '#444', fontSize: 14, fontWeight: 600 }}>{kalem.ad}</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {index > 0 && (
+                          <button onClick={() => kalemSiraDegistir(index, 'yukari')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: '#aaa' }} title="Yukarı Taşı">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                          </button>
+                        )}
+                        {index < kalemler.length - 1 && (
+                          <button onClick={() => kalemSiraDegistir(index, 'asagi')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: '#aaa' }} title="Aşağı Taşı">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </td>
                   {gecerliSantiyeler.map(santiye => {
                     const ilgiliAnlasmalar = anlasmalar.filter(a => a.kalem_id === kalem.id)
