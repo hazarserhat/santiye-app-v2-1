@@ -56,8 +56,10 @@ export default function Gelirler() {
   const [duzGecmisDonemMi, setDuzGecmisDonemMi] = useState(false)
 
   const TAHSILAT_NOKTALARI = [
-    'Merkez Kasa', 'Serhat Kasa', 'Fuat Kasa', 'Abdullah Kasa',
-    'Ruha Ziraat', 'Ruha QNB', 'Ruha Garanti', 'Şantiye Şefleri'
+    'Merkez Kasa', 'Serhat Kasa', 'Abdullah Kasa', 'Fuat Kasa',
+    'Ruha Ziraat', 'Ruha QNB', 'Ruha Garanti', 'Ruha Emlak Bank',
+    'Ziraat Kredi Kartı', 'Garanti Kredi Kartı', 'Qnb Kredi Kartı',
+    'Ödeme Yapılmadı'
   ]
 
   // Clipboard paste ref

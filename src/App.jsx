@@ -11,6 +11,7 @@ import Puantaj from './pages/Puantaj'
 import GunlukRapor from './pages/GunlukRapor'
 import Animsaticilar from './pages/Animsaticilar'
 import Notlar from './pages/Notlar'
+import KasaVirmanlar from './pages/KasaVirmanlar'
 import Yonetim from './pages/Yonetim'
 import YonetimSantiyeler from './pages/yonetim/YonetimSantiyeler'
 import CekTakip from './pages/yonetim/CekTakip'
@@ -64,6 +65,7 @@ function IcerikAlani() {
             <Route path="/gorevler" element={<Gorevler />} />
             <Route path="/masraflar" element={<Masraflar />} />
             <Route path="/gelirler" element={<GelirKoruma><Gelirler /></GelirKoruma>} />
+            <Route path="/kasalar" element={<GelirKoruma><KasaVirmanlar /></GelirKoruma>} />
             <Route path="/cari-kartlar" element={<CariKartlar />} />
             <Route path="/puantaj" element={<Puantaj />} />
             <Route path="/gunluk-rapor" element={<GunlukRapor />} />

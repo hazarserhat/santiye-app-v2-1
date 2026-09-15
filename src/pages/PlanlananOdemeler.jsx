@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { paraFormatla, sadeceSayiTuslari, formatInputTutar, temizleTutar } from '../lib/format'
 import CariAramaSecici from '../components/CariAramaSecici'
 import { icsOlustur } from '../lib/takvim'
+import { uploadToGoogleDrive } from '../lib/googleDrive'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -35,6 +36,27 @@ export default function PlanlananOdemeler() {
   const [odeTaksitSayisi, setOdeTaksitSayisi] = useState(1)
   const [odeTarihi, setOdeTarihi] = useState(bugun())
   const [odeYukleniyor, setOdeYukleniyor] = useState(false)
+  const [odeFotograf, setOdeFotograf] = useState(null)
+
+  const panodanYapistirOde = async () => {
+    try {
+      const clipboardItems = await navigator.clipboard.read()
+      for (const clipboardItem of clipboardItems) {
+        for (const type of clipboardItem.types) {
+          if (type.startsWith('image/')) {
+            const blob = await clipboardItem.getType(type)
+            const file = new File([blob], `pano_gorseli_${Date.now()}.png`, { type: blob.type })
+            setOdeFotograf(file)
+            return
+          }
+        }
+      }
+      alert('Panoda bir görsel bulunamadı.')
+    } catch (err) {
+      console.error(err)
+      alert('Panoya erişim sağlanamadı. (Cihazınız bu özelliği desteklemiyor veya izin reddedildi)')
+    }
+  }
 
   // Çekle Ödeme State'leri
   const [odeTip, setOdeTip] = useState('masraf') // 'masraf' | 'cek'
@@ -202,6 +224,32 @@ export default function PlanlananOdemeler() {
       const taksit = parseInt(odeTaksitSayisi) || 1
       const finalBaslik = taksit > 1 ? `${plan.baslik} (Planlı Ödemeden, ${taksit} Taksit)` : `${plan.baslik} (Planlı Ödemeden)`
 
+      let fotografUrl = null
+      if (odeFotograf) {
+        const seciliSantiye = santiyeler.find((s) => s.id === plan.santiye_id)
+        const santiyeAdi = seciliSantiye ? seciliSantiye.ad : 'Genel'
+        
+        const seciliYontem = odemeYontemleri.find((o) => o.id === odeYontemiId)
+        const yontemAdi = seciliYontem ? seciliYontem.ad : 'Diger'
+        
+        const folderName = `Masraflar/${santiyeAdi}/${yontemAdi}`
+        const adSoyad = `${plan.baslik.substring(0, 30)}-${plan.taseronlar?.ad || 'Bilinmiyor'}`
+
+        try {
+          const driveSonuc = await uploadToGoogleDrive({
+            file: odeFotograf,
+            folderName,
+            adSoyad,
+            date: odeTarihi,
+          })
+          fotografUrl = driveSonuc.url
+        } catch (err) {
+          alert('Görsel Google Drive\'a yüklenemedi: ' + err.message)
+          setOdeYukleniyor(false)
+          return
+        }
+      }
+
       const masrafData = {
         santiye_id: plan.santiye_id,
         kategori_id: plan.kategori_id,
@@ -213,6 +261,7 @@ export default function PlanlananOdemeler() {
         taksit_sayisi: taksit,
         odeme_yontemi_id: odeYontemiId,
         harcama_tarihi: odeTarihi,
+        fotograf_url: fotografUrl,
         ekleyen: profile?.id
       }
 
@@ -284,6 +333,7 @@ export default function PlanlananOdemeler() {
     setOdeCekBanka('')
     setOdeCekSeriNo('')
     setOdeCekVadesi('')
+    setOdeFotograf(null)
     setOdeYukleniyor(false)
     odemeleriYukle()
   }
@@ -478,6 +528,28 @@ export default function PlanlananOdemeler() {
                         </select>
                       </div>
                     )}
+                    
+                    {/* Belge/Görsel Ekleme */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4, marginBottom: 8 }}>
+                      <label style={{ fontSize: 11, color: '#5F5E5A', fontWeight: 600 }}>Fiş / Fatura / Görsel Ekle (Opsiyonel):</label>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={(e) => setOdeFotograf(e.target.files[0])}
+                          style={{ fontSize: 11, padding: '4px 0', flex: 1 }}
+                        />
+                        <button type="button" onClick={panodanYapistirOde} style={{ padding: '6px 10px', background: '#e6f0ff', color: '#0056b3', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+                          📋 Yapıştır
+                        </button>
+                        {odeFotograf && (
+                          <button type="button" onClick={() => setOdeFotograf(null)} style={{ padding: '6px 10px', background: '#ffe6e6', color: '#d9534f', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+                            ✕ Kaldır
+                          </button>
+                        )}
+                      </div>
+                      {odeFotograf && <p style={{ fontSize: 11, color: '#0F6E56', margin: 0 }}>✓ Seçilen: {odeFotograf.name}</p>}
+                    </div>
                   </>
                 ) : (
                   <>
@@ -496,7 +568,7 @@ export default function PlanlananOdemeler() {
                 )}
 
                 <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                  <button onClick={() => setOdeModalId(null)} style={{ flex: 1, padding: '8px', background: '#f0f0ed', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Vazgeç</button>
+                  <button onClick={() => { setOdeModalId(null); setOdeFotograf(null); }} style={{ flex: 1, padding: '8px', background: '#f0f0ed', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Vazgeç</button>
                   <button onClick={() => masrafaAktar(plan)} disabled={odeYukleniyor} style={{ flex: 1, padding: '8px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>
                     {odeYukleniyor ? 'İşleniyor...' : (odeTip === 'masraf' ? 'Masrafa Yaz' : 'Çeklere Aktar')}
                   </button>

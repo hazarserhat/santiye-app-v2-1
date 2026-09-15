@@ -68,6 +68,7 @@ export default function Masraflar() {
   // Filtre ve Sıralama State'leri
   const [filtreCari, setFiltreCari] = useState('hepsi')
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
+  const [filtreOdemeYontemi, setFiltreOdemeYontemi] = useState('hepsi')
   const [filtreKullanici, setFiltreKullanici] = useState('hepsi')
   const [filtreBaslangic, setFiltreBaslangic] = useState('')
   const [filtreBitis, setFiltreBitis] = useState('')
@@ -147,6 +148,26 @@ export default function Masraflar() {
     }
   }
 
+  const pasteForMasraf = async (id, mSantiyeId) => {
+    try {
+      const clipboardItems = await navigator.clipboard.read()
+      for (const clipboardItem of clipboardItems) {
+        for (const type of clipboardItem.types) {
+          if (type.startsWith('image/')) {
+            const blob = await clipboardItem.getType(type)
+            const file = new File([blob], `pano_gorseli_${Date.now()}.png`, { type: blob.type })
+            await sonradanFotografEkle(id, file, mSantiyeId)
+            return
+          }
+        }
+      }
+      alert('Panoda bir görsel bulunamadı.')
+    } catch (err) {
+      console.error(err)
+      alert('Panoya erişim sağlanamadı.')
+    }
+  }
+
   useEffect(() => {
     if (aktifSantiye) setSecilenSantiyeId(aktifSantiye.id)
   }, [aktifSantiye])
@@ -188,6 +209,7 @@ export default function Masraflar() {
   let islenecekListe = [...masraflar]
     .filter(m => filtreCari === 'hepsi' || (filtreCari === 'yok' ? !m.cari_id : m.cari_id === filtreCari))
     .filter(m => filtreSantiye === 'hepsi' || (filtreSantiye === 'genel' ? !m.santiye_id : m.santiye_id === filtreSantiye))
+    .filter(m => filtreOdemeYontemi === 'hepsi' || m.odeme_yontemi_id === filtreOdemeYontemi)
     .filter(m => filtreKullanici === 'hepsi' || m.ekleyen === filtreKullanici)
     .filter(m => {
       if (!filtreBaslangic && !filtreBitis) return true
@@ -638,6 +660,14 @@ export default function Masraflar() {
                 <option value="genel">Genel Gider</option>
               </select>
 
+              <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Harcama Noktası (Kasa/Banka)</p>
+              <select value={filtreOdemeYontemi} onChange={(e) => setFiltreOdemeYontemi(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+                <option value="hepsi">Tüm Harcama Noktaları</option>
+                {odemeYontemleri.map(o => (
+                  <option key={o.id} value={o.id}>{o.ad}</option>
+                ))}
+              </select>
+
               <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Cari Hesap Filtresi</p>
               <select value={filtreCari} onChange={(e) => setFiltreCari(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
                 <option value="hepsi">Tüm Cari Hesaplar</option>
@@ -778,6 +808,7 @@ export default function Masraflar() {
                           onChange={(e) => sonradanFotografEkle(m.id, e.target.files[0], m.santiye_id)}
                         />
                         <button className="sil-buton" onClick={() => document.getElementById(`gorsel-sec-msf-${m.id}`).click()} aria-label="Görsel Ekle/Değiştir" title="Görsel Ekle/Değiştir">🖼️</button>
+                        <button className="sil-buton" onClick={() => pasteForMasraf(m.id, m.santiye_id)} aria-label="Panodan Yapıştır" title="Panodan Yapıştır">📋</button>
                         <button className="sil-buton" onClick={() => masrafSil(m.id)} aria-label="Masrafı sil">🗑</button>
                       </div>
                     </div>

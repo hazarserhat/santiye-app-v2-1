@@ -5,6 +5,7 @@ const OGELER = [
   { yol: '/gorevler', etiket: 'Görevler', simge: '✓' },
   { yol: '/masraflar', etiket: 'Giderler', simge: '₺' },
   { yol: '/gelirler', etiket: 'Gelirler', simge: '💰', ozelRol: true },
+  { yol: '/kasalar', etiket: 'Kasa İşl.', simge: '🏦', ozelRol: true },
   { yol: '/cari-kartlar', etiket: 'Rehber', simge: '👤', yolIsmi: 'cari' },
   { yol: '/puantaj', etiket: 'Puantaj', simge: '📅' },
   { yol: '/gunluk-rapor', etiket: 'Rapor', simge: '📝' },
