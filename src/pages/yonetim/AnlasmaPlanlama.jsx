@@ -7,7 +7,8 @@ import {
   getGoogleDriveInlineImageUrl,
   getGoogleDriveViewUrl,
   moveToSilinenler,
-  isGoogleDriveUrl
+  isGoogleDriveUrl,
+  extractGoogleDriveFileId
 } from '../../lib/googleDrive'
 
 export default function AnlasmaPlanlama() {
@@ -29,6 +30,7 @@ export default function AnlasmaPlanlama() {
     tedarikci: '',
     tutar: '',
     para_birimi: 'TL',
+    fiyat_tipi: 'Toplam Fiyat',
     detay: '',
     seciliSantiyeler: [] // Çoklu seçim için
   })
@@ -253,23 +255,60 @@ export default function AnlasmaPlanlama() {
     if (aktifAnlasma.detay) metin += `📝 *Notlar:* ${aktifAnlasma.detay}\n\n`
 
     const anlasmaDosyalari = dosyalar.filter(d => d.anlasma_id === aktifAnlasma.id)
-    if (anlasmaDosyalari.length > 0) {
-      metin += `📎 *İlgili Dosyalar/Sözleşmeler:*\n`
-      anlasmaDosyalari.forEach((d, i) => {
-        metin += `${i+1}. Dosya: ${getGoogleDriveViewUrl(d.url)}\n`
-      })
+    
+    const paylasimVerisi = {
+      title: `${kalemAdi} Anlaşması`,
+      text: metin
     }
 
-    if (navigator.share) {
+    if (navigator.share && navigator.canShare) {
       try {
-        await navigator.share({
-          title: `${kalemAdi} Anlaşması`,
-          text: metin
-        })
+        const fileObjects = []
+        if (anlasmaDosyalari.length > 0) {
+          // İndirme işlemi biraz sürebileceği için kullanıcıya bir uyarı gösterilebilir veya doğrudan denenebilir
+          for (let i = 0; i < anlasmaDosyalari.length; i++) {
+            const fileUrl = anlasmaDosyalari[i].url
+            let fetchUrl = getGoogleDriveViewUrl(fileUrl)
+            
+            // Eğer resimse CORS'u aşma ihtimali yüksek olan lh3 linkini (thumbnail url) kullanalım
+            if (fileUrl.toLowerCase().match(/\.(jpg|jpeg|png|heic|webp)$/i)) {
+               fetchUrl = getGoogleDriveInlineImageUrl(fileUrl)
+            } else {
+               // Google Drive'dan CORS ile indirme denemesi (Büyük ihtimalle tarayıcı engelleyebilir)
+               const fileId = extractGoogleDriveFileId(fileUrl)
+               if (fileId) fetchUrl = `https://drive.google.com/uc?export=download&id=${fileId}`
+            }
+
+            try {
+              const response = await fetch(fetchUrl) 
+              if (!response.ok) throw new Error('Ağ hatası')
+              const blob = await response.blob()
+              const fileExt = blob.type.split('/')[1] || 'jpeg'
+              const fileName = `Sozlesme_${i+1}.${fileExt}`
+              fileObjects.push(new File([blob], fileName, { type: blob.type }))
+            } catch (fetchErr) {
+              console.warn('Dosya indirilemedi (CORS veya Ağ hatası):', fetchErr)
+              metin += `📎 ${i+1}. Dosya Linki: ${getGoogleDriveViewUrl(fileUrl)}\n`
+            }
+          }
+        }
+
+        if (fileObjects.length > 0 && navigator.canShare({ files: fileObjects })) {
+          paylasimVerisi.files = fileObjects
+        }
+        paylasimVerisi.text = metin
+        
+        await navigator.share(paylasimVerisi)
       } catch (err) {
-        console.error('Paylaşım hatası:', err)
+        console.error('Paylaşım iptal edildi veya desteklenmiyor:', err)
       }
     } else {
+      if (anlasmaDosyalari.length > 0) {
+        metin += `📎 *İlgili Dosyalar/Sözleşmeler:*\n`
+        anlasmaDosyalari.forEach((d, i) => {
+          metin += `${i+1}. Dosya: ${getGoogleDriveViewUrl(d.url)}\n`
+        })
+      }
       try {
         await navigator.clipboard.writeText(metin)
         alert('Anlaşma detayları panoya kopyalandı! WhatsApp veya istediğiniz bir yere yapıştırabilirsiniz.')
