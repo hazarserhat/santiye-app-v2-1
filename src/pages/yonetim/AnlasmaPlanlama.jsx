@@ -1,0 +1,468 @@
+import { useEffect, useState } from 'react'
+import { supabase } from '../../lib/supabase'
+import { useSite } from '../../context/SiteContext'
+import { useAuth } from '../../context/AuthContext'
+import {
+  uploadToGoogleDrive,
+  getGoogleDriveInlineImageUrl,
+  getGoogleDriveViewUrl,
+  moveToSilinenler,
+  isGoogleDriveUrl
+} from '../../lib/googleDrive'
+
+export default function AnlasmaPlanlama() {
+  const { santiyeler } = useSite()
+  const { profile } = useAuth()
+  const [kalemler, setKalemler] = useState([])
+  const [anlasmalar, setAnlasmalar] = useState([]) // Ana anlaşmalar
+  const [anlasmaSantiyeler, setAnlasmaSantiyeler] = useState([]) // Hangi anlaşma hangi şantiyede?
+  const [dosyalar, setDosyalar] = useState([])
+  
+  const [yeniKalemAd, setYeniKalemAd] = useState('')
+  const [kalemEkleAcik, setKalemEkleAcik] = useState(false)
+  
+  const [modalAcik, setModalAcik] = useState(false)
+  const [seciliHems, setSeciliHems] = useState(null) // { kalemId, santiyeId }
+  const [aktifAnlasma, setAktifAnlasma] = useState(null) // Eğer tıklanan hücre doluysa ilgili anlaşma objesi
+
+  const [form, setForm] = useState({
+    tedarikci: '',
+    tutar: '',
+    para_birimi: 'TL',
+    detay: '',
+    seciliSantiyeler: [] // Çoklu seçim için
+  })
+  const [secilenDosyalar, setSecilenDosyalar] = useState([])
+  const [yukleniyor, setYukleniyor] = useState(false)
+  
+  // Sadece aktif şantiyeleri listele (veya sırala)
+  const gecerliSantiyeler = santiyeler || []
+
+  useEffect(() => {
+    verileriGetir()
+  }, [])
+
+  const verileriGetir = async () => {
+    // Kalemleri getir
+    const { data: kData } = await supabase.from('planlama_kalemleri').select('*').order('created_at', { ascending: true })
+    if (kData) setKalemler(kData)
+    
+    // Anlaşmaları getir
+    const { data: aData } = await supabase.from('planlama_anlasmalar').select('*')
+    if (aData) setAnlasmalar(aData)
+    
+    // İlişkileri getir
+    const { data: asData } = await supabase.from('planlama_anlasma_santiyeler').select('*')
+    if (asData) setAnlasmaSantiyeler(asData)
+    
+    // Dosyaları getir
+    const { data: dData } = await supabase.from('planlama_dosyalari').select('*')
+    if (dData) setDosyalar(dData)
+  }
+
+  const kalemEkle = async () => {
+    if (!yeniKalemAd.trim()) return
+    const { error } = await supabase.from('planlama_kalemleri').insert({ ad: yeniKalemAd })
+    if (error) alert('Kalem eklenemedi: ' + error.message)
+    else {
+      setYeniKalemAd('')
+      setKalemEkleAcik(false)
+      verileriGetir()
+    }
+  }
+
+  const hucreTikla = (kalemId, santiyeId) => {
+    // Bu hücre dolu mu?
+    const iliski = anlasmaSantiyeler.find(as => as.kalem_id === kalemId && as.santiye_id === santiyeId)
+    // Wait, relation table has anlasma_id and santiye_id, not kalem_id!
+    // We need to find the anlasma_id that belongs to this kalem_id and santiye_id.
+    const ilgiliAnlasmalar = anlasmalar.filter(a => a.kalem_id === kalemId)
+    const aktif = ilgiliAnlasmalar.find(a => 
+      anlasmaSantiyeler.some(as => as.anlasma_id === a.id && as.santiye_id === santiyeId)
+    )
+
+    setSeciliHems({ kalemId, santiyeId })
+    setSecilenDosyalar([])
+    
+    if (aktif) {
+      setAktifAnlasma(aktif)
+      // O anlaşmaya ait şantiyeleri bul
+      const aitOlduguSantiyeler = anlasmaSantiyeler.filter(as => as.anlasma_id === aktif.id).map(as => as.santiye_id)
+      setForm({
+        tedarikci: aktif.tedarikci || '',
+        tutar: aktif.tutar || '',
+        para_birimi: aktif.para_birimi || 'TL',
+        detay: aktif.detay || '',
+        seciliSantiyeler: aitOlduguSantiyeler
+      })
+    } else {
+      setAktifAnlasma(null)
+      setForm({
+        tedarikci: '',
+        tutar: '',
+        para_birimi: 'TL',
+        detay: '',
+        seciliSantiyeler: [santiyeId]
+      })
+    }
+    setModalAcik(true)
+  }
+
+  const anlasmaKaydet = async () => {
+    if (!form.tedarikci || !form.tutar || form.seciliSantiyeler.length === 0) {
+      alert('Tedarikçi, tutar ve en az bir şantiye seçilmelidir.')
+      return
+    }
+    setYukleniyor(true)
+
+    let anlasmaId = aktifAnlasma?.id
+
+    try {
+      if (aktifAnlasma) {
+        // Güncelle
+        const { error } = await supabase.from('planlama_anlasmalar').update({
+          tedarikci: form.tedarikci,
+          tutar: form.tutar,
+          para_birimi: form.para_birimi,
+          detay: form.detay,
+        }).eq('id', anlasmaId)
+        if (error) throw error
+
+        // İlişkileri güncelle (önce eskileri sil, yenileri ekle)
+        await supabase.from('planlama_anlasma_santiyeler').delete().eq('anlasma_id', anlasmaId)
+      } else {
+        // Yeni oluştur
+        const { data, error } = await supabase.from('planlama_anlasmalar').insert({
+          kalem_id: seciliHems.kalemId,
+          tedarikci: form.tedarikci,
+          tutar: form.tutar,
+          para_birimi: form.para_birimi,
+          detay: form.detay,
+          olusturan: profile?.id
+        }).select().single()
+        if (error) throw error
+        anlasmaId = data.id
+      }
+
+      // Şantiye ilişkilerini ekle
+      const iliskiler = form.seciliSantiyeler.map(sId => ({
+        anlasma_id: anlasmaId,
+        santiye_id: sId
+      }))
+      const { error: asError } = await supabase.from('planlama_anlasma_santiyeler').insert(iliskiler)
+      if (asError) throw asError
+
+      // Dosyaları yükle
+      if (secilenDosyalar.length > 0) {
+        const kalemAdi = kalemler.find(k => k.id === seciliHems.kalemId)?.ad || 'Genel'
+        const folderName = `Planlama/${kalemAdi}`
+
+        for (let i = 0; i < secilenDosyalar.length; i++) {
+          const dosya = secilenDosyalar[i]
+          const islemZamani = new Date().toISOString()
+          const driveSonuc = await uploadToGoogleDrive({
+            file: dosya,
+            folderName,
+            adSoyad: `Sözleşme-${form.tedarikci}`,
+            date: islemZamani,
+            compress: true // Pdf değilse resimleri sıkıştırır
+          })
+          await supabase.from('planlama_dosyalari').insert({
+            anlasma_id: anlasmaId,
+            url: driveSonuc.url
+          })
+        }
+      }
+
+      setModalAcik(false)
+      verileriGetir()
+    } catch (err) {
+      alert('Hata oluştu: ' + err.message)
+    } finally {
+      setYukleniyor(false)
+    }
+  }
+
+  const anlasmaSil = async () => {
+    if (!window.confirm('Bu anlaşmayı tamamen silmek istediğinize emin misiniz?')) return
+    setYukleniyor(true)
+    try {
+      // Dosyaları Google Drive'dan silinenlere taşıyalım
+      const anlasmaDosyalari = dosyalar.filter(d => d.anlasma_id === aktifAnlasma.id)
+      for (const d of anlasmaDosyalari) {
+        if (d.url && isGoogleDriveUrl(d.url)) {
+          await moveToSilinenler(d.url, 'Planlama')
+        }
+      }
+      
+      // Cascade delete sayesinde anlasmalar'dan silince ilişkiler ve dosyalar da silinecek
+      // Biz yine de dosyaları tablodan uçuralım garanti olsun
+      await supabase.from('planlama_dosyalari').delete().eq('anlasma_id', aktifAnlasma.id)
+      const { error } = await supabase.from('planlama_anlasmalar').delete().eq('id', aktifAnlasma.id)
+      if (error) throw error
+
+      setModalAcik(false)
+      verileriGetir()
+    } catch (err) {
+      alert('Silinemedi: ' + err.message)
+    } finally {
+      setYukleniyor(false)
+    }
+  }
+
+  const santiyeSecimDegistir = (sId) => {
+    setForm(prev => {
+      const yeniSantiyeler = prev.seciliSantiyeler.includes(sId)
+        ? prev.seciliSantiyeler.filter(id => id !== sId)
+        : [...prev.seciliSantiyeler, sId]
+      return { ...prev, seciliSantiyeler: yeniSantiyeler }
+    })
+  }
+
+  return (
+    <div className="sayfa">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#1D9596', letterSpacing: '-0.3px' }}>Anlaşma & Planlama</h2>
+      </div>
+
+      <div style={{ background: '#fff', borderRadius: 16, border: '1px solid rgba(0,0,0,0.05)', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto', width: '100%' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 600 }}>
+            <thead>
+              <tr>
+                <th style={{ padding: '16px 20px', background: '#fcfcf9', borderBottom: '2px solid rgba(29, 149, 150, 0.1)', borderRight: '1px solid rgba(0,0,0,0.04)', minWidth: 180, position: 'sticky', left: 0, zIndex: 2 }}>
+                  <div style={{ color: '#555', fontSize: 13, fontWeight: 700 }}>İmalat Kalemi</div>
+                </th>
+                {gecerliSantiyeler.map(s => (
+                  <th key={s.id} style={{ padding: '16px 12px', background: '#fcfcf9', borderBottom: '2px solid rgba(29, 149, 150, 0.1)', borderRight: '1px solid rgba(0,0,0,0.04)', minWidth: 160, textAlign: 'center' }}>
+                    <div style={{ color: '#2b2b2b', fontSize: 13, fontWeight: 700 }}>{s.ad}</div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {kalemler.map(kalem => (
+                <tr key={kalem.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.03)' }}>
+                  <td style={{ padding: '14px 20px', background: '#fff', borderRight: '1px solid rgba(0,0,0,0.04)', position: 'sticky', left: 0, zIndex: 1, boxShadow: '2px 0 5px rgba(0,0,0,0.01)' }}>
+                    <div style={{ color: '#444', fontSize: 14, fontWeight: 600 }}>{kalem.ad}</div>
+                  </td>
+                  {gecerliSantiyeler.map(santiye => {
+                    // Bu hücredeki anlaşmayı bul
+                    const ilgiliAnlasmalar = anlasmalar.filter(a => a.kalem_id === kalem.id)
+                    const hucreAnlasmasi = ilgiliAnlasmalar.find(a => 
+                      anlasmaSantiyeler.some(as => as.anlasma_id === a.id && as.santiye_id === santiye.id)
+                    )
+
+                    return (
+                      <td 
+                        key={santiye.id} 
+                        style={{ padding: '6px', borderRight: '1px solid rgba(0,0,0,0.02)' }}
+                      >
+                        {hucreAnlasmasi ? (
+                          <div 
+                            onClick={() => hucreTikla(kalem.id, santiye.id)}
+                            style={{
+                              background: 'linear-gradient(135deg, #10b981, #059669)',
+                              color: 'white',
+                              borderRadius: 10,
+                              padding: '12px 10px',
+                              cursor: 'pointer',
+                              textAlign: 'center',
+                              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)',
+                              transition: 'transform 0.2s, boxShadow 0.2s'
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.35)' }}
+                            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.25)' }}
+                          >
+                            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{hucreAnlasmasi.tedarikci}</div>
+                            <div style={{ fontSize: 11, opacity: 0.9 }}>{Number(hucreAnlasmasi.tutar).toLocaleString('tr-TR')} {hucreAnlasmasi.para_birimi}</div>
+                          </div>
+                        ) : (
+                          <div 
+                            onClick={() => hucreTikla(kalem.id, santiye.id)}
+                            style={{
+                              background: 'rgba(0,0,0,0.02)',
+                              border: '1px dashed rgba(0,0,0,0.1)',
+                              borderRadius: 10,
+                              height: 60,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              color: 'rgba(0,0,0,0.3)',
+                              transition: 'background 0.2s, color 0.2s'
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(29, 149, 150, 0.05)'; e.currentTarget.style.color = '#1D9596' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.02)'; e.currentTarget.style.color = 'rgba(0,0,0,0.3)' }}
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                          </div>
+                        )}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+              <tr>
+                <td style={{ padding: '14px 20px', background: '#fff', position: 'sticky', left: 0, zIndex: 1 }}>
+                  {!kalemEkleAcik ? (
+                    <button 
+                      onClick={() => setKalemEkleAcik(true)}
+                      style={{ padding: '8px 12px', background: 'transparent', border: '1px dashed #1D9596', borderRadius: 8, color: '#1D9596', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}
+                    >
+                      + Yeni Kalem Ekle
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input 
+                        type="text" 
+                        placeholder="Kalem Adı" 
+                        value={yeniKalemAd}
+                        onChange={e => setYeniKalemAd(e.target.value)}
+                        style={{ flex: 1, padding: '8px', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 6, fontSize: 13, outline: 'none' }}
+                        autoFocus
+                      />
+                      <button onClick={kalemEkle} style={{ padding: '8px 12px', background: '#1D9596', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: 12 }}>Ekle</button>
+                    </div>
+                  )}
+                </td>
+                <td colSpan={gecerliSantiyeler.length} style={{ padding: '14px', background: '#fafafa' }}></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {modalAcik && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+            
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: '#fff', zIndex: 10 }}>
+              <h3 style={{ margin: 0, fontSize: 18, color: '#2b2b2b' }}>
+                {aktifAnlasma ? 'Anlaşma Detayı' : 'Yeni Anlaşma Ekle'}
+              </h3>
+              <button onClick={() => setModalAcik(false)} style={{ background: 'transparent', border: 'none', fontSize: 24, cursor: 'pointer', color: '#888' }}>&times;</button>
+            </div>
+
+            <div style={{ padding: 24 }}>
+              <div style={{ background: '#f4f3ed', padding: '12px 16px', borderRadius: 12, marginBottom: 20 }}>
+                <div style={{ fontSize: 12, color: '#666', fontWeight: 600, marginBottom: 4 }}>İmalat Kalemi</div>
+                <div style={{ fontSize: 15, color: '#1D9596', fontWeight: 700 }}>{kalemler.find(k => k.id === seciliHems?.kalemId)?.ad}</div>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, color: '#444', fontWeight: 600, display: 'block', marginBottom: 6 }}>Tedarikçi / Taşeron Adı</label>
+                <input 
+                  type="text" 
+                  value={form.tedarikci}
+                  onChange={e => setForm({...form, tedarikci: e.target.value})}
+                  placeholder="Örn: X Yapı A.Ş."
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.1)', background: '#fcfcf9', fontSize: 14, outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                <div style={{ flex: 2 }}>
+                  <label style={{ fontSize: 13, color: '#444', fontWeight: 600, display: 'block', marginBottom: 6 }}>Tutar</label>
+                  <input 
+                    type="number" 
+                    value={form.tutar}
+                    onChange={e => setForm({...form, tutar: e.target.value})}
+                    placeholder="0.00"
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.1)', background: '#fcfcf9', fontSize: 14, outline: 'none' }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 13, color: '#444', fontWeight: 600, display: 'block', marginBottom: 6 }}>Para Birimi</label>
+                  <select 
+                    value={form.para_birimi}
+                    onChange={e => setForm({...form, para_birimi: e.target.value})}
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.1)', background: '#fcfcf9', fontSize: 14, outline: 'none' }}
+                  >
+                    <option value="TL">TL</option>
+                    <option value="USD">Dolar (USD)</option>
+                    <option value="EUR">Euro (EUR)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 13, color: '#444', fontWeight: 600, display: 'block', marginBottom: 6 }}>Açıklama & Notlar</label>
+                <textarea 
+                  value={form.detay}
+                  onChange={e => setForm({...form, detay: e.target.value})}
+                  rows={3}
+                  placeholder="Vade, ödeme planı veya ekstra notlar..."
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.1)', background: '#fcfcf9', fontSize: 14, outline: 'none', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 13, color: '#444', fontWeight: 600, display: 'block', marginBottom: 8 }}>Kapsayan Şantiyeler (Çoklu Seçim)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {gecerliSantiyeler.map(s => (
+                    <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: form.seciliSantiyeler.includes(s.id) ? 'rgba(29, 149, 150, 0.08)' : '#fcfcf9', border: form.seciliSantiyeler.includes(s.id) ? '1px solid rgba(29, 149, 150, 0.3)' : '1px solid rgba(0,0,0,0.06)', borderRadius: 8, cursor: 'pointer', transition: 'all 0.2s' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={form.seciliSantiyeler.includes(s.id)} 
+                        onChange={() => santiyeSecimDegistir(s.id)} 
+                        style={{ accentColor: '#1D9596' }}
+                      />
+                      <span style={{ fontSize: 13, color: form.seciliSantiyeler.includes(s.id) ? '#1D9596' : '#555', fontWeight: form.seciliSantiyeler.includes(s.id) ? 600 : 500 }}>{s.ad}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 24 }}>
+                <label style={{ fontSize: 13, color: '#444', fontWeight: 600, display: 'block', marginBottom: 8 }}>Sözleşme / Dosya Yükle</label>
+                <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: '#fcfcf9', border: '1.5px dashed rgba(29, 149, 150, 0.3)', borderRadius: 12, cursor: 'pointer', transition: 'all 0.2s' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1D9596" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  <span style={{ fontSize: 13, color: '#555', fontWeight: 500 }}>{secilenDosyalar.length > 0 ? `${secilenDosyalar.length} dosya seçildi` : 'Belge veya fotoğraf seçmek için tıklayın'}</span>
+                  <input type="file" multiple hidden onChange={(e) => setSecilenDosyalar(Array.from(e.target.files))} />
+                </label>
+
+                {/* Mevcut dosyalar */}
+                {aktifAnlasma && dosyalar.filter(d => d.anlasma_id === aktifAnlasma.id).length > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ fontSize: 12, color: '#666', fontWeight: 600, marginBottom: 8 }}>Yüklenmiş Dosyalar:</div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      {dosyalar.filter(d => d.anlasma_id === aktifAnlasma.id).map(f => (
+                        <a key={f.id} href={getGoogleDriveViewUrl(f.url)} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                          <div style={{ padding: '8px 12px', background: '#f0f7f7', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6, color: '#1D9596', fontSize: 12, fontWeight: 600, border: '1px solid rgba(29, 149, 150, 0.2)' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                            Belge Gör
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                {aktifAnlasma && (
+                  <button 
+                    onClick={anlasmaSil}
+                    disabled={yukleniyor}
+                    style={{ flex: 1, padding: '14px', background: '#fff', border: '1px solid #ef4444', borderRadius: 12, color: '#ef4444', fontWeight: 700, cursor: 'pointer', opacity: yukleniyor ? 0.7 : 1 }}
+                  >
+                    Sil
+                  </button>
+                )}
+                <button 
+                  onClick={anlasmaKaydet} 
+                  disabled={yukleniyor}
+                  style={{ flex: aktifAnlasma ? 2 : 1, padding: '14px', background: 'linear-gradient(135deg, #24b8b9, #1D9596)', color: 'white', border: 'none', borderRadius: 12, fontWeight: 700, cursor: 'pointer', boxShadow: '0 6px 16px rgba(29, 149, 150, 0.25)', opacity: yukleniyor ? 0.7 : 1 }}
+                >
+                  {yukleniyor ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
