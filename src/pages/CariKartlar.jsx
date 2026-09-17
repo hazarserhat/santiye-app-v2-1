@@ -30,6 +30,7 @@ export default function CariKartlar() {
   const [duzFirma, setDuzFirma] = useState('')
   const [duzTelefon, setDuzTelefon] = useState('')
   const [duzAdres, setDuzAdres] = useState('')
+  const [duzKategori, setDuzKategori] = useState('')
 
   const [yeniNot, setYeniNot] = useState('')
   const [duzenlenenNotId, setDuzenlenenNotId] = useState(null)
@@ -167,7 +168,7 @@ export default function CariKartlar() {
     const taseron = taseronlar.find((t) => t.id === id)
     if (taseron) {
       setDuzAd(taseron.ad); setDuzSifat(taseron.sifat || ''); setDuzFirma(taseron.firma || '')
-      setDuzTelefon(taseron.telefon || ''); setDuzAdres(taseron.adres || '')
+      setDuzTelefon(taseron.telefon || ''); setDuzAdres(taseron.adres || ''); setDuzKategori(taseron.kategori || '')
     }
 
     const { data: notData, error: notHata } = await supabase
@@ -224,7 +225,7 @@ export default function CariKartlar() {
   const taseronGuncelle = async () => {
     if (!duzAd.trim()) return
     const { error } = await supabase.from('taseronlar').update({
-      ad: duzAd, sifat: duzSifat, firma: duzFirma, telefon: duzTelefon, adres: duzAdres,
+      ad: duzAd, sifat: duzSifat, firma: duzFirma, telefon: duzTelefon, adres: duzAdres, kategori: duzKategori
     }).eq('id', seciliId)
     if (error) { alert('Güncellenemedi: ' + error.message); return }
     setDuzenleModu(false)
@@ -376,7 +377,12 @@ export default function CariKartlar() {
           </div>
           <div style={{ flex: 1 }}>
             <p style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700, color: '#333', letterSpacing: '-0.3px' }}>{seciliTaseron.ad}</p>
-            <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: '#666' }}>{seciliTaseron.sifat}{seciliTaseron.sifat && seciliTaseron.firma ? ' · ' : ''}{seciliTaseron.firma}</p>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: '#666', display: 'flex', alignItems: 'center', gap: 6 }}>
+              {seciliTaseron.sifat}{seciliTaseron.sifat && seciliTaseron.firma ? ' · ' : ''}{seciliTaseron.firma}
+              {seciliTaseron.kategori && (
+                <span style={{ padding: '2px 8px', background: '#e0f2fe', color: '#0369a1', borderRadius: 6, fontSize: 10, fontWeight: 600 }}>{seciliTaseron.kategori}</span>
+              )}
+            </p>
           </div>
           {yonetici && !duzenleModu && (
             <button 
@@ -392,7 +398,17 @@ export default function CariKartlar() {
         {duzenleModu ? (
           <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <input type="text" placeholder="Ad Soyad" value={duzAd} onChange={(e) => setDuzAd(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input type="text" placeholder="Ad Soyad" value={duzAd} onChange={(e) => setDuzAd(e.target.value)} style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+                <select value={duzKategori} onChange={(e) => setDuzKategori(e.target.value)} style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
+                  <option value="" disabled>Kategori Seçin</option>
+                  <option value="Ortaklar">Ortaklar</option>
+                  <option value="Taşeronlar">Taşeronlar</option>
+                  <option value="Tedarikçiler">Tedarikçiler</option>
+                  <option value="Kurumlar">Kurumlar</option>
+                  <option value="Diğer">Diğer</option>
+                </select>
+              </div>
               <input type="text" placeholder="Sıfat / unvan" value={duzSifat} onChange={(e) => setDuzSifat(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
               <input type="text" placeholder="Firma" value={duzFirma} onChange={(e) => setDuzFirma(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
               <input type="text" placeholder="Telefon" value={duzTelefon} onChange={(e) => setDuzTelefon(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />

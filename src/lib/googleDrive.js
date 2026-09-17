@@ -285,18 +285,38 @@ export async function uploadToGoogleDrive({
     throw new Error('Lütfen terminalde çalışan sunucuyu durdurup (Ctrl+C) tekrar `npm run dev` yazarak başlatın. Eski önbellek temizlenmeli.')
   }
 
-  const response = await fetch(scriptUrl, {
-    method: 'POST',
-    body: JSON.stringify(payload)
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 60000) // 60 saniye zaman aşımı
 
+  let response
+  try {
+    response = await fetch(scriptUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    })
+    clearTimeout(timeoutId)
+  } catch (networkErr) {
+    clearTimeout(timeoutId)
+    if (networkErr.name === 'AbortError') {
+      throw new Error('Zaman aşımı: Google Drive çok yavaş yanıt veriyor veya internet bağlantınız koptu.')
+    }
+    throw new Error('Bağlantı veya CORS hatası (Sunucuya ulaşılamadı): ' + networkErr.message)
+  }
+
+  let responseText
   let data
   try {
-    data = await response.json()
+    responseText = await response.text()
+    data = JSON.parse(responseText)
   } catch (err) {
-    const text = await response.text()
-    throw new Error('Google Apps Script geçersiz yanıt döndü: ' + text)
+    const errorPreview = responseText ? responseText.substring(0, 150) : 'Boş yanıt'
+    throw new Error('Google Apps Script sunucusundan geçersiz yanıt geldi: ' + errorPreview)
   }
+
 
   if (data.error) {
     throw new Error(`Google Drive yükleme hatası: ${data.error}`)
@@ -354,7 +374,14 @@ export async function moveToSilinenler(
       body: JSON.stringify(payload)
     })
     
-    const data = await response.json()
+    const responseText = await response.text()
+    let data
+    try {
+      data = JSON.parse(responseText)
+    } catch (err) {
+      console.warn('Silinenlere taşıma Script yanıtı JSON değil:', responseText)
+      return { success: false, error: 'Geçersiz yanıt: ' + responseText.substring(0, 100) }
+    }
     
     if (data.error) {
       console.warn('Silinenlere taşıma Script hatası:', data.error)
