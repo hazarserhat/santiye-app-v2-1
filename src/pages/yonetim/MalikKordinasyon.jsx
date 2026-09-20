@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
-import { useSite } from '../../../context/SiteContext'
-import { useAuth } from '../../../context/AuthContext'
+import { supabase } from '../../lib/supabase'
+import { useSite } from '../../context/SiteContext'
+import { useAuth } from '../../context/AuthContext'
 
 export default function MalikKordinasyon() {
   const { santiyeler } = useSite()
