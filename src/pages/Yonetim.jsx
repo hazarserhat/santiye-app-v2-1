@@ -18,6 +18,7 @@ const DEFAULT_SAYFALAR = [
   { yol: '/yonetim/santiye-adresleri', ad: 'Şantiye Adresleri', aciklama: 'Google Maps linkleri', ikon: '📍' },
   { yol: '/yonetim/yarisi-bizden', ad: 'Yarısı Bizden Ödemeleri', aciklama: 'Devlet desteği takibi', ikon: '🤝' },
   { yol: '/yonetim/proje-gelirleri', ad: 'Proje Gelirleri', aciklama: 'Malik bazlı alacak/ödeme takibi', ikon: '💰' },
+  { yol: '/yonetim/malik-koordinasyon', ad: 'Malik Koordinasyon', aciklama: 'Otopark, vergi, vekalet takibi matrisi', ikon: '✅' },
   { yol: '/yonetim/kredi-kartlari', ad: 'Kredi Kartı Ödeme Tarihleri', aciklama: 'Kesim ve son ödeme tarihi takibi', ikon: '💳' },
   { yol: '/yonetim/anlasma-planlama', ad: 'Anlaşma & Planlama', aciklama: 'Tüm şantiyelerin taşeron anlaşmaları', ikon: '📊' },
 ]
