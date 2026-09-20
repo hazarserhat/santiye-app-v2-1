@@ -48,7 +48,12 @@ export default function MalikKordinasyon() {
     if (error) {
       console.error('Malikler yüklenemedi:', error)
     } else {
-      setMalikler(mData || [])
+      const siralanmis = (mData || []).sort((a, b) => {
+        const da = a.daire_no ? String(a.daire_no) : ''
+        const db = b.daire_no ? String(b.daire_no) : ''
+        return da.localeCompare(db, undefined, { numeric: true, sensitivity: 'base' })
+      })
+      setMalikler(siralanmis)
     }
     
     setYukleniyor(false)
