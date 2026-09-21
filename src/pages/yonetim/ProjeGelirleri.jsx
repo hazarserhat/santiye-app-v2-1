@@ -48,7 +48,8 @@ export default function ProjeGelirleri() {
     kalan_bakiye: true,
     asamalar: true,
     alinan: true,
-    kalan: true
+    kalan: true,
+    vergi_harc: true
   })
 
   // Satış Modalı Stateleri
@@ -87,7 +88,7 @@ export default function ProjeGelirleri() {
 
   const hucreKaydet = async (malikId, alan, yeniDeger) => {
     let val = yeniDeger
-    if (alan === 'toplam_alacak' || alan === 'devlet_destegi' || alan === 'iskonto_farki') {
+    if (alan === 'toplam_alacak' || alan === 'devlet_destegi' || alan === 'iskonto_farki' || alan === 'vergi_harc_tutar') {
       val = Number(yeniDeger) || 0
     } else if (alan === 'ad_soyad') {
       const m = malikler.find(x => x.id === malikId)
@@ -105,6 +106,12 @@ export default function ProjeGelirleri() {
     const { error } = await supabase.from('malik_asamalari').update({ tutar: Number(yeniTutar) || 0 }).eq('id', asamaId)
     if (error) alert('Aşama tutarı güncellenemedi: ' + error.message)
     setHucreEdit(null)
+    yenile()
+  }
+
+  const vergiHarcTikle = async (malikId, mevcutDurum) => {
+    const { error } = await supabase.from('malikler').update({ vergi_harc_durum: !mevcutDurum }).eq('id', malikId)
+    if (error) alert('Vergi/Harç durumu güncellenemedi: ' + error.message)
     yenile()
   }
 
@@ -355,6 +362,7 @@ export default function ProjeGelirleri() {
       ad_soyad: m.ad_soyad || '',
       toplam_alacak: m.toplam_alacak || 0, 
       devlet_destegi: m.devlet_destegi || 0,
+      vergi_harc_tutar: m.vergi_harc_tutar || 0,
       telefon: m.telefon || '',
       mesken_turu: m.mesken_turu || '',
       daire_no: m.daire_no || ''
@@ -368,6 +376,7 @@ export default function ProjeGelirleri() {
       ad_soyad: taslak.ad_soyad || '',
       toplam_alacak: Number(taslak.toplam_alacak) || 0,
       devlet_destegi: Number(taslak.devlet_destegi) || 0,
+      vergi_harc_tutar: Number(taslak.vergi_harc_tutar) || 0,
       telefon: taslak.telefon || '',
       mesken_turu: taslak.mesken_turu || '',
       daire_no: taslak.daire_no || '',
@@ -628,7 +637,7 @@ export default function ProjeGelirleri() {
         headers.push(stageName)
       }
 
-      headers.push('Alınan (TL)', 'Kalan (TL)')
+      headers.push('Alınan (TL)', 'Kalan (TL)', 'Vergi / Harç (TL)')
       data.push(headers)
 
       // Body Rows
@@ -660,7 +669,7 @@ export default function ProjeGelirleri() {
           }
         }
 
-        row.push(alinan, kalan)
+        row.push(alinan, kalan, Number(m.vergi_harc_tutar || 0))
         data.push(row)
       })
 
@@ -683,7 +692,8 @@ export default function ProjeGelirleri() {
         totalRow.push(asamaToplamlari[i])
       }
 
-      totalRow.push(toplamAlinanGenel, toplamKalanGenel)
+      const toplamVergiEx = gorunenler.reduce((acc, m) => acc + Number(m.vergi_harc_tutar || 0), 0)
+      totalRow.push(toplamAlinanGenel, toplamKalanGenel, toplamVergiEx)
       data.push(totalRow)
 
       const ws = XLSX.utils.aoa_to_sheet(data)
@@ -703,7 +713,7 @@ export default function ProjeGelirleri() {
       for (let i = 0; i < maxStageCount; i++) {
         colWidths.push({ wch: 22 })
       }
-      colWidths.push({ wch: 18 }, { wch: 18 })
+      colWidths.push({ wch: 18 }, { wch: 18 }, { wch: 18 })
       ws['!cols'] = colWidths
 
       const wb = XLSX.utils.book_new()
@@ -1158,6 +1168,7 @@ export default function ProjeGelirleri() {
                   ))}
                   <th style={{ ...thStil, display: isColumnVisible('alinan') ? '' : 'none', textAlign: 'right' }}>Alınan</th>
                   <th style={{ ...thStil, display: isColumnVisible('kalan') ? '' : 'none', textAlign: 'right' }}>Kalan</th>
+                  <th style={{ ...thStil, display: isColumnVisible('vergi_harc') ? '' : 'none', minWidth: 140 }}>Vergi / Harç</th>
                   <th style={{ ...thStil, display: isColumnVisible('islemler') ? '' : 'none' }}>İşlemler</th>
                 </tr>
               )
@@ -1410,6 +1421,31 @@ export default function ProjeGelirleri() {
                     {isKalanSifir ? <span className="pill-rozet pill-yesil" style={{ fontSize: 12, padding: '4px 10px', float: 'right' }}>✓ ÖDENDİ</span> : `${paraFormatla(kalan)} ₺`}
                   </td>
 
+                  {/* Vergi / Harç */}
+                  <td style={{ background: 'rgba(139, 92, 246, 0.15)', minWidth: 140, transition: 'background 0.2s ease', display: isColumnVisible('vergi_harc') ? '' : 'none' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+                      <span className={`pill-rozet ${m.vergi_harc_durum ? 'pill-yesil' : 'pill-gri'}`} title={m.vergi_harc_durum ? 'Ödendi' : 'Ödenmedi'}>
+                        <input type="checkbox" style={{ width: 14, height: 14, cursor: 'pointer', accentColor: '#8B5CF6' }} checked={!!m.vergi_harc_durum} onChange={() => vergiHarcTikle(m.id, m.vergi_harc_durum)} title="Vergi / Harç ödendi işaretle" />
+                        <span>Vergi / Harç</span>
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 4, paddingLeft: 2 }}>
+                        {hucreEdit?.malikId === m.id && hucreEdit?.alan === 'vergi_harc_tutar' ? (
+                          <input
+                            type="number"
+                            autoFocus
+                            style={{ padding: '2px 4px', border: '2px solid #8B5CF6', borderRadius: 4, width: 85, fontSize: 12, fontWeight: 700 }}
+                            defaultValue={m.vergi_harc_tutar ?? ''}
+                            onBlur={(e) => hucreKaydet(m.id, 'vergi_harc_tutar', e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') hucreKaydet(m.id, 'vergi_harc_tutar', e.target.value) }}
+                          />
+                        ) : (
+                          <span onDoubleClick={() => hucreCiftTik(m.id, 'vergi_harc_tutar')} title={hizliDuzenleModu ? "Çift tıklayarak tutarı düzenle" : "Hızlı Düzenleme modunu açarak düzenleyebilirsiniz"} style={{ fontSize: 12, fontWeight: 800, color: '#1E293B', cursor: hizliDuzenleModu ? 'pointer' : 'default' }}>{paraFormatla(m.vergi_harc_tutar)} ₺</span>
+                        )}
+                        {m.vergi_harc_durum && <span style={{ fontSize: 9, fontWeight: 800 }}>🟢 ÖDENDİ</span>}
+                      </div>
+                    </div>
+                  </td>
+
                   {/* İşlemler */}
                   <td style={{ background: cellBg, display: isColumnVisible('islemler') ? '' : 'none' }}>
                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -1444,6 +1480,7 @@ export default function ProjeGelirleri() {
               ))}
               <td style={{ color: '#059669', fontSize: 15, fontWeight: 900, background: '#E6F4F1', display: isColumnVisible('alinan') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(toplamAlinanGenel)} ₺</td>
               <td style={{ color: '#DC2626', fontSize: 15, fontWeight: 900, background: '#E6F4F1', display: isColumnVisible('kalan') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(toplamKalanGenel)} ₺</td>
+              <td style={{ color: '#6D28D9', fontSize: 15, fontWeight: 900, background: '#F3E8FF', display: isColumnVisible('vergi_harc') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(gorunenler.reduce((acc, m) => acc + Number(m.vergi_harc_tutar || 0), 0))} ₺</td>
               <td style={{ background: '#E6F4F1', display: isColumnVisible('islemler') ? '' : 'none' }}></td>
             </tr>
           </tfoot>
@@ -1506,6 +1543,11 @@ export default function ProjeGelirleri() {
             <label className="premium-label">Devlet Desteği (Kredi+Hibe ₺)</label>
             <input type="number" className="premium-input" value={taslak.devlet_destegi ?? ''} onKeyDown={sadeceSayiTuslari}
               onChange={(e) => setTaslak((o) => ({ ...o, devlet_destegi: e.target.value }))} />
+          </div>
+          <div>
+            <label className="premium-label">Vergi / Harç Tutarı (₺)</label>
+            <input type="number" className="premium-input" value={taslak.vergi_harc_tutar ?? ''} onKeyDown={sadeceSayiTuslari}
+              onChange={(e) => setTaslak((o) => ({ ...o, vergi_harc_tutar: e.target.value }))} />
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '14px 0 8px', gridColumn: '1 / -1', borderBottom: '2px solid #E2E8F0', paddingBottom: 8 }}>
@@ -1672,13 +1714,13 @@ export default function ProjeGelirleri() {
             {/* Quick Actions */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
               <button
-                onClick={() => setSeciliSutunlarPDF({ ad_soyad: true, telefon: true, santiye: true, mesken_turu: true, daire_no: true, toplam_alacak: true, iskonto_farki: true, devlet_destegi: true, kalan_bakiye: true, asamalar: true, alinan: true, kalan: true })}
+                onClick={() => setSeciliSutunlarPDF({ ad_soyad: true, telefon: true, santiye: true, mesken_turu: true, daire_no: true, toplam_alacak: true, iskonto_farki: true, devlet_destegi: true, kalan_bakiye: true, asamalar: true, alinan: true, kalan: true, vergi_harc: true })}
                 style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '6px', border: '1px solid #CBD5E0', background: '#F1F5F9', fontWeight: 600, cursor: 'pointer' }}
               >
                 ✓ Tümünü Seç
               </button>
               <button
-                onClick={() => setSeciliSutunlarPDF({ ad_soyad: true, telefon: false, santiye: false, mesken_turu: false, daire_no: true, toplam_alacak: true, iskonto_farki: true, devlet_destegi: true, kalan_bakiye: true, asamalar: false, alinan: true, kalan: true })}
+                onClick={() => setSeciliSutunlarPDF({ ad_soyad: true, telefon: false, santiye: false, mesken_turu: false, daire_no: true, toplam_alacak: true, iskonto_farki: true, devlet_destegi: true, kalan_bakiye: true, asamalar: false, alinan: true, kalan: true, vergi_harc: false })}
                 style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '6px', border: '1px solid #CBD5E0', background: '#F1F5F9', fontWeight: 600, cursor: 'pointer' }}
               >
                 📋 Özet Rapor (Büyük Yazı)
@@ -1699,7 +1741,8 @@ export default function ProjeGelirleri() {
                 { key: 'kalan_bakiye', label: 'Kalan Bakiye' },
                 { key: 'asamalar', label: 'Aşamalar (Aşama 1..N)' },
                 { key: 'alinan', label: 'Alınan (Tahsilat)' },
-                { key: 'kalan', label: 'Kalan Borç' }
+                { key: 'kalan', label: 'Kalan Borç' },
+                { key: 'vergi_harc', label: 'Vergi / Harç Ödemeleri' }
               ].map((item) => (
                 <label key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
                   <input
