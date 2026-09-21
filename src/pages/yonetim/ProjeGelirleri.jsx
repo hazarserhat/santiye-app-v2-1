@@ -137,8 +137,12 @@ export default function ProjeGelirleri() {
     const odemeHarita = {}
     
     // Nakit & Havale Gelirleri
-    const { data: g } = await supabase.from('gelirler').select('malik_id, tutar').not('malik_id', 'is', null)
-    ;(g || []).forEach((r) => { odemeHarita[r.malik_id] = (odemeHarita[r.malik_id] || 0) + Number(r.tutar) })
+    const { data: g } = await supabase.from('gelirler').select('malik_id, tutar, is_vergi_harc').not('malik_id', 'is', null)
+    ;(g || []).forEach((r) => { 
+      if (!r.is_vergi_harc) {
+        odemeHarita[r.malik_id] = (odemeHarita[r.malik_id] || 0) + Number(r.tutar) 
+      }
+    })
 
     // Çek Gelirleri
     const { data: c, error: cErr } = await supabase.from('cekler').select('odeyen, tutar').eq('yon', 'alinan')

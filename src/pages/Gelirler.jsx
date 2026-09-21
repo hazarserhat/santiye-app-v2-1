@@ -35,6 +35,7 @@ export default function Gelirler() {
   const [tarih, setTarih] = useState(bugun())
   const [tahsilatNoktasi, setTahsilatNoktasi] = useState('Merkez Kasa')
   const [gecmisDonemMi, setGecmisDonemMi] = useState(false)
+  const [isVergiHarc, setIsVergiHarc] = useState(false)
   const [notMetni, setNotMetni] = useState('')
   const [belge, setBelge] = useState(null)
   const [yukleniyor, setYukleniyor] = useState(false)
@@ -54,6 +55,7 @@ export default function Gelirler() {
   const [duzOdemeYapan, setDuzOdemeYapan] = useState('')
   const [duzTahsilatNoktasi, setDuzTahsilatNoktasi] = useState('')
   const [duzGecmisDonemMi, setDuzGecmisDonemMi] = useState(false)
+  const [duzIsVergiHarc, setDuzIsVergiHarc] = useState(false)
 
   const TAHSILAT_NOKTALARI = [
     'Merkez Kasa', 'Serhat Kasa', 'Abdullah Kasa', 'Fuat Kasa',
@@ -204,11 +206,12 @@ export default function Gelirler() {
       belge_url: belgeUrl,
       not_metni: notMetni,
       ekleyen: profile?.id,
+      is_vergi_harc: isVergiHarc,
     })
 
     if (error) { alert('Gelir eklenemedi: ' + error.message); setYukleniyor(false); return }
 
-    setMalikId(''); setSecilenCariId(null); setOdemeYapanAdi(''); setTutar(''); setNotMetni(''); setBelge(null); setTarih(bugun()); setTahsilatNoktasi('Merkez Kasa'); setGecmisDonemMi(false);
+    setMalikId(''); setSecilenCariId(null); setOdemeYapanAdi(''); setTutar(''); setNotMetni(''); setBelge(null); setTarih(bugun()); setTahsilatNoktasi('Merkez Kasa'); setGecmisDonemMi(false); setIsVergiHarc(false);
     setYukleniyor(false)
     gelirleriYukle()
   }
@@ -271,6 +274,7 @@ export default function Gelirler() {
       not_metni: duzNot,
       odeme_yapan_adi: duzOdemeYapan,
       tahsilat_noktasi: duzGecmisDonemMi ? 'Geçmiş Dönem (Devir)' : duzTahsilatNoktasi,
+      is_vergi_harc: duzIsVergiHarc,
     }).eq('id', id)
     if (error) { alert('Güncellenemedi: ' + error.message); return }
     setDuzenlenenId(null)
@@ -316,6 +320,7 @@ export default function Gelirler() {
         `💵 *Tutar:* ${paraFormatla(g.tutar)} ₺\n` +
         `📍 *Tahsilat Noktası:* ${g.tahsilat_noktasi || 'Belirtilmedi'}\n` +
         `📅 *Tarih:* ${g.tarih ? new Date(g.tarih).toLocaleDateString('tr-TR') : '—'}\n` +
+        (g.is_vergi_harc ? `📌 *Tür:* Vergi / Harç Ödemesi\n` : '') +
         (g.not_metni ? `📝 *Not:* ${g.not_metni}` : '')
 
       if (navigator.canShare && navigator.canShare({ files: dosyalar })) {
@@ -456,6 +461,14 @@ export default function Gelirler() {
               </div>
             </label>
 
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, cursor: 'pointer', background: isVergiHarc ? '#F3E8FF' : '#F8F9FA', padding: '10px 12px', borderRadius: 8, border: `1px solid ${isVergiHarc ? '#A855F7' : '#E2E8F0'}` }}>
+              <input type="checkbox" checked={isVergiHarc} onChange={(e) => setIsVergiHarc(e.target.checked)} style={{ width: 16, height: 16, accentColor: '#9333EA', cursor: 'pointer' }} />
+              <div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: isVergiHarc ? '#7E22CE' : '#475569', display: 'block' }}>Vergi / Harç Ödemesidir</span>
+                <span style={{ fontSize: 11, color: '#64748B' }}>İşaretlerseniz bu tutar ana projeye ait 'Kalan Bakiye'den <b>düşülmez</b>.</span>
+              </div>
+            </label>
+
             <button className="ekle-buton-genis" onClick={gelirEkle} disabled={yukleniyor} style={{ marginTop: 8 }}>
               {yukleniyor ? 'Ekleniyor...' : 'Geliri kaydet'}
             </button>
@@ -537,6 +550,11 @@ export default function Gelirler() {
                       <input type="checkbox" checked={duzGecmisDonemMi} onChange={(e) => setDuzGecmisDonemMi(e.target.checked)} style={{ width: 14, height: 14, accentColor: '#D97706' }} />
                       <span style={{ fontSize: 12, fontWeight: duzGecmisDonemMi ? 600 : 400, color: duzGecmisDonemMi ? '#B45309' : '#555' }}>Geçmiş Dönem Tahsilatıdır (Kasa etkilenmez)</span>
                     </label>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', background: duzIsVergiHarc ? '#F3E8FF' : '#f9f9f9', padding: '6px 8px', borderRadius: 6, border: `1px solid ${duzIsVergiHarc ? '#A855F7' : '#eee'}` }}>
+                      <input type="checkbox" checked={duzIsVergiHarc} onChange={(e) => setDuzIsVergiHarc(e.target.checked)} style={{ width: 14, height: 14, accentColor: '#9333EA' }} />
+                      <span style={{ fontSize: 12, fontWeight: duzIsVergiHarc ? 600 : 400, color: duzIsVergiHarc ? '#7E22CE' : '#555' }}>Vergi / Harç Ödemesidir</span>
+                    </label>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button onClick={() => setDuzenlenenId(null)} style={{ flex: 1, padding: '8px', background: '#f0f0ed', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Vazgeç</button>
                       <button onClick={() => gelirDuzenle(g.id)} style={{ flex: 1, padding: '8px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>Kaydet</button>
@@ -558,6 +576,7 @@ export default function Gelirler() {
                             setDuzOdemeYapan(g.odeme_yapan_adi || '')
                             setDuzTahsilatNoktasi(g.tahsilat_noktasi || 'Merkez Kasa')
                             setDuzGecmisDonemMi(g.tahsilat_noktasi === 'Geçmiş Dönem (Devir)')
+                            setDuzIsVergiHarc(!!g.is_vergi_harc)
                           }} aria-label="Düzenle">✎</button>
                         )}
                         <input
@@ -575,6 +594,7 @@ export default function Gelirler() {
                       <span className="etiket etiket-vurgu">{g.santiyeler?.ad}</span>
                       <span className="etiket">{new Date(g.tarih).toLocaleDateString('tr-TR')}</span>
                       {g.tahsilat_noktasi && <span className="etiket" style={{ background: '#E3F2FD', color: '#1976D2', border: '1px solid #BBDEFB' }}>📍 {g.tahsilat_noktasi}</span>}
+                      {g.is_vergi_harc && <span className="etiket" style={{ background: '#F3E8FF', color: '#7E22CE', border: '1px solid #D8B4FE' }}>🏛 Vergi / Harç</span>}
                     </div>
                     {g.not_metni && <p className="not-icerik" style={{ marginTop: 6 }}>{g.not_metni}</p>}
 
