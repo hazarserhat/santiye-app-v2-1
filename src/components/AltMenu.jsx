@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useSite } from '../context/SiteContext'
 
 const OGELER = [
   { yol: '/gorevler', etiket: 'Görevler', simge: '✓' },
@@ -16,10 +17,16 @@ const OGELER = [
 
 export default function AltMenu() {
   const { profile } = useAuth()
+  const { sistemAyarlari } = useSite()
   
   let gorunurOgeler = profile?.rol === 'santiye_sefi' 
     ? OGELER.filter(o => !o.ozelRol) 
     : OGELER
+
+  // Şantiye şefi için gider yetkisi kontrolü
+  if (profile?.rol === 'santiye_sefi' && sistemAyarlari?.sef_gider_erisimi !== 'true') {
+    gorunurOgeler = gorunurOgeler.filter(o => o.yol !== '/masraflar')
+  }
 
   if (profile?.sistem_yoneticisi) {
     gorunurOgeler = [...gorunurOgeler, { yol: '/yonetim', etiket: 'Yönetim', simge: '⚙️' }]

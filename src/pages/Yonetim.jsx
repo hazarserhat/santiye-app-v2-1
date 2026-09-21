@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useSite } from '../context/SiteContext'
 import { supabase } from '../lib/supabase'
 import { paraFormatla } from '../lib/format'
 
@@ -25,6 +26,7 @@ const DEFAULT_SAYFALAR = [
 
 export default function Yonetim() {
   const { profile } = useAuth()
+  const { sistemAyarlari, ayarlariYukle } = useSite()
   const [sekme, setSekme] = useState('menu') // 'menu', 'gelirler', 'giderler'
   const [gizli, setGizli] = useState(true)
 
@@ -85,6 +87,20 @@ export default function Yonetim() {
     if (gData) setGelirler(gData)
     if (cData) setAlinanCekler(cData)
     if (mData) setMasraflar(mData)
+  }
+
+  const toggleGiderErisimi = async () => {
+    const suAnkiDurum = sistemAyarlari?.sef_gider_erisimi === 'true'
+    const yeniDurumStr = suAnkiDurum ? 'false' : 'true'
+    
+    // veritabanında güncelle
+    const { error } = await supabase.from('sistem_ayarlari').upsert({ anahtar: 'sef_gider_erisimi', deger: yeniDurumStr }, { onConflict: 'anahtar' })
+    if (error) {
+      alert('Ayar güncellenemedi: ' + error.message)
+    } else {
+      // Context'teki ayarları yeniden yükle
+      ayarlariYukle()
+    }
   }
 
   if (!profile?.sistem_yoneticisi) {
@@ -372,7 +388,33 @@ export default function Yonetim() {
       </div>
 
       {sekme === 'menu' && (
-        <div className="premium-menu-grid">
+        <>
+          <div style={{ marginBottom: 24, padding: '16px 20px', background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+            <div>
+              <h4 style={{ margin: '0 0 4px 0', fontSize: 15, color: '#1e293b' }}>Şantiye Şefleri "Giderler" Sayfasını Görebilsin</h4>
+              <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>Bu ayar kapatıldığında şantiye şefleri menüde Giderler kısmını göremez.</p>
+            </div>
+            <label style={{ position: 'relative', display: 'inline-block', width: 48, height: 26 }}>
+              <input 
+                type="checkbox" 
+                checked={sistemAyarlari?.sef_gider_erisimi === 'true'}
+                onChange={toggleGiderErisimi}
+                style={{ opacity: 0, width: 0, height: 0 }} 
+              />
+              <span style={{
+                position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: sistemAyarlari?.sef_gider_erisimi === 'true' ? '#16a34a' : '#cbd5e1',
+                transition: '.4s', borderRadius: 34
+              }}>
+                <span style={{
+                  position: 'absolute', content: '""', height: 20, width: 20, left: 3, bottom: 3,
+                  backgroundColor: 'white', transition: '.4s', borderRadius: '50%',
+                  transform: sistemAyarlari?.sef_gider_erisimi === 'true' ? 'translateX(22px)' : 'translateX(0)'
+                }} />
+              </span>
+            </label>
+          </div>
+          <div className="premium-menu-grid">
           {sayfalar.map((s, index) => (
             <Link 
               key={s.yol} 
@@ -393,6 +435,7 @@ export default function Yonetim() {
             </Link>
           ))}
         </div>
+        </>
       )}
 
       {sekme === 'gelirler' && (

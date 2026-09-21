@@ -7,8 +7,10 @@ export function SiteProvider({ children }) {
   const [santiyeler, setSantiyeler] = useState([])
   const [aktifSantiye, setAktifSantiye] = useState(null)
   const [yukleniyor, setYukleniyor] = useState(true)
+  const [sistemAyarlari, setSistemAyarlari] = useState({})
 
   useEffect(() => {
+    // Şantiyeleri Yükle
     supabase
       .from('santiyeler')
       .select('*')
@@ -20,7 +22,25 @@ export function SiteProvider({ children }) {
         setAktifSantiye(kayitli || data?.[0] || null)
         setYukleniyor(false)
       })
+
+    // Sistem Ayarlarını Yükle
+    ayarlariYukle()
   }, [])
+
+  const ayarlariYukle = async () => {
+    try {
+      const { data } = await supabase.from('sistem_ayarlari').select('anahtar, deger')
+      if (data) {
+        const yeniAyarlar = {}
+        data.forEach(ayar => {
+          yeniAyarlar[ayar.anahtar] = ayar.deger
+        })
+        setSistemAyarlari(yeniAyarlar)
+      }
+    } catch (err) {
+      console.warn('Sistem ayarları yüklenemedi (Tablo olmayabilir):', err)
+    }
+  }
 
   const santiyeSec = (santiye) => {
     setAktifSantiye(santiye)
@@ -28,7 +48,7 @@ export function SiteProvider({ children }) {
   }
 
   return (
-    <SiteContext.Provider value={{ santiyeler, aktifSantiye, santiyeSec, yukleniyor, setSantiyeler }}>
+    <SiteContext.Provider value={{ santiyeler, aktifSantiye, santiyeSec, yukleniyor, setSantiyeler, sistemAyarlari, ayarlariYukle }}>
       {children}
     </SiteContext.Provider>
   )

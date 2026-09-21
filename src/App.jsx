@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import { SiteProvider } from './context/SiteContext'
+import { SiteProvider, useSite } from './context/SiteContext'
 import AltMenu from './components/AltMenu'
 import Login from './pages/Login'
 import Gorevler from './pages/Gorevler'
@@ -45,6 +45,16 @@ function GelirKoruma({ children }) {
   return children
 }
 
+function GiderKoruma({ children }) {
+  const { profile } = useAuth()
+  const { sistemAyarlari } = useSite()
+  
+  if (profile?.rol === 'santiye_sefi' && sistemAyarlari?.sef_gider_erisimi !== 'true') {
+    return <Navigate to="/gorevler" replace />
+  }
+  return children
+}
+
 function IcerikAlani() {
   const { session, profile, yukleniyor, cikisYap } = useAuth()
 
@@ -65,7 +75,7 @@ function IcerikAlani() {
           <Routes>
             <Route path="/" element={<Navigate to="/gorevler" replace />} />
             <Route path="/gorevler" element={<Gorevler />} />
-            <Route path="/masraflar" element={<Masraflar />} />
+            <Route path="/masraflar" element={<GiderKoruma><Masraflar /></GiderKoruma>} />
             <Route path="/gelirler" element={<GelirKoruma><Gelirler /></GelirKoruma>} />
             <Route path="/kasalar" element={<GelirKoruma><KasaVirmanlar /></GelirKoruma>} />
             <Route path="/cari-kartlar" element={<CariKartlar />} />
