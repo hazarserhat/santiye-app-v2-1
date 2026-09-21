@@ -15,7 +15,7 @@ export default function CariKartlar() {
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [seciliId, setSeciliId] = useState(null)
   const [arama, setArama] = useState('')
-  const [aktifSekme, setAktifSekme] = useState('ana')
+  const [aktifSekme, setAktifSekme] = useState('tumu')
 
   const [notlar, setNotlar] = useState([])
   const [iliskiliSantiyeler, setIliskiliSantiyeler] = useState([])
