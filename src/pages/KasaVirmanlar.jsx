@@ -6,7 +6,7 @@ import { paraFormatla, sadeceSayiTuslari, formatInputTutar, temizleTutar } from 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
 const KATEGORILER = {
-  Kasalar: ['Merkez Kasa', 'Serhat Kasa', 'Abdullah Kasa', 'Fuat Kasa'],
+  Kasalar: ['Merkez Kasa', 'Serhat Kasa', 'Abdullah Kasa', 'Fuat Kasa', 'Engin Hazar ( Fırat Tekstil Diyarbakır )'],
   Bankalar: ['Ziraat', 'QNB', 'Garanti', 'Garanti Havale', 'Emlak Bank Havale'],
   'Kredi Kartları': ['Ziraat Kredi Kartı', 'Garanti Kredi Kartı', 'Qnb Kredi Kartı']
 }

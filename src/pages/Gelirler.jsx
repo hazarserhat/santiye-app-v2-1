@@ -58,7 +58,7 @@ export default function Gelirler() {
   const [duzIsVergiHarc, setDuzIsVergiHarc] = useState(false)
 
   const TAHSILAT_NOKTALARI = [
-    'Merkez Kasa', 'Serhat Kasa', 'Abdullah Kasa', 'Fuat Kasa',
+    'Merkez Kasa', 'Serhat Kasa', 'Abdullah Kasa', 'Fuat Kasa', 'Engin Hazar ( Fırat Tekstil Diyarbakır )',
     'Ruha Ziraat', 'Ruha QNB', 'Ruha Garanti', 'Ruha Emlak Bank',
     'Ziraat Kredi Kartı', 'Garanti Kredi Kartı', 'Qnb Kredi Kartı',
     'Ödeme Yapılmadı'

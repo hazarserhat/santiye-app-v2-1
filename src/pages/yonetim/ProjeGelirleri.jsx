@@ -100,7 +100,7 @@ export default function ProjeGelirleri() {
   const [gecmisDonemMi, setGecmisDonemMi] = useState(false)
 
   const TAHSILAT_NOKTALARI = [
-    'Merkez Kasa', 'Serhat Kasa', 'Fuat Kasa', 'Abdullah Kasa',
+    'Merkez Kasa', 'Serhat Kasa', 'Fuat Kasa', 'Abdullah Kasa', 'Engin Hazar ( Fırat Tekstil Diyarbakır )',
     'Ruha Ziraat', 'Ruha QNB', 'Ruha Garanti', 'Şantiye Şefleri'
   ]
 

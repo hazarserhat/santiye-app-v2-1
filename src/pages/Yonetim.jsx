@@ -130,7 +130,7 @@ export default function Yonetim() {
 
   // Tahsilat Noktası Grupları
   const BANKALAR = ['Ruha Ziraat', 'Ruha QNB', 'Ruha Garanti']
-  const KASALAR = ['Serhat Kasa', 'Fuat Kasa', 'Abdullah Kasa', 'Merkez Kasa', 'Şantiye Şefleri', 'Elden / Belirtilmeyen']
+  const KASALAR = ['Serhat Kasa', 'Fuat Kasa', 'Abdullah Kasa', 'Merkez Kasa', 'Engin Hazar ( Fırat Tekstil Diyarbakır )', 'Şantiye Şefleri', 'Elden / Belirtilmeyen']
 
   const malikBankaDetay = {}
   BANKALAR.forEach(b => malikBankaDetay[b] = 0)
