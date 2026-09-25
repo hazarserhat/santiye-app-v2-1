@@ -20,7 +20,7 @@ const tr2en = (text) => {
 }
 
 export default function ProjeGelirleri() {
-  const { santiyeler } = useSite()
+  const { santiyeler, sistemAyarlari, ayarlariYukle } = useSite()
   const { profile } = useAuth()
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [siralama, setSiralama] = useState('daire_artan')
@@ -30,6 +30,38 @@ export default function ProjeGelirleri() {
   const [vergiHarcToplamlari, setVergiHarcToplamlari] = useState({}) // { malikId: toplam }
   const [yukleniyor, setYukleniyor] = useState(false)
   const dosyaInputRef = useRef(null)
+
+  const [santiyeNotu, setSantiyeNotu] = useState('')
+  const [santiyeNotuKaydediliyor, setSantiyeNotuKaydediliyor] = useState(false)
+  const notZamanlayiciRef = useRef(null)
+
+  useEffect(() => {
+    if (filtreSantiye !== 'hepsi') {
+      const key = `santiye_not_${filtreSantiye}`
+      setSantiyeNotu(sistemAyarlari?.[key] || '')
+    } else {
+      setSantiyeNotu('')
+    }
+  }, [filtreSantiye])
+
+  const santiyeNotuDegisti = (yeniNot) => {
+    setSantiyeNotu(yeniNot)
+    if (notZamanlayiciRef.current) clearTimeout(notZamanlayiciRef.current)
+    setSantiyeNotuKaydediliyor(true)
+    
+    notZamanlayiciRef.current = setTimeout(async () => {
+      const key = `santiye_not_${filtreSantiye}`
+      const { data: mevcut } = await supabase.from('sistem_ayarlari').select('id').eq('anahtar', key).single()
+      
+      if (mevcut) {
+        await supabase.from('sistem_ayarlari').update({ deger: yeniNot }).eq('anahtar', key)
+      } else {
+        await supabase.from('sistem_ayarlari').insert({ anahtar: key, deger: yeniNot })
+      }
+      ayarlariYukle()
+      setSantiyeNotuKaydediliyor(false)
+    }, 1000)
+  }
 
   const [duzenlenenId, setDuzenlenenId] = useState(null)
   const [taslak, setTaslak] = useState({})
@@ -1482,6 +1514,23 @@ export default function ProjeGelirleri() {
           </tfoot>
         </table>
       </div>
+
+      {filtreSantiye !== 'hepsi' && (
+        <div style={{ marginTop: 24, padding: 16, background: '#F8F9FA', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <h3 style={{ margin: 0, fontSize: 15, color: '#2D3748', display: 'flex', alignItems: 'center', gap: 6 }}>
+              📝 {santiyeler.find(s => s.id === filtreSantiye)?.ad} - Proje Notları
+            </h3>
+            {santiyeNotuKaydediliyor && <span style={{ fontSize: 12, color: '#059669', fontWeight: 600 }}>Kaydediliyor...</span>}
+          </div>
+          <textarea
+            value={santiyeNotu}
+            onChange={(e) => santiyeNotuDegisti(e.target.value)}
+            placeholder="Bu şantiye/proje ile ilgili genel notlarınızı buraya yazabilirsiniz... (Otomatik kaydedilir)"
+            style={{ width: '100%', minHeight: 120, padding: 12, borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 14, fontFamily: 'inherit', resize: 'vertical' }}
+          />
+        </div>
+      )}
 
       {duzenlenenId && (
         <div className="glass-kutu form-grid" style={{ marginBottom: 24 }}>
