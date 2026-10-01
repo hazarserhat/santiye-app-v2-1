@@ -57,32 +57,60 @@ export default function Cekler({ yon = 'verilen' }) {
   const [duzCokluSantiyeAcik, setDuzCokluSantiyeAcik] = useState(false)
   const [duzSantiyeDagilimi, setDuzSantiyeDagilimi] = useState([])
 
+  useEffect(() => {
+    const globalTutarNum = Number(temizleTutar(tutar)) || 0
+    if (globalTutarNum > 0) {
+      setSantiyeDagilimi(prev => prev.map(d => {
+        if (d.yuzde) {
+          const yNum = Number(d.yuzde.toString().replace(',', '.'))
+          if (!isNaN(yNum)) return { ...d, miktar_gosterim: ((globalTutarNum * yNum) / 100).toFixed(2) }
+        }
+        return d
+      }))
+    }
+  }, [tutar])
+
+  useEffect(() => {
+    const globalTutarNum = Number(temizleTutar(tutar)) || 0 // Çekler düzenleme ekranında ayrı tutar state'i yok, aynı tutar state'i kullanılıyor.
+    if (globalTutarNum > 0) {
+      setDuzSantiyeDagilimi(prev => prev.map(d => {
+        if (d.yuzde) {
+          const yNum = Number(d.yuzde.toString().replace(',', '.'))
+          if (!isNaN(yNum)) return { ...d, miktar_gosterim: ((globalTutarNum * yNum) / 100).toFixed(2) }
+        }
+        return d
+      }))
+    }
+  }, [tutar])
+
   // Yüzde ve Meblağ Dağılım Yardımcı Fonksiyonları
   const handleDagilimDegisimi = (liste, setListe, index, field, value, genelTutarStr) => {
     const yeniListe = [...liste]
     const globalTutarNum = Number(temizleTutar(genelTutarStr)) || 0
+    const item = { ...yeniListe[index] }
 
     if (field === 'yuzde') {
-      yeniListe[index].yuzde = value
+      item.yuzde = value
       if (globalTutarNum > 0 && value !== '') {
         const yNum = Number(value.replace(',', '.'))
         if (!isNaN(yNum)) {
-          yeniListe[index].miktar_gosterim = ((globalTutarNum * yNum) / 100).toFixed(2)
+          item.miktar_gosterim = ((globalTutarNum * yNum) / 100).toFixed(2)
         }
       } else {
-        yeniListe[index].miktar_gosterim = ''
+        item.miktar_gosterim = ''
       }
     } else if (field === 'miktar') {
-      yeniListe[index].miktar_gosterim = value
+      item.miktar_gosterim = value
       if (globalTutarNum > 0 && value !== '') {
         const mNum = Number(value.replace(',', '.'))
         if (!isNaN(mNum)) {
-          yeniListe[index].yuzde = ((mNum / globalTutarNum) * 100).toFixed(2).replace(/\.00$/, '')
+          item.yuzde = ((mNum / globalTutarNum) * 100).toFixed(2).replace(/\.00$/, '')
         }
       } else {
-        yeniListe[index].yuzde = ''
+        item.yuzde = ''
       }
     }
+    yeniListe[index] = item
     setListe(yeniListe)
   }
 
@@ -316,8 +344,8 @@ export default function Cekler({ yon = 'verilen' }) {
         toplamYuzde += Number(d.yuzde) || 0
         if (!d.santiye_id) { alert('Lütfen tüm şantiyeleri seçin.'); setYukleniyor(false); return }
       }
-      if (toplamYuzde !== 100) {
-        alert('Şantiye yüzdeleri toplamı 100 olmalıdır. (Şu anki: ' + toplamYuzde + ')')
+      if (Math.abs(toplamYuzde - 100) > 0.1) {
+        alert('Şantiye yüzdeleri toplamı 100 olmalıdır. (Şu anki: ' + toplamYuzde.toFixed(2) + ')')
         setYukleniyor(false)
         return
       }
@@ -628,7 +656,7 @@ export default function Cekler({ yon = 'verilen' }) {
             }} style={{ fontSize: 11, padding: '6px 10px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', marginTop: 4 }}>
               + Yeni Şantiye Ekle
             </button>
-            <div style={{ fontSize: 11, marginTop: 6, color: (duzenlenenId ? duzSantiyeDagilimi : santiyeDagilimi).reduce((acc, val) => acc + (Number(val.yuzde)||0), 0) === 100 ? '#0F6E56' : '#d9534f' }}>
+            <div style={{ fontSize: 11, marginTop: 6, color: Math.abs((duzenlenenId ? duzSantiyeDagilimi : santiyeDagilimi).reduce((acc, val) => acc + (Number(val.yuzde)||0), 0) - 100) < 0.1 ? '#0F6E56' : '#d9534f' }}>
               Toplam: %{(duzenlenenId ? duzSantiyeDagilimi : santiyeDagilimi).reduce((acc, val) => acc + (Number(val.yuzde)||0), 0)}
             </div>
           </div>
