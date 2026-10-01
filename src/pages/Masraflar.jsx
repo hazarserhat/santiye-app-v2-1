@@ -16,47 +16,37 @@ export default function Masraflar() {
   const yonetici = profile?.rol === 'yonetici' || profile?.rol === 'koordinator'
   const [sekme, setSekme] = useState('masraf') // 'masraf' | 'cek' | 'planli'
 
-  // Yüzde Dağılım Yardımcı Fonksiyonları
-  const handleYuzdeDegisimi = (liste, setListe, degisenIndex, yeniDeger) => {
+  // Yüzde ve Meblağ Dağılım Yardımcı Fonksiyonları
+  const handleDagilimDegisimi = (liste, setListe, index, field, value, genelTutarStr) => {
     const yeniListe = [...liste]
-    const val = Number(yeniDeger)
-    yeniListe[degisenIndex] = { ...yeniListe[degisenIndex], yuzde: yeniDeger }
-    
-    if (yeniListe.length > 1 && val >= 0 && val <= 100 && yeniDeger !== '') {
-      const kalan = 100 - val
-      const digerAdet = yeniListe.length - 1
-      const pay = Math.floor(kalan / digerAdet)
-      let kalanPay = kalan - (pay * digerAdet)
+    const globalTutarNum = Number(temizleTutar(genelTutarStr)) || 0
 
-      yeniListe.forEach((item, idx) => {
-        if (idx !== degisenIndex) {
-          if (kalanPay > 0) {
-            yeniListe[idx].yuzde = (pay + 1).toString()
-            kalanPay--
-          } else {
-            yeniListe[idx].yuzde = pay.toString()
-          }
+    if (field === 'yuzde') {
+      yeniListe[index].yuzde = value
+      if (globalTutarNum > 0 && value !== '') {
+        const yNum = Number(value.replace(',', '.'))
+        if (!isNaN(yNum)) {
+          yeniListe[index].miktar_gosterim = ((globalTutarNum * yNum) / 100).toFixed(2)
         }
-      })
+      } else {
+        yeniListe[index].miktar_gosterim = ''
+      }
+    } else if (field === 'miktar') {
+      yeniListe[index].miktar_gosterim = value
+      if (globalTutarNum > 0 && value !== '') {
+        const mNum = Number(value.replace(',', '.'))
+        if (!isNaN(mNum)) {
+          yeniListe[index].yuzde = ((mNum / globalTutarNum) * 100).toFixed(2).replace(/\.00$/, '')
+        }
+      } else {
+        yeniListe[index].yuzde = ''
+      }
     }
     setListe(yeniListe)
   }
 
   const handleSantiyeEkle = (liste, setListe) => {
-    const yeniListe = [...liste, { santiye_id: '', yuzde: '' }]
-    const adet = yeniListe.length
-    const pay = Math.floor(100 / adet)
-    let kalanPay = 100 - (pay * adet)
-    
-    yeniListe.forEach((item, idx) => {
-      if (kalanPay > 0) {
-        yeniListe[idx].yuzde = (pay + 1).toString()
-        kalanPay--
-      } else {
-        yeniListe[idx].yuzde = pay.toString()
-      }
-    })
-    setListe(yeniListe)
+    setListe([...liste, { santiye_id: '', yuzde: '', miktar_gosterim: '' }])
   }
 
   const [masraflar, setMasraflar] = useState([])
@@ -416,7 +406,7 @@ export default function Masraflar() {
     setFotograf(null)
     setHarcamaTarihi(bugun())
     setCokluSantiyeAcik(false)
-    setSantiyeDagilimi([{ santiye_id: '', yuzde: '' }])
+    setSantiyeDagilimi([{ santiye_id: '', yuzde: '', miktar_gosterim: '' }])
     if (aktifSantiye) setSecilenSantiyeId(aktifSantiye.id)
     setYukleniyor(false)
     masraflariYukle()
@@ -545,9 +535,12 @@ export default function Masraflar() {
                       <option value="">Şantiye Seç...</option>
                       {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
                     </select>
-                    <input type="number" placeholder="% Yüzde" value={dagilim.yuzde} onChange={(e) => {
-                      handleYuzdeDegisimi(santiyeDagilimi, setSantiyeDagilimi, i, e.target.value)
-                    }} style={{ width: 80, margin: 0 }} onKeyDown={sadeceSayiTuslari} />
+                    <input type="number" placeholder="% Yüzde" value={dagilim.yuzde || ''} onChange={(e) => {
+                      handleDagilimDegisimi(santiyeDagilimi, setSantiyeDagilimi, i, 'yuzde', e.target.value, tutar)
+                    }} style={{ width: 80, margin: 0 }} />
+                    <input type="number" placeholder="Meblağ (₺)" value={dagilim.miktar_gosterim || ''} onChange={(e) => {
+                      handleDagilimDegisimi(santiyeDagilimi, setSantiyeDagilimi, i, 'miktar', e.target.value, tutar)
+                    }} style={{ width: 90, margin: 0 }} />
                     {santiyeDagilimi.length > 1 && (
                       <button onClick={() => setSantiyeDagilimi(santiyeDagilimi.filter((_, index) => index !== i))} style={{ padding: '0 8px', background: '#ffe6e6', color: '#d9534f', border: 'none', borderRadius: 6, cursor: 'pointer' }}>✕</button>
                     )}
@@ -725,9 +718,12 @@ export default function Masraflar() {
                               <option value="">Şantiye Seç...</option>
                               {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
                             </select>
-                            <input type="number" placeholder="% Yüzde" value={dagilim.yuzde} onChange={(e) => {
-                              handleYuzdeDegisimi(duzSantiyeDagilimi, setDuzSantiyeDagilimi, i, e.target.value)
-                            }} style={{ width: 80, margin: 0 }} onKeyDown={sadeceSayiTuslari} />
+                            <input type="number" placeholder="% Yüzde" value={dagilim.yuzde || ''} onChange={(e) => {
+                              handleDagilimDegisimi(duzSantiyeDagilimi, setDuzSantiyeDagilimi, i, 'yuzde', e.target.value, duzTutar)
+                            }} style={{ width: 80, margin: 0 }} />
+                            <input type="number" placeholder="Meblağ (₺)" value={dagilim.miktar_gosterim || ''} onChange={(e) => {
+                              handleDagilimDegisimi(duzSantiyeDagilimi, setDuzSantiyeDagilimi, i, 'miktar', e.target.value, duzTutar)
+                            }} style={{ width: 90, margin: 0 }} />
                             {duzSantiyeDagilimi.length > 1 && (
                               <button onClick={() => setDuzSantiyeDagilimi(duzSantiyeDagilimi.filter((_, index) => index !== i))} style={{ padding: '0 8px', background: '#ffe6e6', color: '#d9534f', border: 'none', borderRadius: 6, cursor: 'pointer' }}>✕</button>
                             )}
@@ -793,10 +789,15 @@ export default function Masraflar() {
                             setDuzSantiyeId(m.santiye_id || 'genel')
                             if (m.santiye_dagilimi && m.santiye_dagilimi.length > 0) {
                               setDuzCokluSantiyeAcik(true)
-                              setDuzSantiyeDagilimi(m.santiye_dagilimi)
+                              const initialTutarNum = Number(m.tutar) || 0
+                              const dagilimWithMiktar = m.santiye_dagilimi.map(d => ({
+                                ...d,
+                                miktar_gosterim: initialTutarNum > 0 && d.yuzde ? ((initialTutarNum * Number(d.yuzde)) / 100).toFixed(2) : ''
+                              }))
+                              setDuzSantiyeDagilimi(dagilimWithMiktar)
                             } else {
                               setDuzCokluSantiyeAcik(false)
-                              setDuzSantiyeDagilimi([{ santiye_id: '', yuzde: '' }])
+                              setDuzSantiyeDagilimi([{ santiye_id: '', yuzde: '', miktar_gosterim: '' }])
                             }
                           }} aria-label="Düzenle">✎</button>
                         )}
