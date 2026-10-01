@@ -328,7 +328,7 @@ export default function AnlasmaPlanlama() {
   }
 
   return (
-    <div className="sayfa">
+    <div className="sayfa sayfa-genis">
       <style>{`
         @media print {
           .ust-bar { display: none !important; }
