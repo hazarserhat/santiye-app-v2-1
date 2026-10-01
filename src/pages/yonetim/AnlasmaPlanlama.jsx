@@ -357,12 +357,12 @@ export default function AnlasmaPlanlama() {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 600 }}>
             <thead>
               <tr>
-                <th style={{ padding: '16px 20px', background: '#fcfcf9', borderBottom: '2px solid rgba(29, 149, 150, 0.1)', borderRight: '1px solid rgba(0,0,0,0.04)', minWidth: 180, position: 'sticky', left: 0, zIndex: 2 }}>
-                  <div style={{ color: '#555', fontSize: 13, fontWeight: 700 }}>İmalat Kalemi</div>
+                <th style={{ padding: '10px 12px', background: '#fcfcf9', borderBottom: '2px solid rgba(29, 149, 150, 0.1)', borderRight: '1px solid rgba(0,0,0,0.04)', minWidth: 120, position: 'sticky', left: 0, zIndex: 2 }}>
+                  <div style={{ color: '#555', fontSize: 12, fontWeight: 700 }}>İmalat Kalemi</div>
                 </th>
                 {gecerliSantiyeler.map(s => (
-                  <th key={s.id} style={{ padding: '16px 12px', background: '#fcfcf9', borderBottom: '2px solid rgba(29, 149, 150, 0.1)', borderRight: '1px solid rgba(0,0,0,0.04)', minWidth: 160, textAlign: 'center' }}>
-                    <div style={{ color: '#2b2b2b', fontSize: 13, fontWeight: 700 }}>{s.ad}</div>
+                  <th key={s.id} style={{ padding: '10px 6px', background: '#fcfcf9', borderBottom: '2px solid rgba(29, 149, 150, 0.1)', borderRight: '1px solid rgba(0,0,0,0.04)', minWidth: 100, textAlign: 'center' }}>
+                    <div style={{ color: '#2b2b2b', fontSize: 12, fontWeight: 700 }}>{s.ad}</div>
                   </th>
                 ))}
               </tr>
@@ -370,9 +370,9 @@ export default function AnlasmaPlanlama() {
             <tbody>
               {kalemler.map((kalem, index) => (
                 <tr key={kalem.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.03)' }}>
-                  <td style={{ padding: '14px 20px', background: '#fff', borderRight: '1px solid rgba(0,0,0,0.04)', position: 'sticky', left: 0, zIndex: 1, boxShadow: '2px 0 5px rgba(0,0,0,0.01)' }}>
+                  <td style={{ padding: '10px 12px', background: '#fff', borderRight: '1px solid rgba(0,0,0,0.04)', position: 'sticky', left: 0, zIndex: 1, boxShadow: '2px 0 5px rgba(0,0,0,0.01)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ color: '#444', fontSize: 14, fontWeight: 600 }}>{kalem.ad}</div>
+                      <div style={{ color: '#444', fontSize: 12, fontWeight: 600 }}>{kalem.ad}</div>
                       <div className="btn-print-hide" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {index > 0 && (
                           <button onClick={() => kalemSiraDegistir(index, 'yukari')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: '#aaa' }} title="Yukarı Taşı">
@@ -396,7 +396,7 @@ export default function AnlasmaPlanlama() {
                     return (
                       <td 
                         key={santiye.id} 
-                        style={{ padding: '6px', borderRight: '1px solid rgba(0,0,0,0.02)' }}
+                        style={{ padding: '4px', borderRight: '1px solid rgba(0,0,0,0.02)' }}
                       >
                         {hucreAnlasmasi ? (
                           <div 
@@ -404,8 +404,8 @@ export default function AnlasmaPlanlama() {
                             style={{
                               background: 'linear-gradient(135deg, #10b981, #059669)',
                               color: 'white',
-                              borderRadius: 10,
-                              padding: '12px 10px',
+                              borderRadius: 8,
+                              padding: '8px 4px',
                               cursor: 'pointer',
                               textAlign: 'center',
                               boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)',
@@ -414,11 +414,11 @@ export default function AnlasmaPlanlama() {
                             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.35)' }}
                             onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.25)' }}
                           >
-                            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{hucreAnlasmasi.tedarikci}</div>
-                            <div style={{ fontSize: 11, opacity: 0.9 }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 90, margin: '0 auto' }}>{hucreAnlasmasi.tedarikci}</div>
+                            <div style={{ fontSize: 10, opacity: 0.9 }}>
                               {Number(hucreAnlasmasi.tutar).toLocaleString('tr-TR')} {hucreAnlasmasi.para_birimi} 
-                              <span style={{ opacity: 0.7, fontSize: 10, display: 'block', marginTop: 2 }}>
-                                ({hucreAnlasmasi.fiyat_tipi === 'Birim Fiyat' ? 'Birim' : 'Toplam'})
+                              <span style={{ opacity: 0.7, fontSize: 9, display: 'block', marginTop: 1 }}>
+                                ({hucreAnlasmasi.fiyat_tipi === 'Birim Fiyat' ? 'Birim' : 'Top.'})
                               </span>
                             </div>
                           </div>
@@ -429,8 +429,8 @@ export default function AnlasmaPlanlama() {
                             style={{
                               background: 'rgba(0,0,0,0.02)',
                               border: '1px dashed rgba(0,0,0,0.1)',
-                              borderRadius: 10,
-                              height: 60,
+                              borderRadius: 8,
+                              height: 48,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
