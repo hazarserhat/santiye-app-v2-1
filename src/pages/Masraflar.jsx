@@ -443,6 +443,13 @@ export default function Masraflar() {
   const masrafSil = async (id) => {
     if (!window.confirm('Bu masrafı silmek istediğinize emin misiniz?')) return
     const silinecek = masraflar.find((m) => m.id === id)
+
+    const { error } = await supabase.from('masraflar').delete().eq('id', id)
+    if (error) {
+      alert('Masraf silinemedi: ' + error.message)
+      return
+    }
+
     if (silinecek?.fotograf_url) {
       try {
         const s = santiyeler.find(x => x.id === silinecek.santiye_id)
@@ -453,7 +460,7 @@ export default function Masraflar() {
         console.warn('Silinenlere taşıma hatası:', e)
       }
     }
-    await supabase.from('masraflar').delete().eq('id', id)
+    
     masraflariYukle()
   }
 
@@ -775,15 +782,12 @@ export default function Masraflar() {
                       placeholder="Ödenen Kişi / Cari (opsiyonel)..."
                     />
                     <div className="ekleme-satiri-2">
-                      <select value={duzKategoriId} onChange={(e) => setDuzKategoriId(e.target.value)}>
-                        <option value="">Kategori...</option>
-                        {kategoriler.map((k) => <option key={k.id} value={k.id}>{k.ad}</option>)}
-                      </select>
                       <input type="text" placeholder="Tutar (₺)" value={duzTutar} onChange={(e) => setDuzTutar(formatInputTutar(e.target.value))} onKeyDown={sadeceSayiTuslari} />
                       <input type="date" value={duzHarcamaTarihi} onChange={(e) => setDuzHarcamaTarihi(e.target.value)} />
                     </div>
                     <div className="ekleme-satiri-2">
                       <select value={duzKategoriId} onChange={(e) => setDuzKategoriId(e.target.value)}>
+                        <option value="">Kategori...</option>
                         {kategoriler.map((k) => <option key={k.id} value={k.id}>{k.ad}</option>)}
                       </select>
                       <select value={duzOdemeYontemiId} onChange={(e) => setDuzOdemeYontemiId(e.target.value)}>

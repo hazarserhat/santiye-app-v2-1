@@ -9,6 +9,13 @@ import Cekler from './Cekler'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
+const ASAMALAR_YARISI_BIZDEN = [
+  { anahtar: 'asama1_odendi', yuzde: 0.30, etiket: '1. Aşama (%30)', aciklama: 'Kat İrtifakı Kurulunca' },
+  { anahtar: 'asama2_odendi', yuzde: 0.30, etiket: '2. Aşama (%30)', aciklama: 'Kaba İnşaatın Bitiminde' },
+  { anahtar: 'asama3_odendi', yuzde: 0.30, etiket: '3. Aşama (%30)', aciklama: 'Sıva ve İç Detayların Tamamlanınca' },
+  { anahtar: 'asama4_odendi', yuzde: 0.10, etiket: '4. Aşama (%10)', aciklama: 'Yapı Kullanım İzin Belgesi Alınınca' },
+]
+
 export default function Gelirler() {
   const { aktifSantiye, santiyeler } = useSite()
   const { profile } = useAuth()
@@ -36,6 +43,8 @@ export default function Gelirler() {
   const [tahsilatNoktasi, setTahsilatNoktasi] = useState('Merkez Kasa')
   const [gecmisDonemMi, setGecmisDonemMi] = useState(false)
   const [isVergiHarc, setIsVergiHarc] = useState(false)
+  const [isDevletDestegi, setIsDevletDestegi] = useState(false)
+  const [devletDestegiAsama, setDevletDestegiAsama] = useState('')
   const [notMetni, setNotMetni] = useState('')
   const [belge, setBelge] = useState(null)
   const [yukleniyor, setYukleniyor] = useState(false)
@@ -56,6 +65,8 @@ export default function Gelirler() {
   const [duzTahsilatNoktasi, setDuzTahsilatNoktasi] = useState('')
   const [duzGecmisDonemMi, setDuzGecmisDonemMi] = useState(false)
   const [duzIsVergiHarc, setDuzIsVergiHarc] = useState(false)
+  const [duzIsDevletDestegi, setDuzIsDevletDestegi] = useState(false)
+  const [duzDevletDestegiAsama, setDuzDevletDestegiAsama] = useState('')
 
   const TAHSILAT_NOKTALARI = [
     'Merkez Kasa', 'Serhat Kasa', 'Abdullah Kasa', 'Fuat Kasa', 'Engin Hazar ( Fırat Tekstil Diyarbakır )',
@@ -195,6 +206,20 @@ export default function Gelirler() {
       }
     }
 
+    let hedefAsama = devletDestegiAsama
+    const girilenTutar = Number(temizleTutar(tutar))
+    const seciliSantiyeDevletDestegi = malikler
+      .filter((m) => m.santiye_id === santiyeId)
+      .reduce((toplam, m) => toplam + Number(m.devlet_destegi || 0), 0)
+
+    if (isDevletDestegi && !hedefAsama && seciliSantiyeDevletDestegi > 0) {
+      const eslesen = ASAMALAR_YARISI_BIZDEN.find((a) => {
+        const aTutar = Math.round(seciliSantiyeDevletDestegi * a.yuzde)
+        return Math.abs(girilenTutar - aTutar) <= 5
+      })
+      if (eslesen) hedefAsama = eslesen.anahtar
+    }
+
     const { error } = await supabase.from('gelirler').insert({
       santiye_id: santiyeId,
       malik_id: malikId || null,
@@ -207,11 +232,27 @@ export default function Gelirler() {
       not_metni: notMetni,
       ekleyen: profile?.id,
       is_vergi_harc: isVergiHarc,
+      is_devlet_destegi: isDevletDestegi,
+      devlet_destegi_asama: isDevletDestegi ? (hedefAsama || null) : null,
     })
 
     if (error) { alert('Gelir eklenemedi: ' + error.message); setYukleniyor(false); return }
 
-    setMalikId(''); setSecilenCariId(null); setOdemeYapanAdi(''); setTutar(''); setNotMetni(''); setBelge(null); setTarih(bugun()); setTahsilatNoktasi('Merkez Kasa'); setGecmisDonemMi(false); setIsVergiHarc(false);
+    // Eğer Yarısı Bizden ödemesiyse ve aşama eşleştiyse, yönetimdeki Yarısı Bizden tablosuna tik at
+    if (isDevletDestegi && hedefAsama) {
+      try {
+        const { data: ybRow } = await supabase.from('yarisi_bizden_odemeleri').select('*').eq('santiye_id', santiyeId).maybeSingle()
+        if (ybRow) {
+          await supabase.from('yarisi_bizden_odemeleri').update({ [hedefAsama]: true }).eq('id', ybRow.id)
+        } else {
+          await supabase.from('yarisi_bizden_odemeleri').insert({ santiye_id: santiyeId, [hedefAsama]: true })
+        }
+      } catch (ybErr) {
+        console.warn('Yarısı Bizden aşama onaylama hatası:', ybErr)
+      }
+    }
+
+    setMalikId(''); setSecilenCariId(null); setOdemeYapanAdi(''); setTutar(''); setNotMetni(''); setBelge(null); setTarih(bugun()); setTahsilatNoktasi('Merkez Kasa'); setGecmisDonemMi(false); setIsVergiHarc(false); setIsDevletDestegi(false); setDevletDestegiAsama('');
     setYukleniyor(false)
     gelirleriYukle()
   }
@@ -219,6 +260,32 @@ export default function Gelirler() {
   const gelirSil = async (id) => {
     if (!window.confirm('Bu geliri silmek istediğinize emin misiniz?')) return
     const silinecek = gelirler.find((g) => g.id === id)
+
+    const { error } = await supabase.from('gelirler').delete().eq('id', id)
+    if (error) {
+      alert('Gelir silinemedi: ' + error.message)
+      return
+    }
+
+    // Eğer silinen gelir bir Yarısı Bizden ödemesiyse ve aşaması varsa, başka gelir kalmadıysa tiki kaldır
+    if (silinecek?.is_devlet_destegi && silinecek?.devlet_destegi_asama) {
+      try {
+        const { data: digerleri } = await supabase
+          .from('gelirler')
+          .select('id')
+          .eq('santiye_id', silinecek.santiye_id)
+          .eq('devlet_destegi_asama', silinecek.devlet_destegi_asama)
+          .neq('id', silinecek.id)
+        if (!digerleri || digerleri.length === 0) {
+          await supabase
+            .from('yarisi_bizden_odemeleri')
+            .update({ [silinecek.devlet_destegi_asama]: false })
+            .eq('santiye_id', silinecek.santiye_id)
+        }
+      } catch (ybErr) {
+        console.warn('Yarısı Bizden aşama geri alma hatası:', ybErr)
+      }
+    }
 
     if (silinecek?.belge_url) {
       try {
@@ -231,11 +298,6 @@ export default function Gelirler() {
       }
     }
 
-    const { error } = await supabase.from('gelirler').delete().eq('id', id)
-    if (error) {
-      alert('Gelir silinemedi: ' + error.message)
-      return
-    }
     gelirleriYukle()
   }
 
@@ -275,6 +337,8 @@ export default function Gelirler() {
       odeme_yapan_adi: duzOdemeYapan,
       tahsilat_noktasi: duzGecmisDonemMi ? 'Geçmiş Dönem (Devir)' : duzTahsilatNoktasi,
       is_vergi_harc: duzIsVergiHarc,
+      is_devlet_destegi: duzIsDevletDestegi,
+      devlet_destegi_asama: duzIsDevletDestegi ? (duzDevletDestegiAsama || null) : null,
     }).eq('id', id)
     if (error) { alert('Güncellenemedi: ' + error.message); return }
     setDuzenlenenId(null)
@@ -320,6 +384,7 @@ export default function Gelirler() {
         `💵 *Tutar:* ${paraFormatla(g.tutar)} ₺\n` +
         `📍 *Tahsilat Noktası:* ${g.tahsilat_noktasi || 'Belirtilmedi'}\n` +
         `📅 *Tarih:* ${g.tarih ? new Date(g.tarih).toLocaleDateString('tr-TR') : '—'}\n` +
+        (g.is_devlet_destegi ? `🏛 *Tür:* Yarısı Bizden (Devlet Desteği) Ödemesi${g.devlet_destegi_asama ? ` - ${ASAMALAR_YARISI_BIZDEN.find(a => a.anahtar === g.devlet_destegi_asama)?.etiket || ''}` : ''}\n` : '') +
         (g.is_vergi_harc ? `📌 *Tür:* Vergi / Harç Ödemesi\n` : '') +
         (g.not_metni ? `📝 *Not:* ${g.not_metni}` : '')
 
@@ -469,6 +534,83 @@ export default function Gelirler() {
               </div>
             </label>
 
+            {/* Yarısı Bizden (Devlet Desteği) Seçeneği */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, cursor: 'pointer', background: isDevletDestegi ? '#E0F2FE' : '#F8F9FA', padding: '10px 12px', borderRadius: 8, border: `1px solid ${isDevletDestegi ? '#0284C7' : '#E2E8F0'}` }}>
+              <input
+                type="checkbox"
+                checked={isDevletDestegi}
+                onChange={(e) => {
+                  const val = e.target.checked
+                  setIsDevletDestegi(val)
+                  if (val) {
+                    setTahsilatNoktasi('Ruha Emlak Bank')
+                    if (!odemeYapanAdi) setOdemeYapanAdi('Emlak Katılım - Yarısı Bizden')
+                  }
+                }}
+                style={{ width: 16, height: 16, accentColor: '#0284C7', cursor: 'pointer' }}
+              />
+              <div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: isDevletDestegi ? '#0369A1' : '#475569', display: 'block' }}>🏛️ Yarısı Bizden (Devlet Desteği) Ödemesidir</span>
+                <span style={{ fontSize: 11, color: '#64748B' }}>İşaretlerseniz 'Ruha Emlak Bank' kasasına girer, malik borcundan mükerrer düşmez ve tutar eşleştiğinde <b>Yarısı Bizden</b> takibine tik atılır.</span>
+              </div>
+            </label>
+
+            {isDevletDestegi && (
+              <div style={{ background: '#F0F9FF', border: '1px solid #BAE6FD', padding: 10, borderRadius: 8, marginBottom: 12 }}>
+                {(() => {
+                  const seciliSantiyeDevletDestegi = malikler
+                    .filter((m) => m.santiye_id === santiyeId)
+                    .reduce((toplam, m) => toplam + Number(m.devlet_destegi || 0), 0)
+                  return (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>🏛️ Aşama / Hakediş Seçimi:</span>
+                        <span style={{ fontSize: 11, color: '#5F5E5A' }}>Toplam Destek: <b>{paraFormatla(seciliSantiyeDevletDestegi)} ₺</b></span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 6 }}>
+                        {ASAMALAR_YARISI_BIZDEN.map((a) => {
+                          const asamaTutari = Math.round(seciliSantiyeDevletDestegi * a.yuzde)
+                          const secili = devletDestegiAsama === a.anahtar
+                          return (
+                            <button
+                              key={a.anahtar}
+                              type="button"
+                              onClick={() => {
+                                if (secili) {
+                                  setDevletDestegiAsama('')
+                                } else {
+                                  setDevletDestegiAsama(a.anahtar)
+                                  if (asamaTutari > 0) setTutar(formatInputTutar(asamaTutari))
+                                  if (!notMetni) setNotMetni(`${a.etiket} (${a.aciklama}) Hakedişi`)
+                                }
+                              }}
+                              style={{
+                                padding: '6px 8px',
+                                borderRadius: 6,
+                                border: `1px solid ${secili ? '#0284C7' : '#BAE6FD'}`,
+                                background: secili ? '#0284C7' : '#FFFFFF',
+                                color: secili ? '#FFFFFF' : '#0369A1',
+                                fontSize: 11,
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                                fontWeight: secili ? 700 : 500,
+                              }}
+                            >
+                              <div>{a.etiket}</div>
+                              <div style={{ fontSize: 10, opacity: 0.9 }}>{paraFormatla(asamaTutari)} ₺</div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <p style={{ fontSize: 11, color: '#0369A1', margin: '6px 0 0 0' }}>
+                        💡 Bir aşamaya tıklayarak tutarı otomatik doldurabilir veya serbest tutar yazabilirsiniz. Tutar eşleştiğinde aşamaya otomatik onay tiki atılır.
+                      </p>
+                    </>
+                  )
+                })()}
+              </div>
+            )}
+
             <button className="ekle-buton-genis" onClick={gelirEkle} disabled={yukleniyor} style={{ marginTop: 8 }}>
               {yukleniyor ? 'Ekleniyor...' : 'Geliri kaydet'}
             </button>
@@ -555,6 +697,11 @@ export default function Gelirler() {
                       <input type="checkbox" checked={duzIsVergiHarc} onChange={(e) => setDuzIsVergiHarc(e.target.checked)} style={{ width: 14, height: 14, accentColor: '#9333EA' }} />
                       <span style={{ fontSize: 12, fontWeight: duzIsVergiHarc ? 600 : 400, color: duzIsVergiHarc ? '#7E22CE' : '#555' }}>Vergi / Harç Ödemesidir</span>
                     </label>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', background: duzIsDevletDestegi ? '#E0F2FE' : '#f9f9f9', padding: '6px 8px', borderRadius: 6, border: `1px solid ${duzIsDevletDestegi ? '#0284C7' : '#eee'}` }}>
+                      <input type="checkbox" checked={duzIsDevletDestegi} onChange={(e) => setDuzIsDevletDestegi(e.target.checked)} style={{ width: 14, height: 14, accentColor: '#0284C7' }} />
+                      <span style={{ fontSize: 12, fontWeight: duzIsDevletDestegi ? 600 : 400, color: duzIsDevletDestegi ? '#0369A1' : '#555' }}>🏛️ Yarısı Bizden (Devlet Desteği) Ödemesidir</span>
+                    </label>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button onClick={() => setDuzenlenenId(null)} style={{ flex: 1, padding: '8px', background: '#f0f0ed', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Vazgeç</button>
                       <button onClick={() => gelirDuzenle(g.id)} style={{ flex: 1, padding: '8px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>Kaydet</button>
@@ -577,6 +724,8 @@ export default function Gelirler() {
                             setDuzTahsilatNoktasi(g.tahsilat_noktasi || 'Merkez Kasa')
                             setDuzGecmisDonemMi(g.tahsilat_noktasi === 'Geçmiş Dönem (Devir)')
                             setDuzIsVergiHarc(!!g.is_vergi_harc)
+                            setDuzIsDevletDestegi(!!g.is_devlet_destegi)
+                            setDuzDevletDestegiAsama(g.devlet_destegi_asama || '')
                           }} aria-label="Düzenle">✎</button>
                         )}
                         <input
@@ -594,6 +743,11 @@ export default function Gelirler() {
                       <span className="etiket etiket-vurgu">{g.santiyeler?.ad}</span>
                       <span className="etiket">{new Date(g.tarih).toLocaleDateString('tr-TR')}</span>
                       {g.tahsilat_noktasi && <span className="etiket" style={{ background: '#E3F2FD', color: '#1976D2', border: '1px solid #BBDEFB' }}>📍 {g.tahsilat_noktasi}</span>}
+                      {g.is_devlet_destegi && (
+                        <span className="etiket" style={{ background: '#E0F2FE', color: '#0369A1', border: '1px solid #BAE6FD', fontWeight: 600 }}>
+                          🏛 Yarısı Bizden {g.devlet_destegi_asama ? `(${ASAMALAR_YARISI_BIZDEN.find(a => a.anahtar === g.devlet_destegi_asama)?.etiket || ''})` : ''}
+                        </span>
+                      )}
                       {g.is_vergi_harc && <span className="etiket" style={{ background: '#F3E8FF', color: '#7E22CE', border: '1px solid #D8B4FE' }}>🏛 Vergi / Harç</span>}
                     </div>
                     {g.not_metni && <p className="not-icerik" style={{ marginTop: 6 }}>{g.not_metni}</p>}

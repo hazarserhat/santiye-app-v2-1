@@ -11,7 +11,12 @@ export function sadeceSayiTuslari(e) {
 
 export function formatInputTutar(deger) {
   if (deger === undefined || deger === null) return ''
-  const strDeger = String(deger)
+  let strDeger = String(deger)
+  
+  // Eğer değer veritabanından float/sayı olarak geldiyse ondalık noktasını virgüle çevir
+  if (typeof deger === 'number') {
+    strDeger = strDeger.replace('.', ',')
+  }
   
   // Sadece rakam ve virgül kalacak şekilde diğer her şeyi (nokta dahil) temizle
   let temiz = strDeger.replace(/[^0-9,]/g, '')

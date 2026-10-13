@@ -171,11 +171,11 @@ export default function ProjeGelirleri() {
     const vergiHarita = {}
     
     // Nakit & Havale Gelirleri
-    const { data: g } = await supabase.from('gelirler').select('malik_id, tutar, is_vergi_harc').not('malik_id', 'is', null)
+    const { data: g } = await supabase.from('gelirler').select('malik_id, tutar, is_vergi_harc, is_devlet_destegi').not('malik_id', 'is', null)
     ;(g || []).forEach((r) => { 
-      if (!r.is_vergi_harc) {
+      if (!r.is_vergi_harc && !r.is_devlet_destegi) {
         odemeHarita[r.malik_id] = (odemeHarita[r.malik_id] || 0) + Number(r.tutar) 
-      } else {
+      } else if (r.is_vergi_harc) {
         vergiHarita[r.malik_id] = (vergiHarita[r.malik_id] || 0) + Number(r.tutar)
       }
     })

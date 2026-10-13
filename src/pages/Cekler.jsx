@@ -60,28 +60,25 @@ export default function Cekler({ yon = 'verilen' }) {
   useEffect(() => {
     const globalTutarNum = Number(temizleTutar(tutar)) || 0
     if (globalTutarNum > 0) {
-      setSantiyeDagilimi(prev => prev.map(d => {
-        if (d.yuzde) {
-          const yNum = Number(d.yuzde.toString().replace(',', '.'))
-          if (!isNaN(yNum)) return { ...d, miktar_gosterim: ((globalTutarNum * yNum) / 100).toFixed(2) }
-        }
-        return d
-      }))
+      if (duzenlenenId) {
+        setDuzSantiyeDagilimi(prev => prev.map(d => {
+          if (d.yuzde) {
+            const yNum = Number(d.yuzde.toString().replace(',', '.'))
+            if (!isNaN(yNum)) return { ...d, miktar_gosterim: ((globalTutarNum * yNum) / 100).toFixed(2) }
+          }
+          return d
+        }))
+      } else {
+        setSantiyeDagilimi(prev => prev.map(d => {
+          if (d.yuzde) {
+            const yNum = Number(d.yuzde.toString().replace(',', '.'))
+            if (!isNaN(yNum)) return { ...d, miktar_gosterim: ((globalTutarNum * yNum) / 100).toFixed(2) }
+          }
+          return d
+        }))
+      }
     }
-  }, [tutar])
-
-  useEffect(() => {
-    const globalTutarNum = Number(temizleTutar(tutar)) || 0 // Çekler düzenleme ekranında ayrı tutar state'i yok, aynı tutar state'i kullanılıyor.
-    if (globalTutarNum > 0) {
-      setDuzSantiyeDagilimi(prev => prev.map(d => {
-        if (d.yuzde) {
-          const yNum = Number(d.yuzde.toString().replace(',', '.'))
-          if (!isNaN(yNum)) return { ...d, miktar_gosterim: ((globalTutarNum * yNum) / 100).toFixed(2) }
-        }
-        return d
-      }))
-    }
-  }, [tutar])
+  }, [tutar, duzenlenenId])
 
   // Yüzde ve Meblağ Dağılım Yardımcı Fonksiyonları
   const handleDagilimDegisimi = (liste, setListe, index, field, value, genelTutarStr) => {
@@ -254,7 +251,7 @@ export default function Cekler({ yon = 'verilen' }) {
     setYeniBankaAcik(false)
     setVerilisTarihi(c.verilis_tarihi ? c.verilis_tarihi.slice(0, 10) : bugun())
     setCekVadesi(c.cek_vadesi ? c.cek_vadesi.slice(0, 10) : '')
-    setTutar(c.tutar ? formatInputTutar(c.tutar) : '')
+    setTutar((c.tutar !== undefined && c.tutar !== null) ? formatInputTutar(c.tutar) : '')
     setAciklama(c.aciklama || '')
     setBelge(null)
     if (c.santiye_dagilimi && c.santiye_dagilimi.length > 0) {
@@ -387,6 +384,13 @@ export default function Cekler({ yon = 'verilen' }) {
     if (!window.confirm('Bu çek kaydını silmek istediğinize emin misiniz?')) return
     
     const silinecek = cekler.find((c) => c.id === id)
+
+    const { error } = await supabase.from('cekler').delete().eq('id', id)
+    if (error) {
+      alert('Çek silinemedi: ' + error.message)
+      return
+    }
+
     if (silinecek?.belge_url) {
       try {
         const seciliSantiye = santiyeler.find((s) => s.id === silinecek.santiye_id)
@@ -399,7 +403,6 @@ export default function Cekler({ yon = 'verilen' }) {
       }
     }
 
-    await supabase.from('cekler').delete().eq('id', id)
     cekleriYukle()
   }
 
@@ -577,7 +580,7 @@ export default function Cekler({ yon = 'verilen' }) {
                   setOdemeKonusu('Ödeme')
                   setCekSeriNo(secilenCek.cek_seri_no || '')
                   setCekVadesi(secilenCek.cek_vadesi ? secilenCek.cek_vadesi.slice(0, 10) : '')
-                  setTutar(secilenCek.tutar ? formatInputTutar(secilenCek.tutar) : '')
+                  setTutar((secilenCek.tutar !== undefined && secilenCek.tutar !== null) ? formatInputTutar(secilenCek.tutar) : '')
                   setSecilenCiroBelgeUrl(secilenCek.belge_url || '')
                 } else {
                   formuSifirla()

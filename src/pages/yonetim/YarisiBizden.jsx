@@ -16,6 +16,7 @@ export default function YarisiBizden() {
   const { santiyeler } = useSite()
   const [kayitlar, setKayitlar] = useState({}) // { santiyeId: row }
   const [devletDestegiHaritasi, setDevletDestegiHaritasi] = useState({}) // { santiyeId: toplam }
+  const [destekGelirleriHaritasi, setDestekGelirleriHaritasi] = useState({}) // { santiyeId: [gelirler] }
   const [seciliSantiyeler, setSeciliSantiyeler] = useState([])
 
   const yenile = async () => {
@@ -31,6 +32,15 @@ export default function YarisiBizden() {
     const destekHarita = {}
     ;(malikler || []).forEach((m) => { destekHarita[m.santiye_id] = (destekHarita[m.santiye_id] || 0) + Number(m.devlet_destegi || 0) })
     setDevletDestegiHaritasi(destekHarita)
+
+    // Gelirler tablosundan Yarısı Bizden ödemelerini çek
+    const { data: gData } = await supabase.from('gelirler').select('id, santiye_id, tutar, tarih, tahsilat_noktasi, devlet_destegi_asama').eq('is_devlet_destegi', true)
+    const gHarita = {}
+    ;(gData || []).forEach((g) => {
+      if (!gHarita[g.santiye_id]) gHarita[g.santiye_id] = []
+      gHarita[g.santiye_id].push(g)
+    })
+    setDestekGelirleriHaritasi(gHarita)
   }
 
   useEffect(() => { yenile() }, [])
@@ -187,12 +197,20 @@ export default function YarisiBizden() {
                     <input type="checkbox" checked={satir?.basvuru_durumu || false} onChange={() => basvuruGuncelle(s.id)} style={{ width: 16, height: 16 }} />
                   </td>
                   <td style={hucreStil}>{paraFormatla(toplam)} ₺</td>
-                  {ASAMALAR.map((a) => (
-                    <td key={a.anahtar} style={{ ...hucreStil, textAlign: 'center' }}>
-                      <input type="checkbox" checked={satir?.[a.anahtar] || false} onChange={() => asamaTikle(s.id, a.anahtar)} style={{ width: 16, height: 16, marginBottom: 4 }} />
-                      <div style={{ fontSize: 11, color: '#5F5E5A' }}>{paraFormatla(toplam * a.yuzde)} ₺</div>
-                    </td>
-                  ))}
+                  {ASAMALAR.map((a) => {
+                    const asamaGelirleri = (destekGelirleriHaritasi[s.id] || []).filter(g => g.devlet_destegi_asama === a.anahtar)
+                    return (
+                      <td key={a.anahtar} style={{ ...hucreStil, textAlign: 'center' }}>
+                        <input type="checkbox" checked={satir?.[a.anahtar] || false} onChange={() => asamaTikle(s.id, a.anahtar)} style={{ width: 16, height: 16, marginBottom: 4 }} />
+                        <div style={{ fontSize: 11, color: '#5F5E5A' }}>{paraFormatla(toplam * a.yuzde)} ₺</div>
+                        {asamaGelirleri.length > 0 && (
+                          <div style={{ fontSize: 10, color: '#0284C7', background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 4, padding: '2px 4px', marginTop: 3, fontWeight: 600 }} title={`Gelirler sayfasında ${asamaGelirleri.length} adet kayıt mevcut`}>
+                            🏛 Kasaya Girildi
+                          </div>
+                        )}
+                      </td>
+                    )
+                  })}
                   <td style={{ ...hucreStil, color: '#1D9596', fontWeight: 700 }}>{paraFormatla(satirAlinan(s.id, satir))} ₺</td>
                   <td style={hucreStil}>{paraFormatla(satirBeklenen(s.id, satir))} ₺</td>
                 </tr>
