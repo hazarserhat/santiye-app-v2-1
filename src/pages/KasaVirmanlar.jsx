@@ -22,15 +22,6 @@ export default function KasaVirmanlar() {
   const [masraflar, setMasraflar] = useState([])
   const [kasaIslemleri, setKasaIslemleri] = useState([])
   const [yukleniyor, setYukleniyor] = useState(false)
-  const [bakiyelerGizli, setBakiyelerGizli] = useState(true)
-
-  // Accordion state
-  const [acikKategoriler, setAcikKategoriler] = useState({
-    Kasalar: false,
-    Bankalar: false,
-    'Kredi Kartları': false,
-    'Ödeme Yapılmadı': false
-  })
 
   // Form State
   const [islemTipi, setIslemTipi] = useState('virman') // 'virman' | 'mutabakat'
@@ -40,6 +31,14 @@ export default function KasaVirmanlar() {
   const [tutar, setTutar] = useState('')
   const [tarih, setTarih] = useState(bugun())
   const [notMetni, setNotMetni] = useState('')
+
+  // Filtre State'leri
+  const [filtreMuhasebe, setFiltreMuhasebe] = useState('hepsi')
+  const [filtreKasa, setFiltreKasa] = useState('hepsi')
+  const [filtreTip, setFiltreTip] = useState('hepsi')
+  const [filtreBaslangic, setFiltreBaslangic] = useState('')
+  const [filtreBitis, setFiltreBitis] = useState('')
+  const [filtreAcik, setFiltreAcik] = useState(false)
 
   useEffect(() => {
     verileriYukle()
@@ -231,180 +230,37 @@ export default function KasaVirmanlar() {
     window.open(whatsappUrl, '_blank')
   }
 
-  const toggleKategori = (kategoriAd) => {
-    setAcikKategoriler(prev => ({
-      ...prev,
-      [kategoriAd]: !prev[kategoriAd]
-    }))
-  }
-
-  // Toplam varlık hesabı
-  const toplamVarlik = odemeYontemleri.reduce((acc, k) => acc + bakiyeHesapla(k.ad, k.id), 0)
-
-  // Kategorilere ayırma
-  const kategorilendirilmisKasalar = {
-    Kasalar: [],
-    Bankalar: [],
-    'Kredi Kartları': []
-  }
-  
-  let odemeYapilmadiKasa = null
-
-  // DB'deki ödeme yapılmadı öğesini bul (Tüm Kasalar harici)
-  dbKasalar.forEach(kasa => {
-    if (kasa.ad.toLowerCase().includes('ödeme yapılmadı') || kasa.ad.toLowerCase().includes('ödenmedi')) {
-      odemeYapilmadiKasa = kasa
-    }
-  })
-
-  // Sadece KATEGORILER'deki tanımlı olanları dağıtıyoruz
-  odemeYontemleri.forEach(kasa => {
-    for (const [katAd, liste] of Object.entries(KATEGORILER)) {
-      if (liste.map(l => l.toLowerCase()).includes(kasa.ad.toLowerCase())) {
-        kategorilendirilmisKasalar[katAd].push(kasa)
-        break
-      }
-    }
-  })
-
-  const KategoriCiz = ({ baslik, liste, ikon }) => {
-    if (!liste || liste.length === 0) return null
-    const acik = acikKategoriler[baslik]
-
-    const kategoriToplami = liste.reduce((acc, k) => acc + bakiyeHesapla(k.ad, k.id), 0)
-
-    return (
-      <div style={{ marginBottom: 12 }}>
-        <div 
-          onClick={() => toggleKategori(baslik)}
-          style={{
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 100%)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(200,200,200,0.5)',
-            borderRadius: 10,
-            padding: '12px 16px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-            marginBottom: acik ? 8 : 0
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 18 }}>{ikon}</span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#37474f' }}>{baslik}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 15, fontWeight: 800, color: kategoriToplami < 0 ? '#c62828' : '#2e7d32' }}>
-              {bakiyelerGizli ? '*** ₺' : `${paraFormatla(kategoriToplami)} ₺`}
-            </span>
-            <span style={{ fontSize: 12, color: '#90a4ae', transform: acik ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }}>▼</span>
-          </div>
-        </div>
-
-        {acik && (
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', 
-            gap: 10,
-            paddingLeft: 10 
-          }}>
-            {liste.map(kasa => {
-              const bakiye = bakiyeHesapla(kasa.ad, kasa.id)
-              const isEksi = bakiye < 0
-              return (
-                <div key={kasa.id} style={{
-                  background: 'rgba(255, 255, 255, 0.7)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.5)',
-                  borderRadius: 8,
-                  padding: '12px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-                  borderLeft: `4px solid ${isEksi ? '#e53935' : '#43a047'}`
-                }}>
-                  <span style={{ fontSize: 11, color: '#546e7a', fontWeight: 600, marginBottom: 2 }}>{kasa.ad}</span>
-                  <span style={{ fontSize: 16, fontWeight: 700, color: isEksi ? '#c62828' : '#2e7d32' }}>
-                    {bakiyelerGizli ? '*** ₺' : `${paraFormatla(bakiye)} ₺`}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-    )
-  }
+  // Filtrelenmiş Kasa İşlemleri (Geçmiş Zaman Çizelgesi İçin)
+  const gorunenKasaIslemleri = kasaIslemleri
+    .filter(islem => {
+      if (filtreMuhasebe === 'paylasildi') return !!islem.muhasebe_paylasim
+      if (filtreMuhasebe === 'paylasilmadi') return !islem.muhasebe_paylasim
+      return true
+    })
+    .filter(islem => {
+      if (filtreKasa === 'hepsi') return true
+      return islem.cikis_noktasi === filtreKasa || islem.giris_noktasi === filtreKasa
+    })
+    .filter(islem => {
+      if (filtreTip === 'hepsi') return true
+      if (filtreTip === 'virman') return islem.tip === 'virman'
+      if (filtreTip === 'mutabakat') return islem.tip?.startsWith('mutabakat')
+      return true
+    })
+    .filter(islem => {
+      if (!filtreBaslangic && !filtreBitis) return true
+      if (!islem.tarih) return false
+      if (filtreBaslangic && islem.tarih < filtreBaslangic) return false
+      if (filtreBitis && islem.tarih > filtreBitis) return false
+      return true
+    })
 
   return (
     <div className="sayfa">
-      <div className="sayfa-baslik" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="sayfa-baslik">
         <h2>🏦 Kasa İşlemleri & Virmanlar</h2>
-        <button 
-          onClick={() => setBakiyelerGizli(!bakiyelerGizli)}
-          style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer' }}
-          title={bakiyelerGizli ? "Bakiyeleri Göster" : "Bakiyeleri Gizle"}
-        >
-          {bakiyelerGizli ? '👁️' : '🙈'}
-        </button>
       </div>
 
-      <div style={{ marginBottom: 20 }}>
-        {/* Toplam Varlık */}
-        <div style={{
-            background: 'linear-gradient(135deg, rgba(38,166,154,0.1) 0%, rgba(38,166,154,0.2) 100%)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(38,166,154,0.3)',
-            borderRadius: 12,
-            padding: '16px 20px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
-            marginBottom: 16
-          }}
-        >
-          <span style={{ fontSize: 13, color: '#00695C', fontWeight: 600, marginBottom: 4 }}>Tüm Bakiyeler Toplamı</span>
-          <span style={{ fontSize: 26, fontWeight: 800, color: '#004D40' }}>
-            {bakiyelerGizli ? '*** ₺' : `${paraFormatla(toplamVarlik)} ₺`}
-          </span>
-        </div>
-
-        {odemeYapilmadiKasa && (() => {
-          const bakiye = bakiyeHesapla(odemeYapilmadiKasa.ad, odemeYapilmadiKasa.id)
-          const isEksi = bakiye < 0
-          return (
-            <div style={{
-              background: 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)',
-              border: '1px solid #ffcc80',
-              borderRadius: 12,
-              padding: '16px 20px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
-              marginBottom: 16
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 24 }}>⏳</span>
-                <span style={{ fontSize: 16, color: '#e65100', fontWeight: 700 }}>Ödeme Yapılmadı (Borçlanıldı)</span>
-              </div>
-              <span style={{ fontSize: 20, fontWeight: 800, color: isEksi ? '#c62828' : '#e65100' }}>
-                {bakiyelerGizli ? '*** ₺' : `${paraFormatla(bakiye)} ₺`}
-              </span>
-            </div>
-          )
-        })()}
-
-        {/* Kategoriler Accordion */}
-        <KategoriCiz baslik="Kasalar" liste={kategorilendirilmisKasalar.Kasalar} ikon="💵" />
-        <KategoriCiz baslik="Bankalar" liste={kategorilendirilmisKasalar.Bankalar} ikon="🏦" />
-        <KategoriCiz baslik="Kredi Kartları" liste={kategorilendirilmisKasalar['Kredi Kartları']} ikon="💳" />
-      </div>
 
       {/* Yeni İşlem Ekleme Kutusu */}
       <div className="ekleme-kutusu" style={{ marginBottom: 20 }}>
@@ -490,11 +346,67 @@ export default function KasaVirmanlar() {
         </button>
       </div>
 
+      {/* FİLTRE ALANI */}
+      <div style={{ marginBottom: 14 }}>
+        <button className="ekle-buton-genis" onClick={() => setFiltreAcik(!filtreAcik)}>
+          {filtreAcik ? 'Filtreleri Gizle' : (
+            (filtreMuhasebe !== 'hepsi' || filtreKasa !== 'hepsi' || filtreTip !== 'hepsi' || filtreBaslangic || filtreBitis)
+              ? 'Filtreleri Göster (Aktif Filtre Var)'
+              : 'Filtreleri Göster'
+          )}
+        </button>
+      </div>
+
+      {filtreAcik && (
+        <div className="ekleme-kutusu" style={{ marginBottom: 15, background: '#fdfdfd' }}>
+          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Muhasebe Paylaşım Durumu</p>
+          <select value={filtreMuhasebe} onChange={(e) => setFiltreMuhasebe(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+            <option value="hepsi">Tümü</option>
+            <option value="paylasildi">✓ Muhasebe ile Paylaşıldı</option>
+            <option value="paylasilmadi">⏳ Muhasebe ile Paylaşılmadı</option>
+          </select>
+
+          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Kasa / Hesap Filtresi</p>
+          <select value={filtreKasa} onChange={(e) => setFiltreKasa(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+            <option value="hepsi">Tüm Kasalar / Hesaplar</option>
+            {odemeYontemleri.map(k => <option key={k.id || k.ad} value={k.ad}>{k.ad}</option>)}
+          </select>
+
+          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>İşlem Türü</p>
+          <select value={filtreTip} onChange={(e) => setFiltreTip(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+            <option value="hepsi">Tüm İşlemler</option>
+            <option value="virman">🔄 Virman (Transfer)</option>
+            <option value="mutabakat">⚖️ Kasa Mütabakatı</option>
+          </select>
+
+          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Tarih Aralığı</p>
+          <div className="ekleme-satiri-2">
+            <input type="date" value={filtreBaslangic} onChange={(e) => setFiltreBaslangic(e.target.value)} />
+            <input type="date" value={filtreBitis} onChange={(e) => setFiltreBitis(e.target.value)} />
+          </div>
+
+          {(filtreBaslangic || filtreBitis || filtreMuhasebe !== 'hepsi' || filtreKasa !== 'hepsi' || filtreTip !== 'hepsi') && (
+            <button
+              onClick={() => {
+                setFiltreBaslangic('')
+                setFiltreBitis('')
+                setFiltreMuhasebe('hepsi')
+                setFiltreKasa('hepsi')
+                setFiltreTip('hepsi')
+              }}
+              style={{ marginTop: 8, fontSize: 12, background: 'transparent', border: 'none', color: '#0F6E56', cursor: 'pointer', padding: 0 }}
+            >
+              Filtreleri temizle
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Zaman Çizelgesi (Timeline) */}
       <div className="liste">
         <h3 style={{ fontSize: 14, color: '#2C3E50', marginBottom: 12, paddingLeft: 4 }}>Geçmiş İşlemler</h3>
         
-        {kasaIslemleri.map(islem => {
+        {gorunenKasaIslemleri.map(islem => {
           let renk = '#e0e0e0'
           let baslik = ''
           let ikon = ''
@@ -570,7 +482,7 @@ export default function KasaVirmanlar() {
             </div>
           )
         })}
-        {kasaIslemleri.length === 0 && <p className="bos-mesaj">Henüz kasa işlemi bulunmuyor.</p>}
+        {gorunenKasaIslemleri.length === 0 && <p className="bos-mesaj">Henüz kasa işlemi bulunmuyor (veya filtreye uygun kayıt yok).</p>}
       </div>
 
     </div>

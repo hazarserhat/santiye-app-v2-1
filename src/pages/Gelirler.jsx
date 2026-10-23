@@ -29,6 +29,7 @@ export default function Gelirler() {
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreTahsilat, setFiltreTahsilat] = useState('hepsi')
   const [filtreMalik, setFiltreMalik] = useState('hepsi')
+  const [filtreMuhasebe, setFiltreMuhasebe] = useState('hepsi')
   const [filtreBaslangic, setFiltreBaslangic] = useState('')
   const [filtreBitis, setFiltreBitis] = useState('')
   const [filtreAcik, setFiltreAcik] = useState(false)
@@ -409,6 +410,11 @@ export default function Gelirler() {
     .filter(g => filtreTahsilat === 'hepsi' || g.tahsilat_noktasi === filtreTahsilat)
     .filter(g => filtreMalik === 'hepsi' || (filtreMalik === 'yok' ? !g.malik_id : g.malik_id === filtreMalik))
     .filter(g => {
+      if (filtreMuhasebe === 'paylasildi') return !!g.muhasebe_paylasim
+      if (filtreMuhasebe === 'paylasilmadi') return !g.muhasebe_paylasim
+      return true
+    })
+    .filter(g => {
       if (!filtreBaslangic && !filtreBitis) return true
       if (!g.tarih) return false
       if (filtreBaslangic && g.tarih < filtreBaslangic) return false
@@ -619,7 +625,11 @@ export default function Gelirler() {
           {/* FİLTRE VE SIRALAMA ALANI */}
           <div style={{ marginBottom: 14 }}>
             <button className="ekle-buton-genis" onClick={() => setFiltreAcik(!filtreAcik)}>
-              {filtreAcik ? 'Filtreleri Gizle' : 'Filtreleri & Sıralamayı Göster'}
+              {filtreAcik ? 'Filtreleri Gizle' : (
+                (filtreSantiye !== 'hepsi' || filtreTahsilat !== 'hepsi' || filtreMalik !== 'hepsi' || filtreMuhasebe !== 'hepsi' || filtreBaslangic || filtreBitis)
+                  ? 'Filtreleri & Sıralamayı Göster (Aktif Filtre Var)'
+                  : 'Filtreleri & Sıralamayı Göster'
+              )}
             </button>
           </div>
 
@@ -629,6 +639,13 @@ export default function Gelirler() {
               <select value={siralama} onChange={(e) => setSiralama(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
                 <option value="islem_yeni">İşlem Tarihi (Yakından → Uzağa)</option>
                 <option value="islem_eski">İşlem Tarihi (Uzaktan → Yakına)</option>
+              </select>
+
+              <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Muhasebe Paylaşım Durumu</p>
+              <select value={filtreMuhasebe} onChange={(e) => setFiltreMuhasebe(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+                <option value="hepsi">Tümü</option>
+                <option value="paylasildi">✓ Muhasebe ile Paylaşıldı</option>
+                <option value="paylasilmadi">⏳ Muhasebe ile Paylaşılmadı</option>
               </select>
 
               <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Şantiye Filtresi</p>
@@ -659,12 +676,19 @@ export default function Gelirler() {
                 <input type="date" value={filtreBaslangic} onChange={(e) => setFiltreBaslangic(e.target.value)} />
                 <input type="date" value={filtreBitis} onChange={(e) => setFiltreBitis(e.target.value)} />
               </div>
-              {(filtreBaslangic || filtreBitis) && (
+              {(filtreBaslangic || filtreBitis || filtreMuhasebe !== 'hepsi' || filtreSantiye !== 'hepsi' || filtreTahsilat !== 'hepsi' || filtreMalik !== 'hepsi') && (
                 <button
-                  onClick={() => { setFiltreBaslangic(''); setFiltreBitis('') }}
+                  onClick={() => {
+                    setFiltreBaslangic('')
+                    setFiltreBitis('')
+                    setFiltreMuhasebe('hepsi')
+                    setFiltreSantiye('hepsi')
+                    setFiltreTahsilat('hepsi')
+                    setFiltreMalik('hepsi')
+                  }}
                   style={{ marginTop: 8, fontSize: 12, background: 'transparent', border: 'none', color: '#0F6E56', cursor: 'pointer', padding: 0 }}
                 >
-                  Tarih filtresini temizle
+                  Filtreleri temizle
                 </button>
               )}
             </div>

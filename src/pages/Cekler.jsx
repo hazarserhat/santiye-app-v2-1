@@ -32,6 +32,7 @@ export default function Cekler({ yon = 'verilen' }) {
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreBanka, setFiltreBanka] = useState('hepsi')
   const [filtreCari, setFiltreCari] = useState('hepsi')
+  const [filtreMuhasebe, setFiltreMuhasebe] = useState('hepsi')
   const [filtreBaslangic, setFiltreBaslangic] = useState('')
   const [filtreBitis, setFiltreBitis] = useState('')
   const [filtrelerAcik, setFiltrelerAcik] = useState(false)
@@ -506,6 +507,11 @@ export default function Cekler({ yon = 'verilen' }) {
     .filter(c => filtreBanka === 'hepsi' || c.banka === filtreBanka)
     .filter(c => filtreCari === 'hepsi' || (filtreCari === 'yok' ? !c.cari_id : c.cari_id === filtreCari))
     .filter(c => {
+      if (filtreMuhasebe === 'paylasildi') return !!c.muhasebe_paylasim
+      if (filtreMuhasebe === 'paylasilmadi') return !c.muhasebe_paylasim
+      return true
+    })
+    .filter(c => {
       if (!filtreBaslangic && !filtreBitis) return true
       if (!c.verilis_tarihi) return false
       if (filtreBaslangic && c.verilis_tarihi < filtreBaslangic) return false
@@ -529,7 +535,10 @@ export default function Cekler({ yon = 'verilen' }) {
 
   const aktifFiltreSayisi = [
     filtreSantiye !== 'hepsi',
-    filtreBanka !== 'hepsi'
+    filtreBanka !== 'hepsi',
+    filtreCari !== 'hepsi',
+    filtreMuhasebe !== 'hepsi',
+    filtreBaslangic || filtreBitis
   ].filter(Boolean).length
 
   const siralamaMetni = 
@@ -804,17 +813,31 @@ export default function Cekler({ yon = 'verilen' }) {
             <option value="yok">Cari Hesabı Olmayanlar</option>
           </select>
 
+          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Muhasebe Paylaşım Durumu</p>
+          <select value={filtreMuhasebe} onChange={(e) => setFiltreMuhasebe(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+            <option value="hepsi">Tümü</option>
+            <option value="paylasildi">✓ Muhasebe ile Paylaşıldı</option>
+            <option value="paylasilmadi">⏳ Muhasebe ile Paylaşılmadı</option>
+          </select>
+
           <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Tarih Aralığı (Veriliş Tarihi)</p>
           <div className="ekleme-satiri-2">
             <input type="date" value={filtreBaslangic} onChange={(e) => setFiltreBaslangic(e.target.value)} />
             <input type="date" value={filtreBitis} onChange={(e) => setFiltreBitis(e.target.value)} />
           </div>
-          {(filtreBaslangic || filtreBitis) && (
+          {(filtreBaslangic || filtreBitis || filtreMuhasebe !== 'hepsi' || filtreSantiye !== 'hepsi' || filtreBanka !== 'hepsi' || filtreCari !== 'hepsi') && (
             <button
-              onClick={() => { setFiltreBaslangic(''); setFiltreBitis('') }}
+              onClick={() => {
+                setFiltreBaslangic('')
+                setFiltreBitis('')
+                setFiltreMuhasebe('hepsi')
+                setFiltreSantiye('hepsi')
+                setFiltreBanka('hepsi')
+                setFiltreCari('hepsi')
+              }}
               style={{ marginTop: 8, fontSize: 12, background: 'transparent', border: 'none', color: '#0F6E56', cursor: 'pointer', padding: 0 }}
             >
-              Tarih filtresini temizle
+              Filtreleri temizle
             </button>
           )}
         </div>

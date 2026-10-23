@@ -62,6 +62,7 @@ export default function Masraflar() {
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreOdemeYontemi, setFiltreOdemeYontemi] = useState('hepsi')
   const [filtreKullanici, setFiltreKullanici] = useState('hepsi')
+  const [filtreMuhasebe, setFiltreMuhasebe] = useState('hepsi')
   const [filtreBaslangic, setFiltreBaslangic] = useState('')
   const [filtreBitis, setFiltreBitis] = useState('')
   const [filtreAcik, setFiltreAcik] = useState(false)
@@ -229,6 +230,11 @@ export default function Masraflar() {
     .filter(m => filtreSantiye === 'hepsi' || (filtreSantiye === 'genel' ? !m.santiye_id : m.santiye_id === filtreSantiye))
     .filter(m => filtreOdemeYontemi === 'hepsi' || m.odeme_yontemi_id === filtreOdemeYontemi)
     .filter(m => filtreKullanici === 'hepsi' || m.ekleyen === filtreKullanici)
+    .filter(m => {
+      if (filtreMuhasebe === 'paylasildi') return !!m.muhasebe_paylasim
+      if (filtreMuhasebe === 'paylasilmadi') return !m.muhasebe_paylasim
+      return true
+    })
     .filter(m => {
       if (!filtreBaslangic && !filtreBitis) return true
       if (!m.harcama_tarihi) return false
@@ -667,7 +673,11 @@ export default function Masraflar() {
           {/* FİLTRE VE SIRALAMA ALANI */}
           <div style={{ marginBottom: 14 }}>
             <button className="ekle-buton-genis" onClick={() => setFiltreAcik(!filtreAcik)}>
-              {filtreAcik ? 'Filtreleri Gizle' : 'Filtreleri & Sıralamayı Göster'}
+              {filtreAcik ? 'Filtreleri Gizle' : (
+                (filtreSantiye !== 'hepsi' || filtreOdemeYontemi !== 'hepsi' || filtreCari !== 'hepsi' || filtreMuhasebe !== 'hepsi' || filtreBaslangic || filtreBitis)
+                  ? 'Filtreleri & Sıralamayı Göster (Aktif Filtre Var)'
+                  : 'Filtreleri & Sıralamayı Göster'
+              )}
             </button>
           </div>
 
@@ -679,6 +689,13 @@ export default function Masraflar() {
                 <option value="kayit_eski">Kayıt Tarihi (En eski → Yeni)</option>
                 <option value="harcama_yeni">Gerçekleşme Tarihi (Yakından → Uzağa)</option>
                 <option value="harcama_eski">Gerçekleşme Tarihi (Uzaktan → Yakına)</option>
+              </select>
+
+              <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Muhasebe Paylaşım Durumu</p>
+              <select value={filtreMuhasebe} onChange={(e) => setFiltreMuhasebe(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}>
+                <option value="hepsi">Tümü</option>
+                <option value="paylasildi">✓ Muhasebe ile Paylaşıldı</option>
+                <option value="paylasilmadi">⏳ Muhasebe ile Paylaşılmadı</option>
               </select>
 
               <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Şantiye Filtresi</p>
@@ -710,12 +727,19 @@ export default function Masraflar() {
                 <input type="date" value={filtreBaslangic} onChange={(e) => setFiltreBaslangic(e.target.value)} />
                 <input type="date" value={filtreBitis} onChange={(e) => setFiltreBitis(e.target.value)} />
               </div>
-              {(filtreBaslangic || filtreBitis) && (
+              {(filtreBaslangic || filtreBitis || filtreMuhasebe !== 'hepsi' || filtreSantiye !== 'hepsi' || filtreOdemeYontemi !== 'hepsi' || filtreCari !== 'hepsi') && (
                 <button
-                  onClick={() => { setFiltreBaslangic(''); setFiltreBitis('') }}
+                  onClick={() => {
+                    setFiltreBaslangic('')
+                    setFiltreBitis('')
+                    setFiltreMuhasebe('hepsi')
+                    setFiltreSantiye('hepsi')
+                    setFiltreOdemeYontemi('hepsi')
+                    setFiltreCari('hepsi')
+                  }}
                   style={{ marginTop: 8, fontSize: 12, background: 'transparent', border: 'none', color: '#0F6E56', cursor: 'pointer', padding: 0 }}
                 >
-                  Tarih filtresini temizle
+                  Filtreleri temizle
                 </button>
               )}
             </div>

@@ -81,7 +81,7 @@ function IcerikAlani() {
             <Route path="/cari-kartlar" element={<CariKartlar />} />
             <Route path="/puantaj" element={<Puantaj />} />
             <Route path="/gunluk-rapor" element={<GunlukRapor />} />
-            <Route path="/animsaticilar" element={<Animsaticilar />} />
+            <Route path="/animsaticilar" element={<Navigate to="/gorevler" replace />} />
             <Route path="/notlarim" element={<Notlar />} />
 
             <Route path="/yonetim" element={<YonetimKoruma><Yonetim /></YonetimKoruma>} />
