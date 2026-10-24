@@ -147,15 +147,37 @@ export default function CariKartlar() {
         return
       }
     } else {
-      if (!window.confirm('Bu cari hesap kaydını ve tüm ilişkili verilerini silmek istediğinize emin misiniz?')) return
+      if (!window.confirm('Bu cari hesabı, bağlı tüm puantaj kayıtlarını, çalışanları ve şantiye atamalarını silmek istediğinize emin misiniz?')) return
     }
 
-    const { error } = await supabase.from('taseronlar').delete().eq('id', id)
-    if (error) {
-      alert('Silme başarısız: ' + error.message)
-    } else {
-      taseronlariYukle()
-      if (seciliId === id) setSeciliId(null)
+    try {
+      // 1. Puantaj ve çalışan bağımlılıklarını temizle (Foreign key hatasını önler)
+      await supabase.from('puantaj_calisan_kayitlari').delete().eq('taseron_id', id)
+      await supabase.from('puantaj_kayitlari').delete().eq('taseron_id', id)
+      await supabase.from('taseron_calisanlari').delete().eq('taseron_id', id)
+
+      // 2. Şantiye atamaları ve notları temizle
+      await supabase.from('taseron_santiyeler').delete().eq('taseron_id', id)
+      await supabase.from('taseron_notlari').delete().eq('taseron_id', id)
+
+      // 3. Varsa hakediş ve finansal ilişkileri temizle
+      if (hasFinans) {
+        await supabase.from('hakedisler').delete().eq('taseron_id', id)
+        await supabase.from('masraflar').update({ cari_id: null }).eq('cari_id', id)
+        await supabase.from('cekler').update({ cari_id: null }).eq('cari_id', id)
+        await supabase.from('gelirler').update({ cari_id: null }).eq('cari_id', id)
+      }
+
+      // 4. Ana cari kaydını sil
+      const { error } = await supabase.from('taseronlar').delete().eq('id', id)
+      if (error) {
+        alert('Silme başarısız: ' + error.message)
+      } else {
+        taseronlariYukle()
+        if (seciliId === id) setSeciliId(null)
+      }
+    } catch (err) {
+      alert('Silme işlemi sırasında hata oluştu: ' + (err.message || err))
     }
   }
 

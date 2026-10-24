@@ -28,6 +28,11 @@ import SahaDosyalari from './pages/SahaDosyalari'
 import ProjeDosyalari from './pages/ProjeDosyalari'
 import AnlasmaPlanlama from './pages/yonetim/AnlasmaPlanlama'
 import MalikKordinasyon from './pages/yonetim/MalikKordinasyon'
+import MakineHafriyat from './pages/MakineHafriyat'
+import BetonDokumu from './pages/BetonDokumu'
+import SevkiyatKabul from './pages/SevkiyatKabul'
+import SevkiyatPlanlama from './pages/SevkiyatPlanlama'
+import SahaCepCetveli from './pages/SahaCepCetveli'
 
 function YonetimKoruma({ children }) {
   const { profile } = useAuth()
@@ -81,6 +86,11 @@ function IcerikAlani() {
             <Route path="/cari-kartlar" element={<CariKartlar />} />
             <Route path="/puantaj" element={<Puantaj />} />
             <Route path="/gunluk-rapor" element={<GunlukRapor />} />
+            <Route path="/makine-hafriyat" element={<MakineHafriyat />} />
+            <Route path="/beton-dokumu" element={<BetonDokumu />} />
+            <Route path="/sevkiyat-kabul" element={<SevkiyatKabul />} />
+            <Route path="/sevkiyat-planlama" element={<SevkiyatPlanlama />} />
+            <Route path="/saha-cep-cetveli" element={<SahaCepCetveli />} />
             <Route path="/animsaticilar" element={<Navigate to="/gorevler" replace />} />
             <Route path="/notlarim" element={<Notlar />} />
 

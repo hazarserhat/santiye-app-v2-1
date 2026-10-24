@@ -9,7 +9,7 @@ export default function AltMenu() {
   const location = useLocation()
   const navigate = useNavigate()
   
-  // Aktif açılır menü: 'finans' | 'operasyon' | 'depolama' | null
+  // Aktif açılır menü: 'finans' | 'imalat' | 'operasyon' | 'depolama' | null
   const [acikMenu, setAcikMenu] = useState(null)
 
   // Sayfa değiştiğinde açılır menüyü kapat
@@ -59,8 +59,8 @@ export default function AltMenu() {
     },
   ].filter(item => item.izinli)
 
-  // 2. Operasyon alt öğeleri (Puantaj & Günlük Rapor)
-  const operasyonAltOgeleri = [
+  // 2. İmalat Kayıtları alt öğeleri (Puantaj, Günlük Rapor, Hafriyat & Makineler)
+  const imalatAltOgeleri = [
     { 
       yol: '/puantaj', 
       etiket: 'Puantaj', 
@@ -77,9 +77,66 @@ export default function AltMenu() {
       renk: '#0284c7',
       bg: '#e0f2fe'
     },
+    { 
+      yol: '/makine-hafriyat', 
+      etiket: 'Hafriyat & Makineler', 
+      aciklama: 'İş makineleri saati ve kamyon seferleri', 
+      simge: '🚜', 
+      renk: '#ea580c',
+      bg: '#ffedd5'
+    },
   ]
 
-  // 3. Depolama alt öğeleri (Drive & Notlarım)
+  const isYoneticiSerhat = Boolean(
+    profile?.sistem_yoneticisi ||
+    profile?.ad_soyad?.toLowerCase().includes('serhat') ||
+    profile?.email?.toLowerCase().includes('serhat') ||
+    profile?.rol === 'yonetici' ||
+    profile?.rol === 'koordinator' ||
+    profile?.rol !== 'santiye_sefi'
+  )
+
+  // 3. Saha Operasyonları alt öğeleri (Beton Dökümü, Sevkiyat Planlama, Sevkiyat Kabul, Saha Cep Cetveli)
+  const operasyonAltOgeleri = [
+    { 
+      yol: '/beton-dokumu', 
+      etiket: 'Beton & Mikser', 
+      aciklama: 'Beton dökümü ve mikser çetelesi', 
+      simge: '🧪', 
+      renk: '#2563eb',
+      bg: '#dbeafe',
+      izinli: true
+    },
+    { 
+      yol: '/sevkiyat-planlama', 
+      etiket: 'Sevkiyat Planlama', 
+      aciklama: 'Sahaya gelecek malzeme & teslimat takvimi', 
+      simge: '🚚', 
+      renk: '#1D9596',
+      bg: '#e6f4f1',
+      izinli: isYoneticiSerhat
+    },
+    { 
+      yol: '/sevkiyat-kabul', 
+      etiket: 'Sevkiyat Kabul', 
+      aciklama: 'Gelen malzeme ve irsaliye/fatura kabulü', 
+      simge: '📦', 
+      renk: '#059669',
+      bg: '#d1fae5',
+      izinli: true
+    },
+    { 
+      yol: '/saha-cep-cetveli', 
+      etiket: 'Saha Cep Cetveli', 
+      aciklama: 'Hızlı pratik inşaat hesaplayıcıları', 
+      simge: '🧮', 
+      renk: '#d97706',
+      bg: '#fef3c7',
+      izinli: true
+    },
+  ].filter(item => item.izinli)
+
+  // 4. Depolama alt öğeleri (Drive & Notlarım)
   const depolamaAltOgeleri = [
     { 
       yol: '/saha-dosyalari', 
@@ -100,6 +157,7 @@ export default function AltMenu() {
   ]
 
   const isFinansAktif = finansAltOgeleri.some(item => location.pathname === item.yol)
+  const isImalatAktif = imalatAltOgeleri.some(item => location.pathname === item.yol)
   const isOperasyonAktif = operasyonAltOgeleri.some(item => location.pathname === item.yol)
   const isDepolamaAktif = depolamaAltOgeleri.some(item => location.pathname === item.yol)
 
@@ -118,9 +176,14 @@ export default function AltMenu() {
       ikon: '💳',
       ogeler: finansAltOgeleri,
     },
+    imalat: {
+      baslik: 'İmalat Kayıtları',
+      ikon: '🔨',
+      ogeler: imalatAltOgeleri,
+    },
     operasyon: {
-      baslik: 'Operasyon İşlemleri',
-      ikon: '🏗️',
+      baslik: 'Saha Operasyonları',
+      ikon: '⚡',
       ogeler: operasyonAltOgeleri,
     },
     depolama: {
@@ -142,7 +205,7 @@ export default function AltMenu() {
         />
       )}
 
-      {/* Dinamik Açılır Menü (Finans, Operasyon veya Depolama) */}
+      {/* Dinamik Açılır Menü (Finans, İmalat, Operasyon veya Depolama) */}
       {aktifPopup && (
         <div className="altmenu-popup-kapsayici">
           <div className="altmenu-popup-baslik">
@@ -202,7 +265,16 @@ export default function AltMenu() {
           <span className="alt-menu-etiket">Görevler</span>
         </NavLink>
 
-        {/* 2. Finans Sekmesi (Yukarı doğru genişleyen buton) */}
+        {/* 2. Rehber (Cari Kartlar) */}
+        <NavLink 
+          to="/cari-kartlar" 
+          className={({ isActive }) => `alt-menu-oge ${isActive ? 'aktif' : ''}`}
+        >
+          <span className="alt-menu-simge">👤</span>
+          <span className="alt-menu-etiket">Rehber</span>
+        </NavLink>
+
+        {/* 3. Finans Sekmesi (Yukarı doğru genişleyen buton) */}
         {finansAltOgeleri.length > 0 && (
           <button
             type="button"
@@ -223,23 +295,33 @@ export default function AltMenu() {
           </button>
         )}
 
-        {/* 3. Rehber (Cari Kartlar) */}
-        <NavLink 
-          to="/cari-kartlar" 
-          className={({ isActive }) => `alt-menu-oge ${isActive ? 'aktif' : ''}`}
+        {/* 4. İmalat Sekmesi (Puantaj, Günlük Rapor, Hafriyat & Makineler) */}
+        <button
+          type="button"
+          onClick={() => toggleMenu('imalat')}
+          className={`alt-menu-oge ${isImalatAktif ? 'aktif' : ''}`}
+          title="İmalat Kayıtları (Puantaj, Rapor, Makineler)"
         >
-          <span className="alt-menu-simge">👤</span>
-          <span className="alt-menu-etiket">Rehber</span>
-        </NavLink>
+          <span className="alt-menu-simge">🔨</span>
+          <span className="alt-menu-etiket" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            İmalat
+            <span style={{ 
+              fontSize: 7, 
+              opacity: 0.6,
+              transition: 'transform 0.2s', 
+              transform: acikMenu === 'imalat' ? 'rotate(180deg)' : 'none' 
+            }}>▲</span>
+          </span>
+        </button>
 
-        {/* 4. Operasyon Sekmesi (Yukarı doğru genişleyen buton: Puantaj & Günlük Rapor) */}
+        {/* 5. Operasyon Sekmesi (Beton & Mikser, Sevkiyat Kabul, Saha Cep Cetveli) */}
         <button
           type="button"
           onClick={() => toggleMenu('operasyon')}
           className={`alt-menu-oge ${isOperasyonAktif ? 'aktif' : ''}`}
-          title="Operasyon (Puantaj, Günlük Rapor)"
+          title="Saha Operasyonları (Beton, Sevkiyat, Cep Cetveli)"
         >
-          <span className="alt-menu-simge">🏗️</span>
+          <span className="alt-menu-simge">⚡</span>
           <span className="alt-menu-etiket" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
             Operasyon
             <span style={{ 
@@ -251,7 +333,7 @@ export default function AltMenu() {
           </span>
         </button>
 
-        {/* 5. Depolama Sekmesi (Yukarı doğru genişleyen buton: Drive & Notlarım) */}
+        {/* 6. Depolama Sekmesi (Drive & Notlarım) */}
         <button
           type="button"
           onClick={() => toggleMenu('depolama')}
@@ -270,7 +352,7 @@ export default function AltMenu() {
           </span>
         </button>
 
-        {/* 6. Yönetim (Sadece Sistem Yöneticisi) */}
+        {/* 7. Yönetim (Sadece Sistem Yöneticisi) */}
         {profile?.sistem_yoneticisi && (
           <NavLink 
             to="/yonetim" 
