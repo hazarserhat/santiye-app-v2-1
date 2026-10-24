@@ -96,8 +96,17 @@ export default function AltMenu() {
     profile?.rol !== 'santiye_sefi'
   )
 
-  // 3. Saha Operasyonları alt öğeleri (Beton Dökümü, Sevkiyat Planlama, Sevkiyat Kabul, Saha Cep Cetveli)
+  // 3. Saha Operasyonları alt öğeleri (Şantiye Haritası, Beton Dökümü, Sevkiyat Planlama, Sevkiyat Kabul, Saha Cep Cetveli)
   const operasyonAltOgeleri = [
+    { 
+      yol: '/operasyon', 
+      etiket: 'Şantiye Haritası & Konumlar', 
+      aciklama: 'Google Haritalar canlı harita ve yol tarifi', 
+      simge: '🗺️', 
+      renk: '#0284c7',
+      bg: '#e0f2fe',
+      izinli: true
+    },
     { 
       yol: '/beton-dokumu', 
       etiket: 'Beton & Mikser', 
