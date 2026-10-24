@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
@@ -44,7 +44,9 @@ export default function CariKartlar() {
   const [yeniKategori, setYeniKategori] = useState('')
   const [acikMenuId, setAcikMenuId] = useState(null)
 
-  const [eklenecekSantiyeId, setEklenecekSantiyeId] = useState('')
+  // --- HİZMET KATEGORİSİ OTOMATİK TAMAMLAMA & ÖNERİ STATE'LERİ ---
+  const [yeniSifatOneriAcik, setYeniSifatOneriAcik] = useState(false)
+  const [duzSifatOneriAcik, setDuzSifatOneriAcik] = useState(false)
 
   // --- BİLGİ KARTI FORM STATE'LERİ ---
   const [hkDonem, setHkDonem] = useState('')
@@ -72,7 +74,7 @@ export default function CariKartlar() {
     if (taseronHata) { alert('Taşeronlar yüklenemedi: ' + taseronHata.message); return }
     setTaseronlar(data || [])
 
-    const { data: iliskiler, error: iliskiHata } = await supabase.from('taseron_santiyeler').select('taseron_id, santiye_id')
+    const { data: iliskiler, error: iliskiHata } = await supabase.from('taseron_santiyeler').select('id, taseron_id, santiye_id')
     if (iliskiHata) { alert('Şantiye ilişkileri yüklenemedi: ' + iliskiHata.message); return }
     const harita = {}
       ; (iliskiler || []).forEach((r) => {
@@ -81,6 +83,39 @@ export default function CariKartlar() {
       })
     setTaseronSantiyeHaritasi(harita)
   }
+
+  // MEVCUT HİZMET KATEGORİLERİNİN DERLENMESİ (Autocomplete & Hızlı Seçim)
+  const mevcutHizmetKategorileri = useMemo(() => {
+    const set = new Set()
+    taseronlar.forEach(t => {
+      const s = t.sifat?.trim()
+      if (s) set.add(s)
+    })
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'tr-TR'))
+  }, [taseronlar])
+
+  const kategoriKullanimSayilari = useMemo(() => {
+    const sayac = {}
+    taseronlar.forEach(t => {
+      const s = t.sifat?.trim()
+      if (s) {
+        sayac[s] = (sayac[s] || 0) + 1
+      }
+    })
+    return sayac
+  }, [taseronlar])
+
+  const yeniSifatOnerileri = useMemo(() => {
+    if (!yeniSifat.trim()) return mevcutHizmetKategorileri.slice(0, 10)
+    const q = yeniSifat.trim().toLocaleLowerCase('tr-TR')
+    return mevcutHizmetKategorileri.filter(k => k.toLocaleLowerCase('tr-TR').includes(q))
+  }, [yeniSifat, mevcutHizmetKategorileri])
+
+  const duzSifatOnerileri = useMemo(() => {
+    if (!duzSifat.trim()) return mevcutHizmetKategorileri.slice(0, 10)
+    const q = duzSifat.trim().toLocaleLowerCase('tr-TR')
+    return mevcutHizmetKategorileri.filter(k => k.toLocaleLowerCase('tr-TR').includes(q))
+  }, [duzSifat, mevcutHizmetKategorileri])
 
   const gorunurlukDegistir = async (id, mevcutDurum, e) => {
     e.stopPropagation()
@@ -183,9 +218,9 @@ export default function CariKartlar() {
 
   const detayYukle = async (id) => {
     setSeciliId(id)
-    setEklenecekSantiyeId('')
     setDuzenleModu(false)
     setDuzenlenenHakedisId(null)
+    setDuzSifatOneriAcik(false)
 
     const taseron = taseronlar.find((t) => t.id === id)
     if (taseron) {
@@ -254,19 +289,57 @@ export default function CariKartlar() {
     taseronlariYukle()
   }
 
-  const santiyeIliskisiEkle = async () => {
-    if (!eklenecekSantiyeId) return
-    const { error } = await supabase.from('taseron_santiyeler').insert({ taseron_id: seciliId, santiye_id: eklenecekSantiyeId })
-    if (error) { alert('Şantiye eklenemedi: ' + error.message); return }
-    setEklenecekSantiyeId('')
-    detayYukle(seciliId)
-    taseronlariYukle()
+  // TEK TIKLA ŞANTİYE ATAMA / KALDIRMA (Checkbox toggle)
+  const handleSantiyeToggle = async (santiyeId) => {
+    if (!seciliId) return
+    const mevcutIliski = iliskiliSantiyeler.find((r) => r.santiye_id === santiyeId)
+    if (mevcutIliski) {
+      // Şantiyeden çıkar
+      setIliskiliSantiyeler(prev => prev.filter(r => r.id !== mevcutIliski.id))
+      setTaseronSantiyeHaritasi(prev => {
+        const yeni = { ...prev }
+        if (yeni[seciliId]) {
+          yeni[seciliId] = yeni[seciliId].filter(sid => sid !== santiyeId)
+        }
+        return yeni
+      })
+      const { error } = await supabase.from('taseron_santiyeler').delete().eq('id', mevcutIliski.id)
+      if (error) {
+        alert('Şantiye ilişkisi kaldırılamadı: ' + error.message)
+        detayYukle(seciliId)
+      }
+    } else {
+      // Şantiyeye dahil et
+      const tempId = 'temp-' + Date.now()
+      setIliskiliSantiyeler(prev => [...prev, { id: tempId, santiye_id: santiyeId, taseron_id: seciliId }])
+      setTaseronSantiyeHaritasi(prev => {
+        const yeni = { ...prev }
+        if (!yeni[seciliId]) yeni[seciliId] = []
+        if (!yeni[seciliId].includes(santiyeId)) {
+          yeni[seciliId] = [...yeni[seciliId], santiyeId]
+        }
+        return yeni
+      })
+      const { data, error } = await supabase.from('taseron_santiyeler').insert({ taseron_id: seciliId, santiye_id: santiyeId }).select().single()
+      if (error) {
+        alert('Şantiye eklenemedi: ' + error.message)
+        detayYukle(seciliId)
+      } else if (data) {
+        setIliskiliSantiyeler(prev => prev.map(r => r.id === tempId ? data : r))
+      }
+    }
   }
 
-  const santiyeIliskisiSil = async (iliskiId) => {
-    await supabase.from('taseron_santiyeler').delete().eq('id', iliskiId)
-    detayYukle(seciliId)
-    taseronlariYukle()
+  // TEK TIKLA HIZLI HİZMET KATEGORİSİ ATA
+  const handleHizliKategoriAta = async (yeniKat) => {
+    if (!seciliId || !yeniKat) return
+    const { error } = await supabase.from('taseronlar').update({ sifat: yeniKat }).eq('id', seciliId)
+    if (error) {
+      alert('Hizmet kategorisi atanamadı: ' + error.message)
+      return
+    }
+    setTaseronlar(prev => prev.map(t => t.id === seciliId ? { ...t, sifat: yeniKat } : t))
+    setDuzSifat(yeniKat)
   }
 
   const notEkle = async () => {
@@ -399,12 +472,75 @@ export default function CariKartlar() {
           </div>
           <div style={{ flex: 1 }}>
             <p style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700, color: '#333', letterSpacing: '-0.3px' }}>{seciliTaseron.ad}</p>
-            <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: '#666', display: 'flex', alignItems: 'center', gap: 6 }}>
-              {seciliTaseron.sifat}{seciliTaseron.sifat && seciliTaseron.firma ? ' · ' : ''}{seciliTaseron.firma}
-              {seciliTaseron.kategori && (
-                <span style={{ padding: '2px 8px', background: '#e0f2fe', color: '#0369a1', borderRadius: 6, fontSize: 10, fontWeight: 600 }}>{seciliTaseron.kategori}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              {seciliTaseron.sifat ? (
+                <span style={{ padding: '3px 10px', background: '#F0FDFA', color: '#0F766E', border: '1px solid #CCFBF1', borderRadius: 8, fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  🏷️ {seciliTaseron.sifat}
+                </span>
+              ) : (
+                <span style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
+                  Hizmet kategorisi henüz eklenmemiş
+                </span>
               )}
-            </p>
+              {seciliTaseron.firma && (
+                <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                  · {seciliTaseron.firma}
+                </span>
+              )}
+              {seciliTaseron.kategori && (
+                <span style={{ padding: '2px 8px', background: '#f1f5f9', color: '#475569', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
+                  {seciliTaseron.kategori}
+                </span>
+              )}
+            </div>
+
+            {/* HİZMET KATEGORİSİ EKLENMEMİŞSE HIZLI TEK TIKLA ATAMA PANELİ */}
+            {!seciliTaseron.sifat && mevcutHizmetKategorileri.length > 0 && yonetici && !duzenleModu && (
+              <div style={{ marginTop: 10, background: '#fefce8', padding: '10px 12px', borderRadius: 10, border: '1px dashed #fde047' }}>
+                <span style={{ fontSize: 11.5, fontWeight: 800, color: '#854d0e', display: 'block', marginBottom: 6 }}>
+                  ⚡ Mevcut Hizmet Kategorilerinden Hızlıca Ata:
+                </span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {mevcutHizmetKategorileri.map((kat, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleHizliKategoriAta(kat)}
+                      style={{
+                        padding: '4px 10px',
+                        background: '#ffffff',
+                        border: '1px solid #fde047',
+                        borderRadius: 8,
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        color: '#a16207',
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                      }}
+                      title={`Bu cariye "${kat}" kategorisini ata`}
+                    >
+                      + {kat}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setDuzenleModu(true)}
+                    style={{
+                      padding: '4px 10px',
+                      background: '#fffbeb',
+                      border: '1px dashed #d97706',
+                      borderRadius: 8,
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: '#b45309',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ✏️ Yeni Kategori Yaz
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           {yonetici && !duzenleModu && (
             <button 
@@ -419,7 +555,7 @@ export default function CariKartlar() {
 
         {duzenleModu ? (
           <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input type="text" placeholder="Ad Soyad" value={duzAd} onChange={(e) => setDuzAd(e.target.value)} style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
                 <select value={duzKategori} onChange={(e) => setDuzKategori(e.target.value)} style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
@@ -431,7 +567,97 @@ export default function CariKartlar() {
                   <option value="Diğer">Diğer</option>
                 </select>
               </div>
-              <input type="text" placeholder="Sıfat / unvan" value={duzSifat} onChange={(e) => setDuzSifat(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
+
+              {/* HİZMET KATEGORİSİ INPUTU & AUTOCOMPLETE */}
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="text" 
+                  placeholder="Hizmet Kategorisi (örn. Asansör, Kalıp, Elektrik...)" 
+                  value={duzSifat} 
+                  onChange={(e) => {
+                    setDuzSifat(e.target.value)
+                    setDuzSifatOneriAcik(true)
+                  }}
+                  onFocus={() => setDuzSifatOneriAcik(true)}
+                  style={{ width: '100%', padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} 
+                />
+
+                {/* Autocomplete Açılır Menüsü */}
+                {duzSifatOneriAcik && duzSifatOnerileri.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: '#fff',
+                    borderRadius: 10,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                    border: '1px solid #e2e8f0',
+                    zIndex: 50,
+                    maxHeight: 180,
+                    overflowY: 'auto',
+                    marginTop: 4,
+                    padding: 4
+                  }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 800, color: '#94a3b8', padding: '4px 8px', textTransform: 'uppercase' }}>
+                      Önerilen Hizmet Kategorileri
+                    </div>
+                    {duzSifatOnerileri.map((kat, idx) => (
+                      <div
+                        key={idx}
+                        onMouseDown={() => {
+                          setDuzSifat(kat)
+                          setDuzSifatOneriAcik(false)
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 6,
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          background: duzSifat.toLowerCase() === kat.toLowerCase() ? '#f0fdfa' : 'transparent',
+                          color: duzSifat.toLowerCase() === kat.toLowerCase() ? '#0f766e' : '#334155'
+                        }}
+                      >
+                        <span>🏷️ {kat}</span>
+                        <span style={{ fontSize: 10.5, color: '#94a3b8' }}>
+                          {kategoriKullanimSayilari[kat] ? `${kategoriKullanimSayilari[kat]} cari` : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Hızlı Kategori Seçim Hapları */}
+              {mevcutHizmetKategorileri.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>Kayıtlı Kategoriler:</span>
+                  {mevcutHizmetKategorileri.slice(0, 10).map((kat, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setDuzSifat(kat)}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        border: duzSifat === kat ? '1.5px solid #1D9596' : '1px solid #e2e8f0',
+                        background: duzSifat === kat ? '#f0fdfa' : '#fff',
+                        color: duzSifat === kat ? '#0f766e' : '#475569',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {kat}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <input type="text" placeholder="Firma" value={duzFirma} onChange={(e) => setDuzFirma(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
               <input type="text" placeholder="Telefon" value={duzTelefon} onChange={(e) => setDuzTelefon(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
               <input type="text" placeholder="Adres" value={duzAdres} onChange={(e) => setDuzAdres(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03)', fontSize: 13, outline: 'none' }} />
@@ -465,27 +691,78 @@ export default function CariKartlar() {
           </div>
         )}
 
-        <p style={{ margin: '0 0 10px', fontSize: 15, fontWeight: 700, color: '#333' }}>Çalıştığı Şantiyeler</p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-          {iliskiliSantiyeler.map((r) => (
-            <span key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#e0f2f1', color: '#00695c', padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, border: '1px solid rgba(0, 105, 92, 0.1)' }}>
-              {santiyeler.find((s) => s.id === r.santiye_id)?.ad || '—'}
-              <button onClick={() => santiyeIliskisiSil(r.id)} style={{ background: 'none', border: 'none', padding: 0, margin: 0, display: 'flex', cursor: 'pointer', color: '#00695c', opacity: 0.7 }} aria-label="Kaldır">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              </button>
+        {/* TANIMLI ŞANTİYELER CHECKBOX IZGARASI (HIZLI SEÇİM) */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1E293B' }}>
+              🏗️ Tanımlı Şantiyeler ({iliskiliSantiyeler.length} / {santiyeler.length})
+            </p>
+            <span style={{ fontSize: 11.5, color: '#64748B', fontWeight: 600 }}>
+              Hızlı atama için kutucuklara tıklayın
             </span>
-          ))}
-          {iliskiliSantiyeler.length === 0 && <span className="bos-mesaj" style={{ padding: 0, margin: 0 }}>Henüz şantiye eklenmemiş.</span>}
-        </div>
-        {eklenebilirSantiyeler.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-            <select value={eklenecekSantiyeId} onChange={(e) => setEklenecekSantiyeId(e.target.value)} style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.04)', fontSize: 13, outline: 'none' }}>
-              <option value="">Şantiye seç...</option>
-              {eklenebilirSantiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
-            </select>
-            <button onClick={santiyeIliskisiEkle} style={{ padding: '10px 16px', background: '#f4f3ed', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 10, color: '#333', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>Ekle</button>
           </div>
-        )}
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+            gap: 8
+          }}>
+            {santiyeler.map((s) => {
+              const secili = iliskiliSantiyeler.some((r) => r.santiye_id === s.id)
+              return (
+                <label
+                  key={s.id}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    handleSantiyeToggle(s.id)
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    border: secili ? '2px solid #1D9596' : '1px solid #CBD5E1',
+                    background: secili ? '#F0FDFA' : '#FFFFFF',
+                    color: secili ? '#0F766E' : '#334155',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    transition: 'all 0.15s ease',
+                    boxShadow: secili ? '0 2px 6px rgba(29, 149, 150, 0.15)' : '0 1px 3px rgba(0,0,0,0.02)'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={secili}
+                    onChange={() => {}}
+                    style={{
+                      width: 18,
+                      height: 18,
+                      accentColor: '#1D9596',
+                      cursor: 'pointer',
+                      flexShrink: 0
+                    }}
+                  />
+                  <span style={{
+                    fontSize: 13,
+                    fontWeight: secili ? 800 : 600,
+                    flex: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {s.ad}
+                  </span>
+                  {secili && (
+                    <span style={{ fontSize: 10, background: '#CCFBF1', color: '#0F766E', padding: '1px 6px', borderRadius: 4, fontWeight: 800, flexShrink: 0 }}>
+                      ✓ Tanımlı
+                    </span>
+                  )}
+                </label>
+              )
+            })}
+          </div>
+        </div>
 
         <p style={{ margin: '0 0 10px', fontSize: 15, fontWeight: 700, color: '#333' }}>Notlar</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
@@ -717,9 +994,13 @@ export default function CariKartlar() {
           {t.ad.slice(0, 2).toUpperCase()}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: '0 0 2px', fontSize: 14, fontWeight: 700, color: '#333' }}>
-            {t.ad}
-            {t.sifat ? <span style={{ fontWeight: 500, color: '#888780', fontSize: 12 }}> · {t.sifat}</span> : ''}
+          <p style={{ margin: '0 0 2px', fontSize: 14, fontWeight: 700, color: '#333', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+            <span>{t.ad}</span>
+            {t.sifat ? (
+              <span style={{ background: '#F0FDFA', color: '#0F766E', border: '1px solid #CCFBF1', padding: '1px 6px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>
+                🏷️ {t.sifat}
+              </span>
+            ) : null}
           </p>
           <p style={{ margin: 0, fontSize: 11, color: '#555', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {(taseronSantiyeHaritasi[t.id] || []).map((sid) => santiyeler.find((s) => s.id === sid)?.ad).filter(Boolean).join(', ') || 'Şantiye ataması yok'}
@@ -768,7 +1049,7 @@ export default function CariKartlar() {
 
   // ---- LİSTE GÖRÜNÜMÜ ----
   return (
-    <div className="sayfa" onClick={() => setAcikMenuId(null)}>
+    <div className="sayfa" onClick={() => { setAcikMenuId(null); setYeniSifatOneriAcik(false); setDuzSifatOneriAcik(false); }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, color: '#1D9596', letterSpacing: '-0.2px' }}>Cari Hesaplar (Rehber)</h2>
       </div>
@@ -776,7 +1057,7 @@ export default function CariKartlar() {
       <div style={{ marginBottom: 12 }}>
         <input 
           type="text" 
-          placeholder="Taşeron veya cari hesap ara..." 
+          placeholder="Taşeron veya cari hesap ara (örn. Ad veya Hizmet Kategorisi)..." 
           value={arama} 
           onChange={(e) => setArama(e.target.value)} 
           style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.04)', fontSize: 13, outline: 'none' }}
@@ -797,10 +1078,100 @@ export default function CariKartlar() {
               <option value="Diğer">Diğer</option>
             </select>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
             <input type="text" placeholder="Firma Adı" value={yeniFirma} onChange={(e) => setYeniFirma(e.target.value)} style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
-            <input type="text" placeholder="Sıfat / Unvan (örn. Elektrik)" value={yeniSifat} onChange={(e) => setYeniSifat(e.target.value)} style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
+            
+            {/* HİZMET KATEGORİSİ AUTOCOMPLETE INPUTU */}
+            <div style={{ flex: 1, position: 'relative' }}>
+              <input 
+                type="text" 
+                placeholder="Hizmet Kategorisi (örn. Asansör, Kalıp, Elektrik)" 
+                value={yeniSifat} 
+                onChange={(e) => {
+                  setYeniSifat(e.target.value)
+                  setYeniSifatOneriAcik(true)
+                }}
+                onFocus={() => setYeniSifatOneriAcik(true)}
+                style={{ width: '100%', padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} 
+              />
+              
+              {/* Autocomplete Açılır Menüsü */}
+              {yeniSifatOneriAcik && yeniSifatOnerileri.length > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  background: '#fff',
+                  borderRadius: 10,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                  border: '1px solid #e2e8f0',
+                  zIndex: 50,
+                  maxHeight: 180,
+                  overflowY: 'auto',
+                  marginTop: 4,
+                  padding: 4
+                }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, color: '#94a3b8', padding: '4px 8px', textTransform: 'uppercase' }}>
+                    Kayıtlı Hizmet Kategorileri
+                  </div>
+                  {yeniSifatOnerileri.map((kat, idx) => (
+                    <div
+                      key={idx}
+                      onMouseDown={() => {
+                        setYeniSifat(kat)
+                        setYeniSifatOneriAcik(false)
+                      }}
+                      style={{
+                        padding: '7px 10px',
+                        borderRadius: 6,
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        background: yeniSifat.toLowerCase() === kat.toLowerCase() ? '#f0fdfa' : 'transparent',
+                        color: yeniSifat.toLowerCase() === kat.toLowerCase() ? '#0f766e' : '#334155'
+                      }}
+                    >
+                      <span>🏷️ {kat}</span>
+                      <span style={{ fontSize: 10.5, color: '#94a3b8' }}>
+                        {kategoriKullanimSayilari[kat] ? `${kategoriKullanimSayilari[kat]} cari` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Hızlı Kategori Seçim Hapları */}
+          {mevcutHizmetKategorileri.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center', marginTop: -2, marginBottom: 4 }}>
+              <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>Örnek Hizmetler:</span>
+              {mevcutHizmetKategorileri.slice(0, 10).map((kat, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setYeniSifat(kat)}
+                  style={{
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    border: yeniSifat === kat ? '1.5px solid #1D9596' : '1px solid #e2e8f0',
+                    background: yeniSifat === kat ? '#f0fdfa' : '#fff',
+                    color: yeniSifat === kat ? '#0f766e' : '#475569',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {kat}
+                </button>
+              ))}
+            </div>
+          )}
+
           <input type="text" placeholder="Telefon Numarası" value={yeniTelefon} onChange={(e) => setYeniTelefon(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
           <input type="text" placeholder="Açık Adres" value={yeniAdres} onChange={(e) => setYeniAdres(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
           <button 
