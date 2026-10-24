@@ -3,43 +3,32 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useSite } from '../context/SiteContext'
 
-const OGELER_ONCESI = [
-  { yol: '/gorevler', etiket: 'Görevler', simge: '✓' }
-]
-
-const OGELER_SONRASI = [
-  { yol: '/cari-kartlar', etiket: 'Rehber', simge: '👤', yolIsmi: 'cari' },
-  { yol: '/puantaj', etiket: 'Puantaj', simge: '📅' },
-  { yol: '/gunluk-rapor', etiket: 'Rapor', simge: '📝' },
-  { yol: '/saha-dosyalari', etiket: 'Drive', simge: '📁' },
-  // { yol: '/animsaticilar', etiket: 'Uyarı', simge: '🔔' }, // Geçici olarak kapatıldı
-  { yol: '/notlarim', etiket: 'Notlarım', simge: '📌' },
-]
-
 export default function AltMenu() {
   const { profile } = useAuth()
   const { sistemAyarlari } = useSite()
   const location = useLocation()
   const navigate = useNavigate()
-  const [finansAcik, setFinansAcik] = useState(false)
+  
+  // Aktif açılır menü: 'finans' | 'operasyon' | 'depolama' | null
+  const [acikMenu, setAcikMenu] = useState(null)
 
   // Sayfa değiştiğinde açılır menüyü kapat
   useEffect(() => {
-    setFinansAcik(false)
+    setAcikMenu(null)
   }, [location.pathname])
 
   // ESC tuşu ile kapat
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setFinansAcik(false)
+      if (e.key === 'Escape') setAcikMenu(null)
     }
-    if (finansAcik) {
+    if (acikMenu) {
       window.addEventListener('keydown', handleKeyDown)
       return () => window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [finansAcik])
+  }, [acikMenu])
 
-  // Finans alt öğeleri ve yetki kontrolü
+  // 1. Finans alt öğeleri ve yetki kontrolü
   const finansAltOgeleri = [
     { 
       yol: '/masraflar', 
@@ -70,71 +59,132 @@ export default function AltMenu() {
     },
   ].filter(item => item.izinli)
 
-  const isFinansAktif = finansAltOgeleri.some(item => location.pathname === item.yol)
+  // 2. Operasyon alt öğeleri (Puantaj & Günlük Rapor)
+  const operasyonAltOgeleri = [
+    { 
+      yol: '/puantaj', 
+      etiket: 'Puantaj', 
+      aciklama: 'Personel ve işçi devam takibi', 
+      simge: '📅', 
+      renk: '#7c3aed',
+      bg: '#ede9fe'
+    },
+    { 
+      yol: '/gunluk-rapor', 
+      etiket: 'Günlük Rapor', 
+      aciklama: 'Hava durumu, imalat ve saha raporu', 
+      simge: '📝', 
+      renk: '#0284c7',
+      bg: '#e0f2fe'
+    },
+  ]
 
-  let sonrasiOgeler = OGELER_SONRASI
-  if (profile?.sistem_yoneticisi) {
-    sonrasiOgeler = [...sonrasiOgeler, { yol: '/yonetim', etiket: 'Yönetim', simge: '⚙️' }]
+  // 3. Depolama alt öğeleri (Drive & Notlarım)
+  const depolamaAltOgeleri = [
+    { 
+      yol: '/saha-dosyalari', 
+      etiket: 'Drive', 
+      aciklama: 'Saha arşivi ve Google Drive belgeleri', 
+      simge: '📁', 
+      renk: '#0284c7',
+      bg: '#e0f2fe'
+    },
+    { 
+      yol: '/notlarim', 
+      etiket: 'Notlarım', 
+      aciklama: 'Kişisel notlar ve taslaklar', 
+      simge: '📌', 
+      renk: '#d97706',
+      bg: '#fef3c7'
+    },
+  ]
+
+  const isFinansAktif = finansAltOgeleri.some(item => location.pathname === item.yol)
+  const isOperasyonAktif = operasyonAltOgeleri.some(item => location.pathname === item.yol)
+  const isDepolamaAktif = depolamaAltOgeleri.some(item => location.pathname === item.yol)
+
+  const toggleMenu = (menuKey) => {
+    setAcikMenu(prev => prev === menuKey ? null : menuKey)
   }
 
   const gitVeKapat = (yol) => {
-    setFinansAcik(false)
+    setAcikMenu(null)
     navigate(yol)
   }
 
+  const popupVerileri = {
+    finans: {
+      baslik: 'Finans İşlemleri',
+      ikon: '💳',
+      ogeler: finansAltOgeleri,
+    },
+    operasyon: {
+      baslik: 'Operasyon İşlemleri',
+      ikon: '🏗️',
+      ogeler: operasyonAltOgeleri,
+    },
+    depolama: {
+      baslik: 'Depolama & Belgeler',
+      ikon: '🗄️',
+      ogeler: depolamaAltOgeleri,
+    },
+  }
+
+  const aktifPopup = acikMenu ? popupVerileri[acikMenu] : null
+
   return (
     <>
-      {/* Finans Açılır Menü Backdrop (Dışına tıklandığında kapatır) */}
-      {finansAcik && (
+      {/* Menü Açılır Arka Planı (Dışına tıklandığında kapatır) */}
+      {acikMenu && (
         <div 
-          className="finans-popup-arka-plan" 
-          onClick={() => setFinansAcik(false)} 
+          className="altmenu-popup-arka-plan" 
+          onClick={() => setAcikMenu(null)} 
         />
       )}
 
-      {/* Finans Açılır Menü (Yukarı Doğru Genişleme) */}
-      {finansAcik && (
-        <div className="finans-popup-kapsayici">
-          <div className="finans-popup-baslik">
-            <span className="finans-popup-baslik-metin">
-              <span>💳</span> Finans İşlemleri
+      {/* Dinamik Açılır Menü (Finans, Operasyon veya Depolama) */}
+      {aktifPopup && (
+        <div className="altmenu-popup-kapsayici">
+          <div className="altmenu-popup-baslik">
+            <span className="altmenu-popup-baslik-metin">
+              <span>{aktifPopup.ikon}</span> {aktifPopup.baslik}
             </span>
             <button 
               type="button" 
-              className="finans-popup-kapat" 
-              onClick={() => setFinansAcik(false)}
+              className="altmenu-popup-kapat" 
+              onClick={() => setAcikMenu(null)}
               aria-label="Kapat"
             >
               ✕
             </button>
           </div>
 
-          <div className="finans-popup-liste">
-            {finansAltOgeleri.map((item) => {
+          <div className="altmenu-popup-liste">
+            {aktifPopup.ogeler.map((item) => {
               const aktifMi = location.pathname === item.yol
               return (
                 <div
                   key={item.yol}
-                  className={`finans-popup-kart ${aktifMi ? 'aktif' : ''}`}
+                  className={`altmenu-popup-kart ${aktifMi ? 'aktif' : ''}`}
                   onClick={() => gitVeKapat(item.yol)}
                   onKeyDown={(e) => { if (e.key === 'Enter') gitVeKapat(item.yol) }}
                   role="button"
                   tabIndex={0}
                 >
                   <div 
-                    className="finans-popup-ikon-kutusu" 
+                    className="altmenu-popup-ikon-kutusu" 
                     style={{ background: item.bg, color: item.renk }}
                   >
                     {item.simge}
                   </div>
-                  <div className="finans-popup-metinler">
-                    <div className="finans-popup-etiket">
+                  <div className="altmenu-popup-metinler">
+                    <div className="altmenu-popup-etiket">
                       {item.etiket}
-                      {aktifMi && <span className="finans-popup-aktif-nokta" title="Şu an bu sayfadasınız" />}
+                      {aktifMi && <span className="altmenu-popup-aktif-nokta" title="Şu an bu sayfadasınız" />}
                     </div>
-                    <span className="finans-popup-aciklama">{item.aciklama}</span>
+                    <span className="altmenu-popup-aciklama">{item.aciklama}</span>
                   </div>
-                  <span className="finans-popup-ok">›</span>
+                  <span className="altmenu-popup-ok">›</span>
                 </div>
               )
             })}
@@ -144,22 +194,19 @@ export default function AltMenu() {
 
       <nav className="alt-menu">
         {/* 1. Görevler */}
-        {OGELER_ONCESI.map((oge) => (
-          <NavLink 
-            key={oge.yol} 
-            to={oge.yol} 
-            className={({ isActive }) => `alt-menu-oge ${isActive ? 'aktif' : ''}`}
-          >
-            <span className="alt-menu-simge">{oge.simge}</span>
-            <span className="alt-menu-etiket">{oge.etiket}</span>
-          </NavLink>
-        ))}
+        <NavLink 
+          to="/gorevler" 
+          className={({ isActive }) => `alt-menu-oge ${isActive ? 'aktif' : ''}`}
+        >
+          <span className="alt-menu-simge">✓</span>
+          <span className="alt-menu-etiket">Görevler</span>
+        </NavLink>
 
         {/* 2. Finans Sekmesi (Yukarı doğru genişleyen buton) */}
         {finansAltOgeleri.length > 0 && (
           <button
             type="button"
-            onClick={() => setFinansAcik(prev => !prev)}
+            onClick={() => toggleMenu('finans')}
             className={`alt-menu-oge ${isFinansAktif ? 'aktif' : ''}`}
             title="Finans (Giderler, Gelirler, Virman)"
           >
@@ -170,23 +217,69 @@ export default function AltMenu() {
                 fontSize: 7, 
                 opacity: 0.6,
                 transition: 'transform 0.2s', 
-                transform: finansAcik ? 'rotate(180deg)' : 'none' 
+                transform: acikMenu === 'finans' ? 'rotate(180deg)' : 'none' 
               }}>▲</span>
             </span>
           </button>
         )}
 
-        {/* 3. Diğer Sayfalar (Rehber, Puantaj, Rapor, Drive, Notlarım, Yönetim) */}
-        {sonrasiOgeler.map((oge) => (
+        {/* 3. Rehber (Cari Kartlar) */}
+        <NavLink 
+          to="/cari-kartlar" 
+          className={({ isActive }) => `alt-menu-oge ${isActive ? 'aktif' : ''}`}
+        >
+          <span className="alt-menu-simge">👤</span>
+          <span className="alt-menu-etiket">Rehber</span>
+        </NavLink>
+
+        {/* 4. Operasyon Sekmesi (Yukarı doğru genişleyen buton: Puantaj & Günlük Rapor) */}
+        <button
+          type="button"
+          onClick={() => toggleMenu('operasyon')}
+          className={`alt-menu-oge ${isOperasyonAktif ? 'aktif' : ''}`}
+          title="Operasyon (Puantaj, Günlük Rapor)"
+        >
+          <span className="alt-menu-simge">🏗️</span>
+          <span className="alt-menu-etiket" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            Operasyon
+            <span style={{ 
+              fontSize: 7, 
+              opacity: 0.6,
+              transition: 'transform 0.2s', 
+              transform: acikMenu === 'operasyon' ? 'rotate(180deg)' : 'none' 
+            }}>▲</span>
+          </span>
+        </button>
+
+        {/* 5. Depolama Sekmesi (Yukarı doğru genişleyen buton: Drive & Notlarım) */}
+        <button
+          type="button"
+          onClick={() => toggleMenu('depolama')}
+          className={`alt-menu-oge ${isDepolamaAktif ? 'aktif' : ''}`}
+          title="Depolama (Drive, Notlarım)"
+        >
+          <span className="alt-menu-simge">🗄️</span>
+          <span className="alt-menu-etiket" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            Depolama
+            <span style={{ 
+              fontSize: 7, 
+              opacity: 0.6,
+              transition: 'transform 0.2s', 
+              transform: acikMenu === 'depolama' ? 'rotate(180deg)' : 'none' 
+            }}>▲</span>
+          </span>
+        </button>
+
+        {/* 6. Yönetim (Sadece Sistem Yöneticisi) */}
+        {profile?.sistem_yoneticisi && (
           <NavLink 
-            key={oge.yol} 
-            to={oge.yol} 
+            to="/yonetim" 
             className={({ isActive }) => `alt-menu-oge ${isActive ? 'aktif' : ''}`}
           >
-            <span className="alt-menu-simge">{oge.simge}</span>
-            <span className="alt-menu-etiket">{oge.etiket}</span>
+            <span className="alt-menu-simge">⚙️</span>
+            <span className="alt-menu-etiket">Yönetim</span>
           </NavLink>
-        ))}
+        )}
       </nav>
     </>
   )

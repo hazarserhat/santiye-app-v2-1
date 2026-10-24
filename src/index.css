@@ -139,8 +139,9 @@ button.alt-menu-oge {
   transform: translateY(-2px);
 }
 
-/* Finans Açılır Menüsü (Yukarı Genişleme) */
-.finans-popup-arka-plan {
+/* Alt Menü Açılır Popupları (Finans & Depolama) */
+.finans-popup-arka-plan,
+.altmenu-popup-arka-plan {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.28);
@@ -150,7 +151,8 @@ button.alt-menu-oge {
   animation: fadeInPopup 0.2s ease-out;
 }
 
-.finans-popup-kapsayici {
+.finans-popup-kapsayici,
+.altmenu-popup-kapsayici {
   position: fixed;
   bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 10px);
   left: 14px;
@@ -185,7 +187,8 @@ button.alt-menu-oge {
   }
 }
 
-.finans-popup-baslik {
+.finans-popup-baslik,
+.altmenu-popup-baslik {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -193,7 +196,8 @@ button.alt-menu-oge {
   padding: 0 4px 6px 4px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
-.finans-popup-baslik-metin {
+.finans-popup-baslik-metin,
+.altmenu-popup-baslik-metin {
   font-size: 13px;
   font-weight: 700;
   color: #1e293b;
@@ -201,7 +205,8 @@ button.alt-menu-oge {
   align-items: center;
   gap: 6px;
 }
-.finans-popup-kapat {
+.finans-popup-kapat,
+.altmenu-popup-kapat {
   background: rgba(0, 0, 0, 0.05);
   border: none;
   border-radius: 50%;
@@ -215,18 +220,21 @@ button.alt-menu-oge {
   cursor: pointer;
   transition: all 0.2s;
 }
-.finans-popup-kapat:hover {
+.finans-popup-kapat:hover,
+.altmenu-popup-kapat:hover {
   background: rgba(0, 0, 0, 0.1);
   color: #0f172a;
 }
 
-.finans-popup-liste {
+.finans-popup-liste,
+.altmenu-popup-liste {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.finans-popup-kart {
+.finans-popup-kart,
+.altmenu-popup-kart {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -239,21 +247,25 @@ button.alt-menu-oge {
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
 }
-.finans-popup-kart:hover {
+.finans-popup-kart:hover,
+.altmenu-popup-kart:hover {
   background: #ffffff;
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
   border-color: rgba(29, 149, 150, 0.3);
 }
-.finans-popup-kart:active {
+.finans-popup-kart:active,
+.altmenu-popup-kart:active {
   transform: scale(0.98);
 }
-.finans-popup-kart.aktif {
+.finans-popup-kart.aktif,
+.altmenu-popup-kart.aktif {
   background: #f0fdfa;
   border: 1.5px solid #1D9596;
 }
 
-.finans-popup-ikon-kutusu {
+.finans-popup-ikon-kutusu,
+.altmenu-popup-ikon-kutusu {
   width: 40px;
   height: 40px;
   border-radius: 11px;
@@ -265,14 +277,16 @@ button.alt-menu-oge {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.finans-popup-metinler {
+.finans-popup-metinler,
+.altmenu-popup-metinler {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
-.finans-popup-etiket {
+.finans-popup-etiket,
+.altmenu-popup-etiket {
   font-size: 14px;
   font-weight: 700;
   color: #1e293b;
@@ -280,27 +294,32 @@ button.alt-menu-oge {
   align-items: center;
   gap: 6px;
 }
-.finans-popup-kart.aktif .finans-popup-etiket {
+.finans-popup-kart.aktif .finans-popup-etiket,
+.altmenu-popup-kart.aktif .altmenu-popup-etiket {
   color: #0f766e;
 }
-.finans-popup-aciklama {
+.finans-popup-aciklama,
+.altmenu-popup-aciklama {
   font-size: 11px;
   color: #64748b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.finans-popup-ok {
+.finans-popup-ok,
+.altmenu-popup-ok {
   font-size: 18px;
   color: #94a3b8;
   font-weight: 500;
   transition: transform 0.2s;
 }
-.finans-popup-kart:hover .finans-popup-ok {
+.finans-popup-kart:hover .finans-popup-ok,
+.altmenu-popup-kart:hover .altmenu-popup-ok {
   transform: translateX(3px);
   color: #1D9596;
 }
-.finans-popup-aktif-nokta {
+.finans-popup-aktif-nokta,
+.altmenu-popup-aktif-nokta {
   width: 7px;
   height: 7px;
   border-radius: 50%;
