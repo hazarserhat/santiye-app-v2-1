@@ -307,22 +307,36 @@ export default function OdemeVaatleri() {
     return { metin: `🗓 ${farkGun} gün sonra`, renk: '#0369A1', bg: '#E0F2FE', border: '#BAE6FD' }
   }
 
-  // Tekil WhatsApp Mesajı
-  const tekilWhatsAppPaylas = (item) => {
-    const tarih = turkceTarihFormatla(item.vade_tarihi)
-    const tutarFormatli = paraFormatla(item.tutar)
-    const santiyeAdi = item.santiyeler?.ad ? `${item.santiyeler.ad} şantiyemiz için ` : ''
-    const notDetay = item.not_metni ? `\n📝 *Açıklama:* ${item.not_metni}` : ''
+  // Tekil Paylaşım (Giderler / Gelirler Sayfası Formatında)
+  const tekilWhatsAppPaylas = async (item) => {
+    const santiyeAdi = item.santiyeler?.ad || (item.santiye_id ? 'Şantiye' : 'Genel')
+    const durumMetni = item.durum === 'odendi' ? 'Ödendi ✓' : 'Bekliyor (Söz Verildi)'
+    const vadeTarihMetni = turkceTarihFormatla(item.vade_tarihi) || '—'
 
-    const mesaj = `Merhaba *${item.baslik}*,\n\n${santiyeAdi}*${tarih}* vadeli *${tutarFormatli} ₺* tutarındaki ödeme sözümüz kayıtlarımızdadır.${notDetay}\n\nBilginize sunar, hayırlı işler dileriz.`
+    const metin =
+      `🤝 *ÖDEME VAADİ BİLDİRİMİ*\n` +
+      `👤 *Kişi / Firma:* ${item.baslik}\n` +
+      `💵 *Söz Verilen Tutar:* ${paraFormatla(item.tutar)} ₺\n` +
+      `🏗 *Şantiye:* ${santiyeAdi}\n` +
+      `📅 *Vade Tarihi:* ${vadeTarihMetni}\n` +
+      `📌 *Durum:* ${durumMetni}\n` +
+      (item.not_metni ? `📝 *Not:* ${item.not_metni}` : '')
 
-    const url = `https://wa.me/?text=${encodeURIComponent(mesaj)}`
-    window.open(url, '_blank')
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Ödeme Vaadi Bildirimi', text: metin })
+      } else {
+        window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
+      }
+    }
   }
 
-  // Toplu WhatsApp Paylaşımı (Tüm filtrelenmiş veya seçili olanlar)
-  const topluWhatsAppPaylas = () => {
-    // Eğer seçim yapılmışsa sadece seçilenleri, yoksa ekrandaki bekleyenleri al
+  // Toplu WhatsApp Paylaşımı (Giderler / Gelirler Rapor Formatında)
+  const topluWhatsAppPaylas = async () => {
     const paylasilacaklar = seciliVaatIdler.length > 0
       ? filtrelenmisVaatler.filter(v => seciliVaatIdler.includes(v.id))
       : filtrelenmisVaatler.filter(v => v.durum === 'bekliyor')
@@ -338,33 +352,45 @@ export default function OdemeVaatleri() {
     let mesaj = `🤝 *ÖDEME VAATLERİMİZ (Söz Verilen Ödemeler)*\n`
     mesaj += `📅 *Rapor Tarihi:* ${tarihBugun}\n`
     if (aktifSantiye?.ad && seciliSantiyeFiltre !== 'hepsi') {
-      mesaj += `🏢 *Şantiye:* ${aktifSantiye.ad}\n`
+      mesaj += `🏗 *Şantiye:* ${aktifSantiye.ad}\n`
     }
     mesaj += `━━━━━━━━━━━━━━━━━━━━━\n\n`
 
     paylasilacaklar.forEach((item, index) => {
       const siraNo = index + 1
       const santiyeTag = item.santiyeler?.ad ? ` [${item.santiyeler.ad}]` : ''
-      const vadeTr = turkceKisaTarih(item.vade_tarihi)
-      const notStr = item.not_metni ? `\n   📝 _Not:_ ${item.not_metni}` : ''
+      const vadeTr = turkceTarihFormatla(item.vade_tarihi) || '—'
       const durumStr = item.durum === 'odendi' ? ' (ÖDENDİ ✓)' : ''
 
       mesaj += `*${siraNo}.* *${item.baslik}*${santiyeTag}${durumStr}\n`
-      mesaj += `   💵 *${paraFormatla(item.tutar)} ₺*\n`
-      mesaj += `   🗓 *Vade:* ${vadeTr}${notStr}\n\n`
+      mesaj += `   💵 *Tutar:* ${paraFormatla(item.tutar)} ₺\n`
+      mesaj += `   📅 *Vade:* ${vadeTr}\n`
+      if (item.not_metni) {
+        mesaj += `   📝 *Not:* ${item.not_metni}\n`
+      }
+      mesaj += `\n`
     })
 
     mesaj += `━━━━━━━━━━━━━━━━━━━━━\n`
-    mesaj += `💰 *TOPLAM VAAT:* *${paraFormatla(toplamTutar)} ₺* (${paylasilacaklar.length} Kayıt)\n`
-    mesaj += `_Söz verdiğimiz ödeme listesidir._`
+    mesaj += `💰 *TOPLAM:* *${paraFormatla(toplamTutar)} ₺* (${paylasilacaklar.length} Kayıt)\n`
 
     // Panoya kopyala
     navigator.clipboard?.writeText(mesaj).catch(() => {})
 
-    // WhatsApp'ı aç
-    const url = `https://wa.me/?text=${encodeURIComponent(mesaj)}`
-    window.open(url, '_blank')
-    bildirimGoster('✓ Liste WhatsApp formatında hazırlandı ve panoya kopyalandı!')
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Ödeme Vaatleri Raporu', text: mesaj })
+      } else {
+        const url = `https://wa.me/?text=${encodeURIComponent(mesaj)}`
+        window.open(url, '_blank')
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        const url = `https://wa.me/?text=${encodeURIComponent(mesaj)}`
+        window.open(url, '_blank')
+      }
+    }
+    bildirimGoster('✓ Liste hazırlandı ve panoya kopyalandı!')
   }
 
   // Tümünü Seç / Kaldır
@@ -746,9 +772,9 @@ export default function OdemeVaatleri() {
                   transition: 'all 0.15s'
                 }}
               >
-                {/* ÜST SATIR: Checkbox, İsim, Vade Rozeti ve Tutar */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, width: '100%' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flex: 1, minWidth: 0 }}>
+                {/* 1. KATMAN: Checkbox, Durum Butonu, Şantiye Rozeti ve Tutar */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     {/* Toplu Paylaşım Checkbox */}
                     <input
                       type="checkbox"
@@ -758,7 +784,7 @@ export default function OdemeVaatleri() {
                           prev.includes(item.id) ? prev.filter(x => x !== item.id) : [...prev, item.id]
                         )
                       }}
-                      style={{ width: 16, height: 16, marginTop: 3, flexShrink: 0, cursor: 'pointer' }}
+                      style={{ width: 16, height: 16, cursor: 'pointer', margin: 0 }}
                       title="WhatsApp paylaşım listesine dahil et"
                     />
 
@@ -766,7 +792,7 @@ export default function OdemeVaatleri() {
                     <button
                       onClick={() => durumDegistir(item.id, item.durum)}
                       style={{
-                        padding: '2px 7px',
+                        padding: '3px 8px',
                         fontSize: 11,
                         fontWeight: 700,
                         borderRadius: 6,
@@ -774,59 +800,98 @@ export default function OdemeVaatleri() {
                         cursor: 'pointer',
                         background: item.durum === 'odendi' ? '#DCFCE7' : '#F1F5F9',
                         color: item.durum === 'odendi' ? '#15803D' : '#64748B',
-                        flexShrink: 0,
-                        marginTop: 1
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4
                       }}
                       title={item.durum === 'odendi' ? 'Bekliyor durumuna geri al' : 'Ödendi olarak işaretle'}
                     >
-                      {item.durum === 'odendi' ? '✓ Ödendi' : '○ Bekliyor'}
+                      <span>{item.durum === 'odendi' ? '✓' : '○'}</span>
+                      <span>{item.durum === 'odendi' ? 'Ödendi' : 'Bekliyor'}</span>
                     </button>
 
-                    {/* Kişi / Firma Adı */}
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <p style={{
-                        margin: 0,
+                    {/* Şantiye Rozeti */}
+                    {item.santiyeler?.ad && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        padding: '2px 7px',
+                        fontSize: 11,
                         fontWeight: 700,
-                        fontSize: 14.5,
-                        color: item.durum === 'odendi' ? '#64748B' : '#1E293B',
-                        textDecoration: item.durum === 'odendi' ? 'line-through' : 'none',
-                        wordBreak: 'break-word',
-                        lineHeight: 1.3
+                        borderRadius: 6,
+                        background: '#E6FFFA',
+                        color: '#0D9488',
+                        border: '1px solid #99F6E4'
                       }}>
-                        {item.baslik}
-                      </p>
-                      {item.santiyeler?.ad && (
-                        <span style={{
-                          display: 'inline-block',
-                          marginTop: 3,
-                          padding: '1px 6px',
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          borderRadius: 8,
-                          background: '#E6FFFA',
-                          color: '#0D9488',
-                          border: '1px solid #99F6E4'
-                        }}>
-                          🏢 {item.santiyeler.ad}
-                        </span>
-                      )}
-                    </div>
+                        🏢 {item.santiyeler.ad}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Sağ Taraf: Tutar & Vade Rozeti */}
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{
-                      fontSize: 16,
-                      fontWeight: 800,
-                      color: item.durum === 'odendi' ? '#64748B' : '#0F6E56',
-                      letterSpacing: '-0.3px'
-                    }}>
-                      {paraFormatla(item.tutar)} ₺
-                    </div>
+                  {/* Sağ Taraf: Tutar */}
+                  <div style={{
+                    fontSize: 16.5,
+                    fontWeight: 800,
+                    color: item.durum === 'odendi' ? '#64748B' : '#0F6E56',
+                    letterSpacing: '-0.3px',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {paraFormatla(item.tutar)} ₺
+                  </div>
+                </div>
+
+                {/* 2. KATMAN: Kişi / Firma Adı (TAM GENİŞLİK - MAKSİMİZE EDİLMİŞ METİN ALANI) */}
+                <div style={{ width: '100%' }}>
+                  <h3 style={{
+                    margin: 0,
+                    fontWeight: 700,
+                    fontSize: 15,
+                    color: item.durum === 'odendi' ? '#64748B' : '#1E293B',
+                    textDecoration: item.durum === 'odendi' ? 'line-through' : 'none',
+                    wordBreak: 'break-word',
+                    lineHeight: 1.35
+                  }}>
+                    {item.baslik}
+                  </h3>
+                </div>
+
+                {/* 3. KATMAN: Açıklama / Not (TAM GENİŞLİK, Varsa) */}
+                {item.not_metni && (
+                  <div style={{
+                    fontSize: 12.5,
+                    color: '#475569',
+                    background: '#F8F7F2',
+                    padding: '7px 11px',
+                    borderRadius: 8,
+                    border: '1px solid #E2E0D8',
+                    lineHeight: 1.45,
+                    wordBreak: 'break-word',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                  }}>
+                    <span style={{ fontWeight: 700, color: '#334155' }}>📝 Not: </span>
+                    {item.not_metni}
+                  </div>
+                )}
+
+                {/* 4. KATMAN: Vade Bilgisi & Rozeti (Sol) | Aksiyon Butonları (Sağ) */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingTop: 8,
+                  borderTop: '1px solid rgba(0,0,0,0.05)',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  width: '100%'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11.5, color: '#64748B' }}>
+                      🗓 Vade: <strong style={{ color: '#334155' }}>{turkceTarihFormatla(item.vade_tarihi)}</strong>
+                    </span>
                     <span style={{
-                      display: 'inline-block',
-                      marginTop: 3,
-                      padding: '2px 6px',
+                      padding: '2px 7px',
                       fontSize: 10,
                       fontWeight: 700,
                       borderRadius: 6,
@@ -837,46 +902,13 @@ export default function OdemeVaatleri() {
                       {vadeInfo.metin}
                     </span>
                   </div>
-                </div>
-
-                {/* ORTA: Açıklama / Not (Varsa) */}
-                {item.not_metni && (
-                  <div style={{
-                    fontSize: 12.5,
-                    color: '#475569',
-                    background: '#F8F7F2',
-                    padding: '6px 10px',
-                    borderRadius: 8,
-                    border: '1px solid #E2E0D8',
-                    lineHeight: 1.4,
-                    wordBreak: 'break-word'
-                  }}>
-                    <span style={{ fontWeight: 600, color: '#334155' }}>Not: </span>
-                    {item.not_metni}
-                  </div>
-                )}
-
-                {/* ALT SATIR: Tarih Bilgisi ve Aksiyon Butonları */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  paddingTop: 6,
-                  borderTop: '1px solid rgba(0,0,0,0.04)',
-                  flexWrap: 'wrap',
-                  gap: 6
-                }}>
-                  <div style={{ fontSize: 11, color: '#64748B' }}>
-                    <span>🗓 Vade: </span>
-                    <strong style={{ color: '#334155' }}>{turkceTarihFormatla(item.vade_tarihi)}</strong>
-                  </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
-                    {/* Tekil WhatsApp Paylaş */}
+                    {/* Tekil Paylaş */}
                     <button
                       onClick={() => tekilWhatsAppPaylas(item)}
                       style={{
-                        padding: '3px 8px',
+                        padding: '4px 9px',
                         fontSize: 11.5,
                         background: '#DCFCE7',
                         color: '#15803D',
@@ -886,7 +918,7 @@ export default function OdemeVaatleri() {
                         fontWeight: 600,
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 3
+                        gap: 4
                       }}
                       title="Bu vaadi WhatsApp ile paylaş"
                     >
@@ -898,7 +930,7 @@ export default function OdemeVaatleri() {
                       <button
                         onClick={() => duzenlemeyiBaslat(item)}
                         style={{
-                          padding: '3px 7px',
+                          padding: '4px 8px',
                           fontSize: 12,
                           background: '#f8f7f2',
                           color: '#475569',
@@ -917,7 +949,7 @@ export default function OdemeVaatleri() {
                       <button
                         onClick={() => vaatSil(item.id, item.baslik)}
                         style={{
-                          padding: '3px 7px',
+                          padding: '4px 8px',
                           fontSize: 12,
                           background: '#FEF2F2',
                           color: '#DC2626',
