@@ -46,6 +46,7 @@ export default function CekTakip() {
   const { santiyeler } = useSite()
   const [cekler, setCekler] = useState([])
   const [aramaMetni, setAramaMetni] = useState('')
+  const [filtreTur, setFiltreTur] = useState('hepsi') // 'hepsi' | 'ciro' | 'kendi_cekimiz' | 'portfoy'
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreBanka, setFiltreBanka] = useState('hepsi')
   const [filtreAy, setFiltreAy] = useState('hepsi')
@@ -58,28 +59,103 @@ export default function CekTakip() {
       if (error) { alert('Çekler yüklenemedi: ' + error.message); return }
 
       const tumCekler = data || []
-      const ciroCekleri = tumCekler.filter(c => c.yon === 'verilen' && c.aciklama && c.aciklama.toLowerCase().includes('ciro'))
 
-      const islenmis = tumCekler.map(c => {
-        const seriNoTemiz = c.cek_seri_no ? String(c.cek_seri_no).trim().toLowerCase() : ''
-        let eklenecek = { ...c }
+      // 1. Alınan ve Verilen Çekleri Grupla
+      const alinanlar = tumCekler.filter(c => c.yon === 'alinan')
+      const verilenler = tumCekler.filter(c => c.yon === 'verilen' || !c.yon)
 
-        if (c.yon === 'alinan' && seriNoTemiz) {
-          const ciroKarsiligi = ciroCekleri.find(ciro => String(ciro.cek_seri_no).trim().toLowerCase() === seriNoTemiz)
-          if (ciroKarsiligi) {
-            eklenecek.isCiroEdildi = true
-            eklenecek.odenen = ciroKarsiligi.odenen || ciroKarsiligi.odeyen
-            eklenecek.aciklama = `(Ciro: ${ciroKarsiligi.odenen || ciroKarsiligi.odeyen}) ` + (c.aciklama || '')
-          }
+      const eslesenAlinanIdleri = new Set()
+      const eslesenVerilenIdleri = new Set()
+      const ciroBirlestirilmis = []
+
+      // 2. Malikten Alınıp Taşerona Cirolanan Çekleri TEK SATIRDA Birleştir
+      verilenler.forEach(ver => {
+        const verSeri = ver.cek_seri_no ? String(ver.cek_seri_no).trim().toLowerCase() : ''
+        const isCiroAciklama = ver.aciklama && ver.aciklama.toLowerCase().includes('ciro')
+
+        // Eşleşen alınan çeki tespit et
+        let eslesenAlinan = null
+        if (verSeri) {
+          eslesenAlinan = alinanlar.find(al => {
+            if (eslesenAlinanIdleri.has(al.id)) return false
+            const alSeri = al.cek_seri_no ? String(al.cek_seri_no).trim().toLowerCase() : ''
+            return alSeri && alSeri === verSeri
+          })
         }
-        return eklenecek
+
+        if (eslesenAlinan || isCiroAciklama) {
+          eslesenVerilenIdleri.add(ver.id)
+          if (eslesenAlinan) {
+            eslesenAlinanIdleri.add(eslesenAlinan.id)
+          }
+
+          const kesideci = (eslesenAlinan && eslesenAlinan.odeyen) || ver.odeyen || 'Malik / Keşideci'
+          const odenen = ver.odenen || (eslesenAlinan && eslesenAlinan.odenen) || '—'
+
+          ciroBirlestirilmis.push({
+            id: ver.id,
+            verilen_id: ver.id,
+            alinan_id: eslesenAlinan?.id || null,
+            tum_idler: [ver.id, eslesenAlinan?.id].filter(Boolean),
+            cek_turu: 'ciro',
+            isCiroEdildi: true,
+            banka: ver.banka || eslesenAlinan?.banka || '',
+            cek_seri_no: ver.cek_seri_no || eslesenAlinan?.cek_seri_no || '',
+            verilis_tarihi: ver.verilis_tarihi || eslesenAlinan?.verilis_tarihi || null,
+            alinma_tarihi: eslesenAlinan?.verilis_tarihi || null,
+            cek_vadesi: ver.cek_vadesi || eslesenAlinan?.cek_vadesi || null,
+            tutar: Number(ver.tutar || eslesenAlinan?.tutar || 0),
+            odeyen: kesideci,
+            kesideci: kesideci,
+            odenen: odenen,
+            aciklama: ver.aciklama || eslesenAlinan?.aciklama || '',
+            santiye_id: ver.santiye_id || eslesenAlinan?.santiye_id || null,
+            santiyeler: ver.santiyeler || eslesenAlinan?.santiyeler || null,
+            belge_url: ver.belge_url || eslesenAlinan?.belge_url || null,
+            created_at: ver.created_at || eslesenAlinan?.created_at
+          })
+        }
       })
 
-      setCekler(islenmis)
+      // 3. Eşleşmeyen Verilenler -> Firmanın Kendi Keşide Ettiği Çekler
+      const kendiCeklerimiz = verilenler
+        .filter(ver => !eslesenVerilenIdleri.has(ver.id))
+        .map(ver => ({
+          ...ver,
+          verilen_id: ver.id,
+          alinan_id: null,
+          tum_idler: [ver.id],
+          cek_turu: 'kendi_cekimiz',
+          isCiroEdildi: false,
+          kesideci: 'Biz (Firma)',
+          odeyen: ver.odeyen || 'Firma',
+          odenen: ver.odenen || '—',
+          tutar: Number(ver.tutar || 0)
+        }))
+
+      // 4. Eşleşmeyen Alınanlar -> Henüz Cirolanmamış / Kasadaki Portföy Çekleri
+      const portfoydekiCekler = alinanlar
+        .filter(al => !eslesenAlinanIdleri.has(al.id))
+        .map(al => ({
+          ...al,
+          alinan_id: al.id,
+          verilen_id: null,
+          tum_idler: [al.id],
+          cek_turu: 'portfoy',
+          isCiroEdildi: false,
+          kesideci: al.odeyen || 'Malik / Keşideci',
+          odeyen: al.odeyen || 'Malik / Keşideci',
+          odenen: '— (Portföyde / Kasada)',
+          tutar: Number(al.tutar || 0)
+        }))
+
+      // Tekilleştirilmiş Fiziksel Çek Listesi
+      const nihaiListe = [...ciroBirlestirilmis, ...kendiCeklerimiz, ...portfoydekiCekler]
+      setCekler(nihaiListe)
     })
   }, [])
 
-  // Seri Numarası Tekrar Eden Çekleri Say
+  // Tekil Fiziksel Çekler Arasında Seri Numarası Tekrar Edenleri Say (Gerçek Mükerrer Kontrolü)
   const seriNoSayilari = useMemo(() => {
     const sayilar = {}
     cekler.forEach(c => {
@@ -91,18 +167,24 @@ export default function CekTakip() {
     return sayilar
   }, [cekler])
 
-  // Çek Silme (Mükerrer veya yanlış girilmiş kayıtları doğrudan temizleyebilmek için)
-  const cekSil = async (id, seriNo, kisi) => {
-    const onayMetni = `"${kisi || 'İsimsiz'}" adına kayıtlı ${seriNo ? `(Seri No: ${seriNo})` : ''} çek kaydını silmek istediğinize emin misiniz?`
+  // Çek Silme (Ciro edilmişse hem alınan hem verilen ciro kaydını temizler)
+  const cekSil = async (c) => {
+    const kisi = c.odenen || c.odeyen || 'İsimsiz'
+    const seriNo = c.cek_seri_no ? `(Seri No: ${c.cek_seri_no})` : ''
+    const ciroEk = c.cek_turu === 'ciro'
+      ? '\n\nℹ️ Bu işlem malikten alınan ve taşerona cirolanan ilgili çek kayıtlarını birlikte temizleyecektir.'
+      : ''
+    const onayMetni = `"${kisi}" adına kayıtlı ${seriNo} çek kaydını silmek istediğinize emin misiniz?${ciroEk}`
     if (!window.confirm(onayMetni)) return
 
-    const { error } = await supabase.from('cekler').delete().eq('id', id)
+    const idler = c.tum_idler && c.tum_idler.length > 0 ? c.tum_idler : [c.id]
+    const { error } = await supabase.from('cekler').delete().in('id', idler)
     if (error) {
       alert('Çek silinemedi: ' + error.message)
       return
     }
-    setCekler(prev => prev.filter(c => c.id !== id))
-    setSeciliCekler(prev => prev.filter(x => x !== id))
+    setCekler(prev => prev.filter(item => item.id !== c.id && !idler.includes(item.id)))
+    setSeciliCekler(prev => prev.filter(x => !idler.includes(x)))
   }
 
   const siralamaTikla = (alan) => {
@@ -116,6 +198,7 @@ export default function CekTakip() {
   const aylar = [...new Set(cekler.map((c) => c.cek_vadesi?.slice(0, 7)).filter(Boolean))].sort()
 
   let liste = cekler
+    .filter((c) => filtreTur === 'hepsi' || c.cek_turu === filtreTur)
     .filter((c) => filtreSantiye === 'hepsi' || c.santiye_id === filtreSantiye)
     .filter((c) => filtreBanka === 'hepsi' || c.banka === filtreBanka)
     .filter((c) => filtreAy === 'hepsi' || c.cek_vadesi?.slice(0, 7) === filtreAy)
@@ -124,19 +207,22 @@ export default function CekTakip() {
       const aranan = aramaMetni.toLowerCase().trim()
       const odenen = (c.odenen || '').toLowerCase()
       const odeyen = (c.odeyen || '').toLowerCase()
+      const kesideci = (c.kesideci || '').toLowerCase()
       const banka = (c.banka || '').toLowerCase()
       const seriNo = (c.cek_seri_no || '').toLowerCase()
       const aciklama = (c.aciklama || '').toLowerCase()
       const santiye = (c.santiyeler?.ad || '').toLowerCase()
       const tutarStr = String(c.tutar || '')
-      return odenen.includes(aranan) || odeyen.includes(aranan) || banka.includes(aranan) ||
-             seriNo.includes(aranan) || aciklama.includes(aranan) || santiye.includes(aranan) ||
-             tutarStr.includes(aranan)
+      const turStr = c.cek_turu === 'ciro' ? 'ciro cirolu cirolanan' : (c.cek_turu === 'portfoy' ? 'portföy kasada alinan' : 'kendi verilen')
+      return odenen.includes(aranan) || odeyen.includes(aranan) || kesideci.includes(aranan) ||
+             banka.includes(aranan) || seriNo.includes(aranan) || aciklama.includes(aranan) ||
+             santiye.includes(aranan) || tutarStr.includes(aranan) || turStr.includes(aranan)
     })
 
   liste = [...liste].sort((a, b) => {
     let av = a[siralamaAlani], bv = b[siralamaAlani]
     if (siralamaAlani === 'santiyeler') { av = a.santiyeler?.ad || ''; bv = b.santiyeler?.ad || '' }
+    if (siralamaAlani === 'kisi') { av = a.odenen || a.odeyen || ''; bv = b.odenen || b.odeyen || '' }
     if (av == null) av = ''
     if (bv == null) bv = ''
     if (siralamaAlani === 'tutar') { av = Number(av); bv = Number(bv) }
@@ -145,13 +231,13 @@ export default function CekTakip() {
     return 0
   })
 
-  const filtreliToplam = liste.reduce((t, c) => t + Number(c.tutar), 0)
+  const filtreliToplam = liste.reduce((t, c) => t + Number(c.tutar || 0), 0)
 
   const tumunuSecToggle = () => {
     if (seciliCekler.length === liste.length) {
-      setSeciliCekler([]) // Hepsini kaldır
+      setSeciliCekler([])
     } else {
-      setSeciliCekler(liste.map(c => c.id)) // Filtrelenenlerin hepsini seç
+      setSeciliCekler(liste.map(c => c.id))
     }
   }
 
@@ -159,40 +245,59 @@ export default function CekTakip() {
     setSeciliCekler(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
 
+  const bugun = new Date().toISOString().slice(0, 10)
+
+  // Tür Dağılım İstatistikleri
+  const ciroCekler = cekler.filter(c => c.cek_turu === 'ciro')
+  const kendiCekler = cekler.filter(c => c.cek_turu === 'kendi_cekimiz')
+  const portfoyCekler = cekler.filter(c => c.cek_turu === 'portfoy')
+
+  // Finansal Özet İstatistikleri (Tekilleştirilmiş fiziksel çekler üzerinden hesaplanır)
+  const vadesiGelmemis = cekler.filter((c) => c.cek_vadesi && c.cek_vadesi >= bugun)
+  const vadesiGelmemisTutar = vadesiGelmemis.reduce((t, c) => t + Number(c.tutar || 0), 0)
+
+  const odenenCekler = cekler.filter((c) => c.cek_vadesi && c.cek_vadesi < bugun)
+  const odenenTutar = odenenCekler.reduce((t, c) => t + Number(c.tutar || 0), 0)
+
+  const tumZamanlarToplam = cekler.reduce((t, c) => t + Number(c.tutar || 0), 0)
+
   const pdfPaylas = async (sadeceSecilenler = false) => {
     const dataListesi = sadeceSecilenler ? liste.filter(c => seciliCekler.includes(c.id)) : liste
     if (dataListesi.length === 0) return alert('PDF için seçili veya filtrelenmiş kayıt bulunamadı.')
 
-    const basliklar = ['Banka', 'Cek No', 'Verilis', 'Vade', 'Verilen Kisi', 'Tutar', 'Aciklama', 'Santiye', 'Durum']
-    const satirVerileri = dataListesi.map(c => [
-      c.banka || '-',
-      c.cek_seri_no || '-',
-      c.verilis_tarihi ? new Date(c.verilis_tarihi).toLocaleDateString('tr-TR') : '-',
-      c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : '-',
-      c.odenen || '-',
-      `${paraFormatla(c.tutar)} TL`,
-      c.aciklama || '-',
-      c.santiyeler?.ad || '-',
-      c.isCiroEdildi ? 'Ciro Edildi' : (c.cek_vadesi && c.cek_vadesi < bugun ? 'Odendi' : 'Bekliyor')
-    ])
+    const basliklar = ['Banka', 'Çek No', 'Tür', 'Veriliş', 'Vade', 'İlgili Kişi / Taşeron (Keşideci)', 'Tutar', 'Açıklama', 'Şantiye', 'Durum']
+    const satirVerileri = dataListesi.map(c => {
+      const turEtiketi = c.cek_turu === 'ciro' ? 'Ciro Edildi' : (c.cek_turu === 'portfoy' ? 'Portföy (Alınan)' : 'Kendi Çekimiz')
+      const kisiMetni = c.cek_turu === 'ciro'
+        ? `${c.odenen || '-'} (Keşideci: ${c.kesideci || '-'})`
+        : (c.cek_turu === 'portfoy' ? `${c.odeyen || '-'} (Keşideci)` : (c.odenen || '-'))
+      const durumMetni = c.cek_turu === 'ciro'
+        ? (c.cek_vadesi && c.cek_vadesi < bugun ? 'Cirolandı (Vadesi Geçti)' : 'Cirolandı (Vade Bekliyor)')
+        : (c.cek_vadesi && c.cek_vadesi < bugun ? 'Ödendi' : 'Bekliyor')
 
-    const toplamTutar = dataListesi.reduce((acc, c) => acc + Number(c.tutar), 0)
-    satirVerileri.push(['', '', '', '', 'TOPLAM:', `${paraFormatla(toplamTutar)} TL`, '', '', ''])
+      return [
+        c.banka || '-',
+        c.cek_seri_no || '-',
+        turEtiketi,
+        c.verilis_tarihi ? new Date(c.verilis_tarihi).toLocaleDateString('tr-TR') : '-',
+        c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : '-',
+        kisiMetni,
+        `${paraFormatla(c.tutar)} TL`,
+        c.aciklama || '-',
+        c.santiyeler?.ad || '-',
+        durumMetni
+      ]
+    })
+
+    satirVerileri.push(['', '', '', '', '', 'TOPLAM:', `${paraFormatla(filtreliToplam)} TL`, '', '', ''])
 
     await generateAndSharePDF({
-      title: sadeceSecilenler ? 'Secilen Ceklerin Ekstresi' : 'Cek Takip Ekstresi',
+      title: sadeceSecilenler ? 'Seçilen Çeklerin Ekstresi' : 'Çek Takip Ekstresi',
       filename: 'cek-ekstresi.pdf',
       columns: basliklar,
       data: satirVerileri
     })
   }
-
-  const bugun = new Date().toISOString().slice(0, 10)
-  const vadesiGelmemis = cekler.filter((c) => !c.isCiroEdildi && c.cek_vadesi && c.cek_vadesi >= bugun)
-  const vadesiGelmemisTutar = vadesiGelmemis.reduce((t, c) => t + Number(c.tutar), 0)
-  const odenenCekler = cekler.filter((c) => !c.isCiroEdildi && c.cek_vadesi && c.cek_vadesi < bugun)
-  const odenenTutar = odenenCekler.reduce((t, c) => t + Number(c.tutar), 0)
-  const tumZamanlarToplam = cekler.filter(c => !c.isCiroEdildi).reduce((t, c) => t + Number(c.tutar), 0)
 
   const baslikStil = { cursor: 'pointer', whiteSpace: 'nowrap', padding: '8px 10px', textAlign: 'left', fontSize: 11, color: '#5F5E5A', borderBottom: '1px solid #D3D1C7' }
   const hucreStil = { padding: '8px 10px', fontSize: 12, whiteSpace: 'nowrap', borderBottom: '1px solid #F1EFE8' }
@@ -234,16 +339,16 @@ export default function CekTakip() {
       </div>
       <div className="ozet-satiri">
         <div className="ozet-kart">
-          <p className="ozet-etiket">Ödenen çekler toplamı</p>
+          <p className="ozet-etiket">Ödenen / Vadesi dolan toplamı</p>
           <p className="ozet-tutar">{paraFormatla(odenenTutar)} ₺</p>
         </div>
         <div className="ozet-kart">
-          <p className="ozet-etiket">Bugüne kadar verilen toplam</p>
+          <p className="ozet-etiket">Toplam Çek Hacmi (Tekil)</p>
           <p className="ozet-tutar">{paraFormatla(tumZamanlarToplam)} ₺</p>
         </div>
       </div>
 
-      {/* ARAMA VE FİLTRELER */}
+      {/* ARAMA ÇUBUĞU */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -257,7 +362,7 @@ export default function CekTakip() {
         <span style={{ fontSize: 15, marginRight: 8, color: '#64748B' }}>🔍</span>
         <input
           type="text"
-          placeholder="Çek takipte ara (Kişi, banka, çek no, açıklama, şantiye, tutar)..."
+          placeholder="Çek takipte ara (Kişi, malik, banka, çek no, açıklama, şantiye, tutar)..."
           value={aramaMetni}
           onChange={(e) => setAramaMetni(e.target.value)}
           style={{
@@ -290,12 +395,58 @@ export default function CekTakip() {
         )}
       </div>
 
+      {/* ÇEK TÜRÜ FİLTRESİ */}
+      <div className="filtre-satiri" style={{ marginBottom: 6 }}>
+        <button
+          className={`filtre-chip ${filtreTur === 'hepsi' ? 'secili' : ''}`}
+          onClick={() => setFiltreTur('hepsi')}
+        >
+          Tüm Çekler ({cekler.length})
+        </button>
+        <button
+          className={`filtre-chip ${filtreTur === 'ciro' ? 'secili' : ''}`}
+          onClick={() => setFiltreTur('ciro')}
+          style={{
+            borderColor: filtreTur === 'ciro' ? '#2563EB' : undefined,
+            background: filtreTur === 'ciro' ? '#EFF6FF' : undefined,
+            color: filtreTur === 'ciro' ? '#1D4ED8' : undefined
+          }}
+        >
+          🔄 Cirolanan Çekler ({ciroCekler.length})
+        </button>
+        <button
+          className={`filtre-chip ${filtreTur === 'kendi_cekimiz' ? 'secili' : ''}`}
+          onClick={() => setFiltreTur('kendi_cekimiz')}
+          style={{
+            borderColor: filtreTur === 'kendi_cekimiz' ? '#059669' : undefined,
+            background: filtreTur === 'kendi_cekimiz' ? '#ECFDF5' : undefined,
+            color: filtreTur === 'kendi_cekimiz' ? '#047857' : undefined
+          }}
+        >
+          🏢 Kendi Çeklerimiz ({kendiCekler.length})
+        </button>
+        <button
+          className={`filtre-chip ${filtreTur === 'portfoy' ? 'secili' : ''}`}
+          onClick={() => setFiltreTur('portfoy')}
+          style={{
+            borderColor: filtreTur === 'portfoy' ? '#D97706' : undefined,
+            background: filtreTur === 'portfoy' ? '#FFFBEB' : undefined,
+            color: filtreTur === 'portfoy' ? '#B45309' : undefined
+          }}
+        >
+          💼 Portföy (Alınan/Kasada) ({portfoyCekler.length})
+        </button>
+      </div>
+
+      {/* ŞANTİYE FİLTRESİ */}
       <div className="filtre-satiri">
         <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
         {santiyeler.map((s) => (
           <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
         ))}
       </div>
+
+      {/* BANKA FİLTRESİ */}
       {bankalar.length > 0 && (
         <div className="filtre-satiri">
           <button className={`filtre-chip ${filtreBanka === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreBanka('hepsi')}>Tüm bankalar</button>
@@ -304,6 +455,8 @@ export default function CekTakip() {
           ))}
         </div>
       )}
+
+      {/* AY FİLTRESİ */}
       {aylar.length > 0 && (
         <div className="filtre-satiri">
           <button className={`filtre-chip ${filtreAy === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreAy('hepsi')}>Tüm aylar</button>
@@ -315,7 +468,7 @@ export default function CekTakip() {
         </div>
       )}
 
-      {/* Mükerrer Çek Uyarısı */}
+      {/* GERÇEK MÜKERRER ÇEK UYARISI */}
       {Object.values(seriNoSayilari).some(sayi => sayi > 1) && (
         <div style={{
           display: 'flex',
@@ -332,11 +485,12 @@ export default function CekTakip() {
         }}>
           <span style={{ fontSize: 16 }}>⚠️</span>
           <span>
-            Tabloda aynı seri numarasına sahip <strong>mükerrer çek kayıtları</strong> tespit edildi. Bu çekler ayırt edilebilmeleri için eşleşen <strong>soft pastel renklerle</strong> vurgulanmıştır. Fazla/hatalı kayıtları sağdaki 🗑️ butonuyla doğrudan silebilirsiniz.
+            Tabloda aynı seri numarasına sahip <strong>mükerrer çek kayıtları</strong> tespit edildi (Ciro eşleştirmeleri tekilleştirilmiştir). Ayırt edilebilmeleri için eşleşen <strong>soft pastel renklerle</strong> vurgulanmıştır. Fazla kayıtları sağdaki 🗑️ butonuyla silebilirsiniz.
           </span>
         </div>
       )}
 
+      {/* ÇEK TABLOSU */}
       <div style={{ overflowX: 'auto', marginTop: 12, background: 'white', borderRadius: 12, border: '1px solid #D3D1C7' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%' }}>
           <thead>
@@ -344,11 +498,12 @@ export default function CekTakip() {
               <th style={{ ...baslikStil, width: 40, textAlign: 'center' }}>
                 <input type="checkbox" checked={liste.length > 0 && seciliCekler.length === liste.length} onChange={tumunuSecToggle} />
               </th>
+              <th style={baslikStil} onClick={() => siralamaTikla('cek_turu')}>Tür{ok('cek_turu')}</th>
               <th style={baslikStil} onClick={() => siralamaTikla('banka')}>Banka{ok('banka')}</th>
               <th style={baslikStil} onClick={() => siralamaTikla('cek_seri_no')}>Çek No{ok('cek_seri_no')}</th>
               <th style={baslikStil} onClick={() => siralamaTikla('verilis_tarihi')}>Veriliş T.{ok('verilis_tarihi')}</th>
               <th style={baslikStil} onClick={() => siralamaTikla('cek_vadesi')}>Vade T.{ok('cek_vadesi')}</th>
-              <th style={baslikStil} onClick={() => siralamaTikla('odenen')}>Verilen Kişi{ok('odenen')}</th>
+              <th style={baslikStil} onClick={() => siralamaTikla('kisi')}>Verilen / İlgili Kişi{ok('kisi')}</th>
               <th style={baslikStil} onClick={() => siralamaTikla('tutar')}>Tutar{ok('tutar')}</th>
               <th style={{ ...baslikStil, maxWidth: 150 }}>Açıklama</th>
               <th style={baslikStil} onClick={() => siralamaTikla('santiyeler')}>Şantiye{ok('santiyeler')}</th>
@@ -377,7 +532,61 @@ export default function CekTakip() {
                   <td style={{ ...hucreStil, textAlign: 'center' }}>
                     <input type="checkbox" checked={seciliCekler.includes(c.id)} onChange={() => cekSecToggle(c.id)} />
                   </td>
+
+                  {/* TÜR ROZETİ */}
+                  <td style={hucreStil}>
+                    {c.cek_turu === 'ciro' && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: '#EFF6FF',
+                        color: '#1D4ED8',
+                        border: '1px solid #BFDBFE'
+                      }}>
+                        🔄 Cirolu
+                      </span>
+                    )}
+                    {c.cek_turu === 'kendi_cekimiz' && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: '#ECFDF5',
+                        color: '#065F46',
+                        border: '1px solid #A7F3D0'
+                      }}>
+                        🏢 Kendi Çekimiz
+                      </span>
+                    )}
+                    {c.cek_turu === 'portfoy' && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: '#FFFBEB',
+                        color: '#92400E',
+                        border: '1px solid #FDE68A'
+                      }}>
+                        💼 Portföy
+                      </span>
+                    )}
+                  </td>
+
                   <td style={hucreStil}>{c.banka || '—'}</td>
+
                   <td style={hucreStil}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <span style={{ fontWeight: isMukerrer ? 700 : 500 }}>{c.cek_seri_no || '—'}</span>
@@ -401,6 +610,7 @@ export default function CekTakip() {
                       )}
                     </div>
                   </td>
+
                   <td style={hucreStil}>
                     {c.verilis_tarihi ? (
                       <div>
@@ -409,6 +619,7 @@ export default function CekTakip() {
                       </div>
                     ) : '—'}
                   </td>
+
                   <td style={hucreStil}>
                     {c.cek_vadesi ? (
                       <div>
@@ -417,21 +628,71 @@ export default function CekTakip() {
                       </div>
                     ) : '—'}
                   </td>
-                  <td style={hucreStil}>{c.odenen || '—'}</td>
+
+                  {/* VERİLEN / İLGİLİ KİŞİ (CİROLARDA MALİK VE TAŞERON AYRINTISI) */}
+                  <td style={hucreStil}>
+                    {c.cek_turu === 'ciro' ? (
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#0F172A' }}>
+                          {c.odenen || '—'}
+                        </div>
+                        {c.kesideci && c.kesideci !== '—' && (
+                          <div style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                            <span>↩️ Malik / Keşideci:</span>
+                            <span style={{ fontWeight: 600, color: '#334155' }}>{c.kesideci}</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      c.cek_turu === 'portfoy' ? (
+                        <div>
+                          <div style={{ fontWeight: 600, color: '#0F172A' }}>{c.odeyen || '—'}</div>
+                          <div style={{ fontSize: 10, color: '#B45309', marginTop: 1 }}>💼 Malik / Keşideci</div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div style={{ fontWeight: 600, color: '#0F172A' }}>{c.odenen || '—'}</div>
+                          <div style={{ fontSize: 10, color: '#059669', marginTop: 1 }}>🏢 Taşeron / Tedarikçi</div>
+                        </div>
+                      )
+                    )}
+                  </td>
+
                   <td style={{ ...hucreStil, fontWeight: 700 }}>{paraFormatla(c.tutar)} ₺</td>
                   <td style={{ ...hucreStil, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }} title={c.aciklama}>{c.aciklama || '—'}</td>
                   <td style={hucreStil}>{c.santiyeler?.ad || '—'}</td>
+
+                  {/* DURUM SÜTUNU */}
                   <td style={hucreStil}>
-                    {c.isCiroEdildi
-                      ? <span className="durum-rozet" style={{ background: '#E3F2FD', color: '#1976D2' }}>Ciro Edildi</span>
-                      : (c.cek_vadesi && c.cek_vadesi < bugun
-                        ? <span className="durum-rozet rozet-yesil">Ödendi</span>
-                        : <span className="durum-rozet rozet-sari">Bekliyor</span>)}
+                    {c.cek_turu === 'ciro' ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <span className="durum-rozet" style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE' }}>
+                          Ciro Edildi
+                        </span>
+                        {c.cek_vadesi && (
+                          <span style={{ fontSize: 10, color: c.cek_vadesi < bugun ? '#059669' : '#D97706', fontWeight: 600 }}>
+                            {c.cek_vadesi < bugun ? '✓ Vadesi Geçti' : '⏳ Vade Bekliyor'}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      c.cek_turu === 'portfoy' ? (
+                        c.cek_vadesi && c.cek_vadesi < bugun
+                          ? <span className="durum-rozet rozet-yesil">Tahsil Edildi</span>
+                          : <span className="durum-rozet rozet-mavi" style={{ background: '#FEF3C7', color: '#B45309' }}>Kasada (Bekliyor)</span>
+                      ) : (
+                        c.cek_vadesi && c.cek_vadesi < bugun
+                          ? <span className="durum-rozet rozet-yesil">Ödendi</span>
+                          : <span className="durum-rozet rozet-sari">Bekliyor</span>
+                      )
+                    )}
                   </td>
+
+                  {/* İŞLEM (SİL) */}
                   <td style={{ ...hucreStil, textAlign: 'center' }}>
                     <button
                       type="button"
-                      onClick={() => cekSil(c.id, c.cek_seri_no, c.odenen || c.odeyen)}
+                      onClick={() => cekSil(c)}
                       style={{
                         padding: '4px 8px',
                         fontSize: 12,
@@ -453,7 +714,7 @@ export default function CekTakip() {
           {liste.length > 0 && (
             <tfoot>
               <tr>
-                <td colSpan="6" style={{ ...hucreStil, fontWeight: 'bold', textAlign: 'right' }}>Filtrelenen Toplam:</td>
+                <td colSpan="7" style={{ ...hucreStil, fontWeight: 'bold', textAlign: 'right' }}>Filtrelenen Toplam:</td>
                 <td style={{ ...hucreStil, fontWeight: 'bold' }}>{paraFormatla(filtreliToplam)} ₺</td>
                 <td colSpan="4" style={hucreStil}></td>
               </tr>
@@ -462,7 +723,9 @@ export default function CekTakip() {
         </table>
         {liste.length === 0 && <p className="bos-mesaj">Bu filtrede çek yok.</p>}
       </div>
-      <p style={{ fontSize: 11, color: '#888780', marginTop: 8 }}>Sütun başlıklarına tıklayarak sıralayabilirsiniz. Yeni çek eklemek için Muhasebe → Çek Girdileri sekmesini kullanın.</p>
+      <p style={{ fontSize: 11, color: '#888780', marginTop: 8 }}>
+        💡 Sütun başlıklarına tıklayarak sıralayabilirsiniz. Ciro edilen çekler fiziksel olarak tek bir çek olduğu için Malik ve Taşeron bilgileri tek satırda birleştirilerek gösterilmektedir.
+      </p>
     </div>
   )
 }
