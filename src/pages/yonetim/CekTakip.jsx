@@ -54,11 +54,25 @@ export default function CekTakip() {
   const [siralamaYonu, setSiralamaYonu] = useState('asc')
   const [seciliCekler, setSeciliCekler] = useState([])
 
-  useEffect(() => {
-    supabase.from('cekler').select('*, santiyeler(ad)').then(({ data, error }) => {
-      if (error) { alert('Çekler yüklenemedi: ' + error.message); return }
+  // Manuel tür geçersiz kılmaları (Kullanıcı dilerse rozete tıklayarak türü Kendi / Ciro olarak anında değiştirebilir)
+  const [turOverrides, setTurOverrides] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('cek_turu_overrides') || '{}')
+    } catch {
+      return {}
+    }
+  })
 
-      const tumCekler = data || []
+  useEffect(() => {
+    Promise.all([
+      supabase.from('cekler').select('*, santiyeler(ad)'),
+      supabase.from('malikler').select('id, ad_soyad')
+    ]).then(([{ data: cekData, error: cekError }, { data: malikData }]) => {
+      if (cekError) { alert('Çekler yüklenemedi: ' + cekError.message); return }
+
+      const tumCekler = cekData || []
+      const maliklerListesi = malikData || []
+      const malikIsimleri = new Set(maliklerListesi.map(m => m.ad_soyad?.trim().toLowerCase()).filter(Boolean))
 
       // 1. Alınan ve Verilen Çekleri Grupla
       const alinanlar = tumCekler.filter(c => c.yon === 'alinan')
@@ -68,12 +82,11 @@ export default function CekTakip() {
       const eslesenVerilenIdleri = new Set()
       const ciroBirlestirilmis = []
 
-      // 2. Malikten Alınıp Taşerona Cirolanan Çekleri TEK SATIRDA Birleştir
+      // 2. Eşleşen Alınan & Verilen Çekleri TEK SATIRDA Birleştir
       verilenler.forEach(ver => {
         const verSeri = ver.cek_seri_no ? String(ver.cek_seri_no).trim().toLowerCase() : ''
-        const isCiroAciklama = ver.aciklama && ver.aciklama.toLowerCase().includes('ciro')
 
-        // Eşleşen alınan çeki tespit et
+        // Eşleşen bir alınan çek var mı? (Sadece geçerli seri numarası olanlar eşleşebilir)
         let eslesenAlinan = null
         if (verSeri) {
           eslesenAlinan = alinanlar.find(al => {
@@ -83,77 +96,107 @@ export default function CekTakip() {
           })
         }
 
-        if (eslesenAlinan || isCiroAciklama) {
+        // Eğer eşleşen bir alınan çek VARSA bu ikisi aynı fiziki çektir; birleştir!
+        if (eslesenAlinan) {
           eslesenVerilenIdleri.add(ver.id)
-          if (eslesenAlinan) {
-            eslesenAlinanIdleri.add(eslesenAlinan.id)
-          }
+          eslesenAlinanIdleri.add(eslesenAlinan.id)
 
-          const kesideci = (eslesenAlinan && eslesenAlinan.odeyen) || ver.odeyen || 'Malik / Keşideci'
-          const odenen = ver.odenen || (eslesenAlinan && eslesenAlinan.odenen) || '—'
+          const alinanOdeyen = eslesenAlinan.odeyen ? eslesenAlinan.odeyen.trim() : ''
+          const alinanOdeyenLower = alinanOdeyen.toLowerCase()
+
+          // Gerçekten Malik'ten / Dış Müşteriden mi alınmış?
+          // Eğer ödeyen firma, ortak, şirket veya bizim tarafımız ise, bu çek malik çeki DEĞİL, firmanın/ortağın kendi çekidir.
+          const isFirmaVeyaOrtak = alinanOdeyenLower.includes('ortak') ||
+                                   alinanOdeyenLower.includes('firma') ||
+                                   alinanOdeyenLower.includes('şirket') ||
+                                   alinanOdeyenLower.includes('biz') ||
+                                   alinanOdeyenLower.includes('kendi')
+
+          const isGercekMalik = malikIsimleri.has(alinanOdeyenLower) || (!isFirmaVeyaOrtak && Boolean(alinanOdeyen))
+
+          // Varsayılan Tür Tespiti:
+          let varsayilanTur = isGercekMalik && !isFirmaVeyaOrtak ? 'ciro' : 'kendi_cekimiz'
+
+          // Kullanıcı bu çekin türünü manuel değiştirmişse onu uygula
+          const overrideTur = turOverrides[ver.id] || turOverrides[eslesenAlinan.id]
+          const nihaiTur = overrideTur || varsayilanTur
+
+          const kesideci = alinanOdeyen || ver.odeyen || (nihaiTur === 'ciro' ? 'Malik / Keşideci' : 'Biz (Firma)')
+          const odenen = ver.odenen || eslesenAlinan.odenen || '—'
 
           ciroBirlestirilmis.push({
             id: ver.id,
             verilen_id: ver.id,
-            alinan_id: eslesenAlinan?.id || null,
-            tum_idler: [ver.id, eslesenAlinan?.id].filter(Boolean),
-            cek_turu: 'ciro',
-            isCiroEdildi: true,
-            banka: ver.banka || eslesenAlinan?.banka || '',
-            cek_seri_no: ver.cek_seri_no || eslesenAlinan?.cek_seri_no || '',
-            verilis_tarihi: ver.verilis_tarihi || eslesenAlinan?.verilis_tarihi || null,
-            alinma_tarihi: eslesenAlinan?.verilis_tarihi || null,
-            cek_vadesi: ver.cek_vadesi || eslesenAlinan?.cek_vadesi || null,
-            tutar: Number(ver.tutar || eslesenAlinan?.tutar || 0),
+            alinan_id: eslesenAlinan.id,
+            tum_idler: [ver.id, eslesenAlinan.id],
+            cek_turu: nihaiTur,
+            isCiroEdildi: nihaiTur === 'ciro',
+            banka: ver.banka || eslesenAlinan.banka || '',
+            cek_seri_no: ver.cek_seri_no || eslesenAlinan.cek_seri_no || '',
+            verilis_tarihi: ver.verilis_tarihi || eslesenAlinan.verilis_tarihi || null,
+            alinma_tarihi: eslesenAlinan.verilis_tarihi || null,
+            cek_vadesi: ver.cek_vadesi || eslesenAlinan.cek_vadesi || null,
+            tutar: Number(ver.tutar || eslesenAlinan.tutar || 0),
             odeyen: kesideci,
             kesideci: kesideci,
             odenen: odenen,
-            aciklama: ver.aciklama || eslesenAlinan?.aciklama || '',
-            santiye_id: ver.santiye_id || eslesenAlinan?.santiye_id || null,
-            santiyeler: ver.santiyeler || eslesenAlinan?.santiyeler || null,
-            belge_url: ver.belge_url || eslesenAlinan?.belge_url || null,
-            created_at: ver.created_at || eslesenAlinan?.created_at
+            aciklama: ver.aciklama || eslesenAlinan.aciklama || '',
+            santiye_id: ver.santiye_id || eslesenAlinan.santiye_id || null,
+            santiyeler: ver.santiyeler || eslesenAlinan.santiyeler || null,
+            belge_url: ver.belge_url || eslesenAlinan.belge_url || null,
+            created_at: ver.created_at || eslesenAlinan.created_at
           })
         }
       })
 
-      // 3. Eşleşmeyen Verilenler -> Firmanın Kendi Keşide Ettiği Çekler
+      // 3. Eşleşmeyen Verilenler -> Firmanın Kendi Keşide Ettiği Çekler (Müslüm'e verilen çekler gibi)
+      // Açıklamasında 'ciro' yazsa bile, alınan bir malik çeki yoksa bu çek FİRMANIN/ORTAĞIN KENDİ ÇEKİDİR.
       const kendiCeklerimiz = verilenler
         .filter(ver => !eslesenVerilenIdleri.has(ver.id))
-        .map(ver => ({
-          ...ver,
-          verilen_id: ver.id,
-          alinan_id: null,
-          tum_idler: [ver.id],
-          cek_turu: 'kendi_cekimiz',
-          isCiroEdildi: false,
-          kesideci: 'Biz (Firma)',
-          odeyen: ver.odeyen || 'Firma',
-          odenen: ver.odenen || '—',
-          tutar: Number(ver.tutar || 0)
-        }))
+        .map(ver => {
+          const overrideTur = turOverrides[ver.id]
+          const nihaiTur = overrideTur || 'kendi_cekimiz'
+
+          return {
+            ...ver,
+            verilen_id: ver.id,
+            alinan_id: null,
+            tum_idler: [ver.id],
+            cek_turu: nihaiTur,
+            isCiroEdildi: nihaiTur === 'ciro',
+            kesideci: ver.odeyen || 'Biz (Firma / Ortak)',
+            odeyen: ver.odeyen || 'Firma',
+            odenen: ver.odenen || '—',
+            tutar: Number(ver.tutar || 0)
+          }
+        })
 
       // 4. Eşleşmeyen Alınanlar -> Henüz Cirolanmamış / Kasadaki Portföy Çekleri
       const portfoydekiCekler = alinanlar
         .filter(al => !eslesenAlinanIdleri.has(al.id))
-        .map(al => ({
-          ...al,
-          alinan_id: al.id,
-          verilen_id: null,
-          tum_idler: [al.id],
-          cek_turu: 'portfoy',
-          isCiroEdildi: false,
-          kesideci: al.odeyen || 'Malik / Keşideci',
-          odeyen: al.odeyen || 'Malik / Keşideci',
-          odenen: '— (Portföyde / Kasada)',
-          tutar: Number(al.tutar || 0)
-        }))
+        .map(al => {
+          const overrideTur = turOverrides[al.id]
+          const nihaiTur = overrideTur || 'portfoy'
+
+          return {
+            ...al,
+            alinan_id: al.id,
+            verilen_id: null,
+            tum_idler: [al.id],
+            cek_turu: nihaiTur,
+            isCiroEdildi: false,
+            kesideci: al.odeyen || 'Malik / Keşideci',
+            odeyen: al.odeyen || 'Malik / Keşideci',
+            odenen: '— (Portföyde / Kasada)',
+            tutar: Number(al.tutar || 0)
+          }
+        })
 
       // Tekilleştirilmiş Fiziksel Çek Listesi
       const nihaiListe = [...ciroBirlestirilmis, ...kendiCeklerimiz, ...portfoydekiCekler]
       setCekler(nihaiListe)
     })
-  }, [])
+  }, [turOverrides])
 
   // Tekil Fiziksel Çekler Arasında Seri Numarası Tekrar Edenleri Say (Gerçek Mükerrer Kontrolü)
   const seriNoSayilari = useMemo(() => {
@@ -166,6 +209,33 @@ export default function CekTakip() {
     })
     return sayilar
   }, [cekler])
+
+  // Çek Türünü Anında Değiştir (Kendi Çekimiz ⇄ Cirolu Çek)
+  const turDegistir = (c) => {
+    const yeniTur = c.cek_turu === 'ciro' ? 'kendi_cekimiz' : 'ciro'
+    const yeniOverrides = { ...turOverrides, [c.id]: yeniTur }
+    if (c.alinan_id) yeniOverrides[c.alinan_id] = yeniTur
+    if (c.verilen_id) yeniOverrides[c.verilen_id] = yeniTur
+
+    setTurOverrides(yeniOverrides)
+    try {
+      localStorage.setItem('cek_turu_overrides', JSON.stringify(yeniOverrides))
+    } catch (e) {
+      console.error('Tür kaydedilemedi', e)
+    }
+
+    setCekler(prev => prev.map(item => {
+      if (item.id === c.id || (item.verilen_id && item.verilen_id === c.verilen_id)) {
+        return {
+          ...item,
+          cek_turu: yeniTur,
+          isCiroEdildi: yeniTur === 'ciro',
+          kesideci: yeniTur === 'ciro' ? (item.kesideci === 'Biz (Firma)' ? 'Malik / Keşideci' : item.kesideci) : 'Biz (Firma / Ortak)'
+        }
+      }
+      return item
+    }))
+  }
 
   // Çek Silme (Ciro edilmişse hem alınan hem verilen ciro kaydını temizler)
   const cekSil = async (c) => {
@@ -213,7 +283,7 @@ export default function CekTakip() {
       const aciklama = (c.aciklama || '').toLowerCase()
       const santiye = (c.santiyeler?.ad || '').toLowerCase()
       const tutarStr = String(c.tutar || '')
-      const turStr = c.cek_turu === 'ciro' ? 'ciro cirolu cirolanan' : (c.cek_turu === 'portfoy' ? 'portföy kasada alinan' : 'kendi verilen')
+      const turStr = c.cek_turu === 'ciro' ? 'ciro cirolu cirolanan malik' : (c.cek_turu === 'portfoy' ? 'portföy kasada alinan' : 'kendi verilen firma ortak')
       return odenen.includes(aranan) || odeyen.includes(aranan) || kesideci.includes(aranan) ||
              banka.includes(aranan) || seriNo.includes(aranan) || aciklama.includes(aranan) ||
              santiye.includes(aranan) || tutarStr.includes(aranan) || turStr.includes(aranan)
@@ -267,10 +337,10 @@ export default function CekTakip() {
 
     const basliklar = ['Banka', 'Çek No', 'Tür', 'Veriliş', 'Vade', 'İlgili Kişi / Taşeron (Keşideci)', 'Tutar', 'Açıklama', 'Şantiye', 'Durum']
     const satirVerileri = dataListesi.map(c => {
-      const turEtiketi = c.cek_turu === 'ciro' ? 'Ciro Edildi' : (c.cek_turu === 'portfoy' ? 'Portföy (Alınan)' : 'Kendi Çekimiz')
+      const turEtiketi = c.cek_turu === 'ciro' ? 'Cirolu (Malik)' : (c.cek_turu === 'portfoy' ? 'Portföy (Alınan)' : 'Kendi Çekimiz')
       const kisiMetni = c.cek_turu === 'ciro'
         ? `${c.odenen || '-'} (Keşideci: ${c.kesideci || '-'})`
-        : (c.cek_turu === 'portfoy' ? `${c.odeyen || '-'} (Keşideci)` : (c.odenen || '-'))
+        : (c.cek_turu === 'portfoy' ? `${c.odeyen || '-'} (Keşideci)` : `${c.odenen || '-'} (Kendi Çekimiz)`)
       const durumMetni = c.cek_turu === 'ciro'
         ? (c.cek_vadesi && c.cek_vadesi < bugun ? 'Cirolandı (Vadesi Geçti)' : 'Cirolandı (Vade Bekliyor)')
         : (c.cek_vadesi && c.cek_vadesi < bugun ? 'Ödendi' : 'Bekliyor')
@@ -404,17 +474,6 @@ export default function CekTakip() {
           Tüm Çekler ({cekler.length})
         </button>
         <button
-          className={`filtre-chip ${filtreTur === 'ciro' ? 'secili' : ''}`}
-          onClick={() => setFiltreTur('ciro')}
-          style={{
-            borderColor: filtreTur === 'ciro' ? '#2563EB' : undefined,
-            background: filtreTur === 'ciro' ? '#EFF6FF' : undefined,
-            color: filtreTur === 'ciro' ? '#1D4ED8' : undefined
-          }}
-        >
-          🔄 Cirolanan Çekler ({ciroCekler.length})
-        </button>
-        <button
           className={`filtre-chip ${filtreTur === 'kendi_cekimiz' ? 'secili' : ''}`}
           onClick={() => setFiltreTur('kendi_cekimiz')}
           style={{
@@ -424,6 +483,17 @@ export default function CekTakip() {
           }}
         >
           🏢 Kendi Çeklerimiz ({kendiCekler.length})
+        </button>
+        <button
+          className={`filtre-chip ${filtreTur === 'ciro' ? 'secili' : ''}`}
+          onClick={() => setFiltreTur('ciro')}
+          style={{
+            borderColor: filtreTur === 'ciro' ? '#2563EB' : undefined,
+            background: filtreTur === 'ciro' ? '#EFF6FF' : undefined,
+            color: filtreTur === 'ciro' ? '#1D4ED8' : undefined
+          }}
+        >
+          🔄 Cirolu Malik Çekleri ({ciroCekler.length})
         </button>
         <button
           className={`filtre-chip ${filtreTur === 'portfoy' ? 'secili' : ''}`}
@@ -485,7 +555,7 @@ export default function CekTakip() {
         }}>
           <span style={{ fontSize: 16 }}>⚠️</span>
           <span>
-            Tabloda aynı seri numarasına sahip <strong>mükerrer çek kayıtları</strong> tespit edildi (Ciro eşleştirmeleri tekilleştirilmiştir). Ayırt edilebilmeleri için eşleşen <strong>soft pastel renklerle</strong> vurgulanmıştır. Fazla kayıtları sağdaki 🗑️ butonuyla silebilirsiniz.
+            Tabloda aynı seri numarasına sahip <strong>mükerrer çek kayıtları</strong> tespit edildi (Eşleşen kayıtlar tekilleştirilmiştir). Ayırt edilebilmeleri için eşleşen <strong>soft pastel renklerle</strong> vurgulanmıştır. Fazla kayıtları sağdaki 🗑️ butonuyla silebilirsiniz.
           </span>
         </div>
       )}
@@ -533,39 +603,51 @@ export default function CekTakip() {
                     <input type="checkbox" checked={seciliCekler.includes(c.id)} onChange={() => cekSecToggle(c.id)} />
                   </td>
 
-                  {/* TÜR ROZETİ */}
+                  {/* TÜR ROZETİ (TIKLANARAK ANINDA KENDİ ÇEKİMİZ ⇄ CİRO DEĞİŞTİRİLEBİLİR) */}
                   <td style={hucreStil}>
                     {c.cek_turu === 'ciro' && (
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        padding: '3px 8px',
-                        borderRadius: 6,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        background: '#EFF6FF',
-                        color: '#1D4ED8',
-                        border: '1px solid #BFDBFE'
-                      }}>
-                        🔄 Cirolu
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => turDegistir(c)}
+                        title="Tıklayarak türü 'Kendi Çekimiz' olarak değiştir"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          background: '#EFF6FF',
+                          color: '#1D4ED8',
+                          border: '1px solid #BFDBFE',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🔄 Cirolu (Malik) <span style={{ fontSize: 9, opacity: 0.6 }}>⇄</span>
+                      </button>
                     )}
                     {c.cek_turu === 'kendi_cekimiz' && (
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        padding: '3px 8px',
-                        borderRadius: 6,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        background: '#ECFDF5',
-                        color: '#065F46',
-                        border: '1px solid #A7F3D0'
-                      }}>
-                        🏢 Kendi Çekimiz
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => turDegistir(c)}
+                        title="Tıklayarak türü 'Cirolu Malik Çeki' olarak değiştir"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          background: '#ECFDF5',
+                          color: '#065F46',
+                          border: '1px solid #A7F3D0',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🏢 Kendi Çekimiz <span style={{ fontSize: 9, opacity: 0.6 }}>⇄</span>
+                      </button>
                     )}
                     {c.cek_turu === 'portfoy' && (
                       <span style={{
@@ -629,7 +711,7 @@ export default function CekTakip() {
                     ) : '—'}
                   </td>
 
-                  {/* VERİLEN / İLGİLİ KİŞİ (CİROLARDA MALİK VE TAŞERON AYRINTISI) */}
+                  {/* VERİLEN / İLGİLİ KİŞİ (KENDİ ÇEKİMİZ / MALİK CİROSU AYRINTISI) */}
                   <td style={hucreStil}>
                     {c.cek_turu === 'ciro' ? (
                       <div>
@@ -652,7 +734,12 @@ export default function CekTakip() {
                       ) : (
                         <div>
                           <div style={{ fontWeight: 600, color: '#0F172A' }}>{c.odenen || '—'}</div>
-                          <div style={{ fontSize: 10, color: '#059669', marginTop: 1 }}>🏢 Taşeron / Tedarikçi</div>
+                          <div style={{ fontSize: 10, color: '#059669', marginTop: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span>🏢 Firma / Ortak Keşidesi</span>
+                            {c.odeyen && c.odeyen !== 'Firma' && c.odeyen !== 'Biz' && c.odeyen !== 'Biz (Firma / Ortak)' && (
+                              <span style={{ color: '#64748B' }}>({c.odeyen})</span>
+                            )}
+                          </div>
                         </div>
                       )
                     )}
@@ -724,7 +811,7 @@ export default function CekTakip() {
         {liste.length === 0 && <p className="bos-mesaj">Bu filtrede çek yok.</p>}
       </div>
       <p style={{ fontSize: 11, color: '#888780', marginTop: 8 }}>
-        💡 Sütun başlıklarına tıklayarak sıralayabilirsiniz. Ciro edilen çekler fiziksel olarak tek bir çek olduğu için Malik ve Taşeron bilgileri tek satırda birleştirilerek gösterilmektedir.
+        💡 <strong>Tür Rozetine (🏢/🔄)</strong> tıklayarak dilediğiniz çekin türünü anında 'Kendi Çekimiz' veya 'Cirolu' olarak değiştirebilirsiniz. Maliklerden alınmayan, firmanın/ortağın kendi banka hesabından keşide ettiği tüm çekler 'Kendi Çekimiz' olarak listelenir.
       </p>
     </div>
   )
