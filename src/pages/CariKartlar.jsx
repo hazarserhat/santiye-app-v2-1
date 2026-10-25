@@ -8,18 +8,37 @@ import KategoriCokluSecici from '../components/KategoriCokluSecici'
 // --- YARDIMCI: KATEGORİLERİ DİZİ VE VİRGÜLLÜ METİN ARASINDA DÖNÜŞTÜRME ---
 function parseKategoriler(sifatStr) {
   if (!sifatStr || typeof sifatStr !== 'string') return []
-  return sifatStr
+  const unique = []
+  const seen = new Set()
+  sifatStr
     .split(/[,/]/)
     .map(s => s.trim())
     .filter(Boolean)
+    .forEach(item => {
+      const lower = item.toLocaleLowerCase('tr-TR')
+      if (!seen.has(lower)) {
+        seen.add(lower)
+        unique.push(item)
+      }
+    })
+  return unique
 }
 
 function serializeKategoriler(kategoriler) {
   if (!Array.isArray(kategoriler)) return ''
-  return kategoriler
+  const unique = []
+  const seen = new Set()
+  kategoriler
     .map(s => (typeof s === 'string' ? s.trim() : ''))
     .filter(Boolean)
-    .join(', ')
+    .forEach(item => {
+      const lower = item.toLocaleLowerCase('tr-TR')
+      if (!seen.has(lower)) {
+        seen.add(lower)
+        unique.push(item)
+      }
+    })
+  return unique.join(', ')
 }
 
 // --- YARDIMCI: TELEFON ALANINDAKİ KİŞİLERİ ÇÖZÜMLEME (JSON, Çoklu Satır veya Klasik Tel) ---
@@ -35,7 +54,7 @@ function parseContacts(t) {
         return list.map((item, idx) => ({
           id: item.id || `k-${idx}-${Date.now()}`,
           ad: item.ad || t.ad || 'İletişim Kişisi',
-          rol: item.rol || item.unvan || t.sifat || 'Yetkili',
+          rol: item.rol || item.unvan || 'Yetkili',
           telefon: item.telefon || '',
           not: item.not || ''
         }))
@@ -56,10 +75,10 @@ function parseContacts(t) {
           const info = match[2]?.trim() || ''
           const parts = info.split('-')
           const name = parts[0]?.trim() || t.ad || 'Yetkili'
-          const role = parts[1]?.trim() || t.sifat || 'Yetkili'
+          const role = parts[1]?.trim() || 'Yetkili'
           return { id: `line-${idx}`, ad: name, rol: role, telefon: tel, not: '' }
         }
-        return { id: `line-${idx}`, ad: t.ad || 'Yetkili', rol: t.sifat || 'Yetkili', telefon: line, not: '' }
+        return { id: `line-${idx}`, ad: t.ad || 'Yetkili', rol: 'Yetkili', telefon: line, not: '' }
       })
     }
   }
@@ -68,7 +87,7 @@ function parseContacts(t) {
   return [{
     id: `single-${t.id || '1'}`,
     ad: t.ad || t.firma || 'Yetkili',
-    rol: t.sifat || 'Yetkili',
+    rol: 'Yetkili',
     telefon: raw,
     not: ''
   }]
@@ -197,13 +216,19 @@ export default function CariKartlar() {
 
   // Mevcut Hizmet Kategorileri (Otomatik tamamlama için)
   const mevcutHizmetKategorileri = useMemo(() => {
-    const set = new Set()
+    const map = new Map()
     taseronlar.forEach(t => {
       parseKategoriler(t.sifat).forEach(kat => {
-        if (kat) set.add(kat)
+        const kTr = kat.trim()
+        if (kTr) {
+          const lower = kTr.toLocaleLowerCase('tr-TR')
+          if (!map.has(lower)) {
+            map.set(lower, kTr)
+          }
+        }
       })
     })
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'tr-TR'))
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b, 'tr-TR'))
   }, [taseronlar])
 
   // --- ÇEKİRDEK: FİRMALARI VE ÇALIŞANLARI ARKA PLANDA GRUPLAMA (NESTED ARCHITECTURE) ---
@@ -727,59 +752,25 @@ export default function CariKartlar() {
             <p style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700, color: '#333', letterSpacing: '-0.3px' }}>
               {seciliTaseron.firma || seciliTaseron.ad}
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-              {parseKategoriler(seciliTaseron.sifat).map((kat, idx) => (
-                <span 
-                  key={idx} 
-                  style={{ 
-                    padding: '3px 8px 3px 10px', 
-                    background: '#F0FDFA', 
-                    color: '#0F766E', 
-                    border: '1px solid #99F6E4', 
-                    borderRadius: 8, 
-                    fontSize: 12, 
-                    fontWeight: 700, 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: 6,
-                    boxShadow: '0 1px 2px rgba(15, 118, 110, 0.05)'
-                  }}
-                >
-                  🏷️ {kat}
-                  {yonetici && (
-                    <button
-                      type="button"
-                      onClick={() => handleKategoriSil(kat)}
-                      style={{ background: 'transparent', border: 'none', color: '#0F766E', cursor: 'pointer', padding: '0 2px', fontWeight: 800, fontSize: 12 }}
-                      title={`${kat} kategorisini sil`}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </span>
-              ))}
+            {/* Kategoriler ve Yönetici Hızlı Ekleme / Kaldırma */}
+            <div style={{ marginTop: 6, maxWidth: 420 }}>
+              <KategoriCokluSecici
+                seciliKategoriler={parseKategoriler(seciliTaseron.sifat)}
+                onDegisti={(yeniDizi) => {
+                  const serialized = serializeKategoriler(yeniDizi)
+                  supabase.from('taseronlar').update({ sifat: serialized }).eq('id', seciliId).then(({ error }) => {
+                    if (error) alert('Güncellenemedi: ' + error.message)
+                    else {
+                      setTaseronlar(prev => prev.map(t => t.id === seciliId ? { ...t, sifat: serialized } : t))
+                      setDuzKategoriler(yeniDizi)
+                    }
+                  })
+                }}
+                mevcutKategoriler={mevcutHizmetKategorileri}
+                placeholder="+ Kategori ekle (3 harf yazın: örn. Parke, Kapı)..."
+                disabled={!yonetici || duzenleModu}
+              />
             </div>
-
-            {/* Yönetici için Hızlı Kategori Arama & Ekleme (Önerili - 3 Harf) */}
-            {yonetici && !duzenleModu && (
-              <div style={{ marginTop: 8, maxWidth: 380 }}>
-                <KategoriCokluSecici
-                  seciliKategoriler={parseKategoriler(seciliTaseron.sifat)}
-                  onDegisti={(yeniDizi) => {
-                    const serialized = serializeKategoriler(yeniDizi)
-                    supabase.from('taseronlar').update({ sifat: serialized }).eq('id', seciliId).then(({ error }) => {
-                      if (error) alert('Güncellenemedi: ' + error.message)
-                      else {
-                        setTaseronlar(prev => prev.map(t => t.id === seciliId ? { ...t, sifat: serialized } : t))
-                        setDuzKategoriler(yeniDizi)
-                      }
-                    })
-                  }}
-                  mevcutKategoriler={mevcutHizmetKategorileri}
-                  placeholder="+ Kategori ekle (3 harf yazın: örn. Parke, Kapı)..."
-                />
-              </div>
-            )}
           </div>
 
           {yonetici && !duzenleModu && (
@@ -1164,7 +1155,7 @@ export default function CariKartlar() {
                       <span style={{ fontSize: 14.5, fontWeight: 800, color: '#0F172A' }}>
                         {grup.firmaAdi}
                       </span>
-                      {tekKisi.rol && tekKisi.rol !== 'Yetkili' && (
+                      {tekKisi.rol && tekKisi.rol !== 'Yetkili' && !parseKategoriler(grup.sifat).some(k => k.toLocaleLowerCase('tr-TR') === tekKisi.rol.toLocaleLowerCase('tr-TR')) && (
                         <span style={{ fontSize: 10.5, fontWeight: 700, background: '#FEF3C7', color: '#92400E', padding: '1px 6px', borderRadius: 4 }}>
                           {tekKisi.rol}
                         </span>
