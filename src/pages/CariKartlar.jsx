@@ -1175,24 +1175,6 @@ export default function CariKartlar() {
                         </span>
                       ))}
                     </div>
-
-                    {/* Tanımlı Şantiyeler */}
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
-                      {Array.from(grup.santiyeler).map(sid => {
-                        const s = santiyeler.find(item => item.id === sid)
-                        if (!s) return null
-                        return (
-                          <span key={sid} style={{ fontSize: 10, fontWeight: 700, background: '#E0F2FE', color: '#0369A1', padding: '1px 5px', borderRadius: 4 }}>
-                            📍 {s.ad}
-                          </span>
-                        )
-                      })}
-                      {grup.santiyeler.size === 0 && (
-                        <span style={{ fontSize: 10.5, color: '#94A3B8', fontStyle: 'italic' }}>
-                          Şantiye ataması yok
-                        </span>
-                      )}
-                    </div>
                   </div>
                 </div>
 
@@ -1400,18 +1382,6 @@ export default function CariKartlar() {
                           🏷️ {kat}
                         </span>
                       ))}
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
-                      {Array.from(grup.santiyeler).map(sid => {
-                        const s = santiyeler.find(item => item.id === sid)
-                        if (!s) return null
-                        return (
-                          <span key={sid} style={{ fontSize: 10, fontWeight: 700, background: '#E0F2FE', color: '#0369A1', padding: '1px 5px', borderRadius: 4 }}>
-                            📍 {s.ad}
-                          </span>
-                        )
-                      })}
                     </div>
                   </div>
                 </div>
