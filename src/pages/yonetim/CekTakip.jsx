@@ -59,6 +59,9 @@ export default function CekTakip() {
   const [siralamaYonu, setSiralamaYonu] = useState('asc')
   const [seciliCekler, setSeciliCekler] = useState([])
 
+  // Aşağı doğru genişleyen filtre açılır menü kontrolü ('tur' | 'santiye' | 'banka' | 'ay' | null)
+  const [genisleyenFiltre, setGenisleyenFiltre] = useState(null)
+
   // Görsel İnceleme Modalı & Yükleme State'i
   const [seciliGorsel, setSeciliGorsel] = useState(null)
   const [yukleniyorGorselId, setYukleniyorGorselId] = useState(null)
@@ -77,7 +80,7 @@ export default function CekTakip() {
       supabase.from('cekler').select('*, santiyeler(ad)'),
       supabase.from('malikler').select('id, ad_soyad')
     ]).then(([{ data: cekData, error: cekError }, { data: malikData }]) => {
-      if (cekError) { alert('Çekler yüklenemedi: ' + error.message); return }
+      if (cekError) { alert('Çekler yüklenemedi: ' + cekError.message); return }
 
       const tumCekler = cekData || []
       const maliklerListesi = malikData || []
@@ -95,7 +98,6 @@ export default function CekTakip() {
       verilenler.forEach(ver => {
         const verSeri = ver.cek_seri_no ? String(ver.cek_seri_no).trim().toLowerCase() : ''
 
-        // Eşleşen bir alınan çek var mı? (Sadece geçerli seri numarası olanlar eşleşebilir)
         let eslesenAlinan = null
         if (verSeri) {
           eslesenAlinan = alinanlar.find(al => {
@@ -105,7 +107,6 @@ export default function CekTakip() {
           })
         }
 
-        // Eğer eşleşen bir alınan çek VARSA bu ikisi aynı fiziki çektir; birleştir!
         if (eslesenAlinan) {
           eslesenVerilenIdleri.add(ver.id)
           eslesenAlinanIdleri.add(eslesenAlinan.id)
@@ -113,7 +114,6 @@ export default function CekTakip() {
           const alinanOdeyen = eslesenAlinan.odeyen ? eslesenAlinan.odeyen.trim() : ''
           const alinanOdeyenLower = alinanOdeyen.toLowerCase()
 
-          // Gerçekten Malik'ten / Dış Müşteriden mi alınmış?
           const isFirmaVeyaOrtak = alinanOdeyenLower.includes('ortak') ||
                                    alinanOdeyenLower.includes('firma') ||
                                    alinanOdeyenLower.includes('şirket') ||
@@ -129,7 +129,7 @@ export default function CekTakip() {
           const kesideci = alinanOdeyen || ver.odeyen || (nihaiTur === 'ciro' ? 'Malik / Keşideci' : 'Biz (Firma)')
           const odenen = ver.odenen || eslesenAlinan.odenen || '—'
 
-          // Emanet Kontrolü
+          // Emanet Kontrolü (Veritabanı veya Açıklama Alanında 'EMANET' ibaresi)
           const isEmanet = Boolean(
             ver.is_emanet ||
             eslesenAlinan.is_emanet ||
@@ -223,7 +223,7 @@ export default function CekTakip() {
     })
   }, [turOverrides])
 
-  // Tekil Fiziksel Çekler Arasında Seri Numarası Tekrar Edenleri Say (Gerçek Mükerrer Kontrolü)
+  // Tekil Fiziksel Çekler Arasında Seri Numarası Tekrar Edenleri Say
   const seriNoSayilari = useMemo(() => {
     const sayilar = {}
     cekler.forEach(c => {
@@ -277,7 +277,7 @@ export default function CekTakip() {
       yeniAciklama = yeniAciklama.replace(/\[EMANET\]\s*/gi, '').replace(/\(Emanet Verildi\)\s*/gi, '').trim()
     }
 
-    // State'i derhal güncelle (gecikmesiz reaksiyon)
+    // State'i derhal güncelle
     setCekler(prev => prev.map(item => {
       if (item.id === c.id || idler.includes(item.id)) {
         return {
@@ -293,7 +293,6 @@ export default function CekTakip() {
     try {
       const { error: err1 } = await supabase.from('cekler').update({ is_emanet: yeniDurum, aciklama: yeniAciklama }).in('id', idler)
       if (err1) {
-        // Eğer is_emanet kolonu henüz yoksa aciklama ile güncelle
         await supabase.from('cekler').update({ aciklama: yeniAciklama }).in('id', idler)
       }
     } catch (err) {
@@ -332,7 +331,7 @@ export default function CekTakip() {
     }
   }
 
-  // Çek Silme (Ciro edilmişse hem alınan hem verilen ciro kaydını temizler)
+  // Çek Silme
   const cekSil = async (c) => {
     const kisi = c.odenen || c.odeyen || 'İsimsiz'
     const seriNo = c.cek_seri_no ? `(Seri No: ${c.cek_seri_no})` : ''
@@ -425,7 +424,7 @@ export default function CekTakip() {
   const emanetCekler = cekler.filter(c => Boolean(c.is_emanet))
   const emanetToplam = emanetCekler.reduce((t, c) => t + Number(c.tutar || 0), 0)
 
-  // Finansal Özet İstatistikleri (Tekilleştirilmiş fiziksel çekler üzerinden hesaplanır)
+  // Finansal Özet İstatistikleri
   const vadesiGelmemis = cekler.filter((c) => c.cek_vadesi && c.cek_vadesi >= bugun)
   const vadesiGelmemisTutar = vadesiGelmemis.reduce((t, c) => t + Number(c.tutar || 0), 0)
 
@@ -433,6 +432,39 @@ export default function CekTakip() {
   const odenenTutar = odenenCekler.reduce((t, c) => t + Number(c.tutar || 0), 0)
 
   const tumZamanlarToplam = cekler.reduce((t, c) => t + Number(c.tutar || 0), 0)
+
+  // Açılır Filtre Başlık Yardımcıları
+  const getTurEtiketi = () => {
+    if (filtreTur === 'kendi_cekimiz') return `🏢 Kendi Çeklerimiz (${kendiCekler.length})`
+    if (filtreTur === 'ciro') return `🔄 Cirolu Malik (${ciroCekler.length})`
+    if (filtreTur === 'portfoy') return `💼 Portföy (${portfoyCekler.length})`
+    if (filtreTur === 'emanet') return `🤝 Emanet Çekler (${emanetCekler.length})`
+    return `Tüm Çekler (${cekler.length})`
+  }
+
+  const getSantiyeEtiketi = () => {
+    if (filtreSantiye === 'hepsi') return 'Tüm şantiyeler'
+    const s = santiyeler.find(x => x.id === filtreSantiye)
+    return s ? s.ad : 'Seçili Şantiye'
+  }
+
+  const getBankaEtiketi = () => {
+    if (filtreBanka === 'hepsi') return 'Tüm bankalar'
+    return filtreBanka
+  }
+
+  const getAyEtiketi = () => {
+    if (filtreAy === 'hepsi') return 'Tüm aylar'
+    return ayFormatla(filtreAy)
+  }
+
+  const aktifFiltreSayisi = [
+    filtreTur !== 'hepsi',
+    filtreSantiye !== 'hepsi',
+    filtreBanka !== 'hepsi',
+    filtreAy !== 'hepsi',
+    Boolean(aramaMetni)
+  ].filter(Boolean).length
 
   const pdfPaylas = async (sadeceSecilenler = false) => {
     const dataListesi = sadeceSecilenler ? liste.filter(c => seciliCekler.includes(c.id)) : liste
@@ -526,45 +558,62 @@ export default function CekTakip() {
         </div>
       </div>
 
-      {/* Emanet Çekler Bilgi Banner'ı */}
-      {emanetCekler.length > 0 && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '8px 14px',
-          marginBottom: 10,
-          borderRadius: 10,
-          background: '#FEF3C7',
-          border: '1px solid #F59E0B',
-          color: '#92400E',
-          fontSize: 12.5,
-          fontWeight: 600
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 16 }}>🤝</span>
-            <span>
-              Aktif <strong>{emanetCekler.length} adet</strong> emanet verilen çek bulunuyor (Toplam: <strong>{paraFormatla(emanetToplam)} ₺</strong>).
-            </span>
+      {/* EMANET ÇEK BİLGİLENDİRME VE DURUM PANELİ */}
+      <div style={{
+        background: '#FFFBEB',
+        border: '1.5px solid #F59E0B',
+        borderRadius: 12,
+        padding: '12px 16px',
+        marginBottom: 12,
+        boxShadow: '0 2px 6px rgba(245, 158, 11, 0.08)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#92400E', fontWeight: 700, fontSize: 13.5 }}>
+            <span style={{ fontSize: 18 }}>🤝</span>
+            <span>Emanet Verilen Çekler Sistemi</span>
+            {emanetCekler.length > 0 && (
+              <span style={{ background: '#FDE68A', color: '#78350F', fontSize: 11, padding: '2px 8px', borderRadius: 999, fontWeight: 700 }}>
+                {emanetCekler.length} Adet Aktif ({paraFormatla(emanetToplam)} ₺)
+              </span>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={() => setFiltreTur(filtreTur === 'emanet' ? 'hepsi' : 'emanet')}
-            style={{
-              background: filtreTur === 'emanet' ? '#B45309' : '#FFFFFF',
-              color: filtreTur === 'emanet' ? '#FFFFFF' : '#92400E',
-              border: '1px solid #B45309',
-              borderRadius: 6,
-              padding: '3px 10px',
-              fontSize: 11.5,
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
-          >
-            {filtreTur === 'emanet' ? '✕ Filtreyi Kaldır' : 'Sadece Emanetleri Göster'}
-          </button>
+          {emanetCekler.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setFiltreTur(filtreTur === 'emanet' ? 'hepsi' : 'emanet')
+                setGenisleyenFiltre(null)
+              }}
+              style={{
+                background: filtreTur === 'emanet' ? '#B45309' : '#FFFFFF',
+                color: filtreTur === 'emanet' ? '#FFFFFF' : '#92400E',
+                border: '1px solid #B45309',
+                borderRadius: 6,
+                padding: '4px 12px',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              {filtreTur === 'emanet' ? '✕ Tüm Çeklere Dön' : '⚡ Sadece Emanetleri Göster'}
+            </button>
+          )}
         </div>
-      )}
+
+        <div style={{ fontSize: 12, color: '#78350F', lineHeight: 1.6 }}>
+          <div style={{ fontWeight: 700, marginBottom: 3 }}>
+            💡 Sistem bir çekin "Emanet" olduğunu 2 farklı şekilde belirler:
+          </div>
+          <div style={{ paddingLeft: 8 }}>
+            <div>
+              • <strong>Açıklama Kontrolü:</strong> Çek kaydedilirken veya düzenlenirken açıklama (not) kısmında <em>"Emanet"</em> kelimesi veya <em>"[EMANET]"</em> ibaresi geçiyorsa, sistem bunu otomatik olarak algılar ve emanet listesine dahil eder.
+            </div>
+            <div style={{ marginTop: 2 }}>
+              • <strong>Manuel İşaretleme:</strong> Aşağıdaki tabloda her çekin yanında yer alan <strong>"+ Emanet"</strong> butonuna tıklayarak herhangi bir çeki emanet yapabilir; emanet olan çekin üzerindeki <strong>"🤝 Emanet"</strong> rozetine tıklayarak bu işareti dilediğiniz an kaldırabilirsiniz.
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ARAMA ÇUBUĞU */}
       <div style={{
@@ -574,7 +623,7 @@ export default function CekTakip() {
         borderRadius: 12,
         border: '1.5px solid #CBD5E1',
         padding: '2px 14px',
-        marginBottom: 12,
+        marginBottom: 10,
         boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
       }}>
         <span style={{ fontSize: 15, marginRight: 8, color: '#64748B' }}>🔍</span>
@@ -613,88 +662,243 @@ export default function CekTakip() {
         )}
       </div>
 
-      {/* ÇEK TÜRÜ & EMANET FİLTRELERİ */}
-      <div className="filtre-satiri" style={{ marginBottom: 6 }}>
+      {/* AÇILIR/GENİŞLEYEN KOMPAKT FİLTRE ÇUBUĞU */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        flexWrap: 'wrap',
+        marginBottom: 10
+      }}>
+        {/* ÇEK TÜRÜ MASTER BUTONU */}
         <button
-          className={`filtre-chip ${filtreTur === 'hepsi' ? 'secili' : ''}`}
-          onClick={() => setFiltreTur('hepsi')}
+          type="button"
+          className={`filtre-chip ${filtreTur !== 'hepsi' || genisleyenFiltre === 'tur' ? 'secili' : ''}`}
+          onClick={() => setGenisleyenFiltre(genisleyenFiltre === 'tur' ? null : 'tur')}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
         >
-          Tüm Çekler ({cekler.length})
+          <span>{getTurEtiketi()}</span>
+          <span style={{ fontSize: 10, opacity: 0.85 }}>{genisleyenFiltre === 'tur' ? '▲' : '▼'}</span>
         </button>
+
+        {/* ŞANTİYE MASTER BUTONU */}
         <button
-          className={`filtre-chip ${filtreTur === 'kendi_cekimiz' ? 'secili' : ''}`}
-          onClick={() => setFiltreTur('kendi_cekimiz')}
-          style={{
-            borderColor: filtreTur === 'kendi_cekimiz' ? '#059669' : undefined,
-            background: filtreTur === 'kendi_cekimiz' ? '#ECFDF5' : undefined,
-            color: filtreTur === 'kendi_cekimiz' ? '#047857' : undefined
-          }}
+          type="button"
+          className={`filtre-chip ${filtreSantiye !== 'hepsi' || genisleyenFiltre === 'santiye' ? 'secili' : ''}`}
+          onClick={() => setGenisleyenFiltre(genisleyenFiltre === 'santiye' ? null : 'santiye')}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
         >
-          🏢 Kendi Çeklerimiz ({kendiCekler.length})
+          <span>🏗️ {getSantiyeEtiketi()}</span>
+          <span style={{ fontSize: 10, opacity: 0.85 }}>{genisleyenFiltre === 'santiye' ? '▲' : '▼'}</span>
         </button>
-        <button
-          className={`filtre-chip ${filtreTur === 'ciro' ? 'secili' : ''}`}
-          onClick={() => setFiltreTur('ciro')}
-          style={{
-            borderColor: filtreTur === 'ciro' ? '#2563EB' : undefined,
-            background: filtreTur === 'ciro' ? '#EFF6FF' : undefined,
-            color: filtreTur === 'ciro' ? '#1D4ED8' : undefined
-          }}
-        >
-          🔄 Cirolu Malik Çekleri ({ciroCekler.length})
-        </button>
-        <button
-          className={`filtre-chip ${filtreTur === 'portfoy' ? 'secili' : ''}`}
-          onClick={() => setFiltreTur('portfoy')}
-          style={{
-            borderColor: filtreTur === 'portfoy' ? '#D97706' : undefined,
-            background: filtreTur === 'portfoy' ? '#FFFBEB' : undefined,
-            color: filtreTur === 'portfoy' ? '#B45309' : undefined
-          }}
-        >
-          💼 Portföy (Alınan/Kasada) ({portfoyCekler.length})
-        </button>
-        <button
-          className={`filtre-chip ${filtreTur === 'emanet' ? 'secili' : ''}`}
-          onClick={() => setFiltreTur('emanet')}
-          style={{
-            borderColor: filtreTur === 'emanet' ? '#D97706' : '#F59E0B',
-            background: filtreTur === 'emanet' ? '#FEF3C7' : '#FFFBEB',
-            color: '#B45309',
-            fontWeight: 700
-          }}
-        >
-          🤝 Emanet Çekler ({emanetCekler.length})
-        </button>
+
+        {/* BANKA MASTER BUTONU */}
+        {bankalar.length > 0 && (
+          <button
+            type="button"
+            className={`filtre-chip ${filtreBanka !== 'hepsi' || genisleyenFiltre === 'banka' ? 'secili' : ''}`}
+            onClick={() => setGenisleyenFiltre(genisleyenFiltre === 'banka' ? null : 'banka')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <span>🏦 {getBankaEtiketi()}</span>
+            <span style={{ fontSize: 10, opacity: 0.85 }}>{genisleyenFiltre === 'banka' ? '▲' : '▼'}</span>
+          </button>
+        )}
+
+        {/* AY MASTER BUTONU */}
+        {aylar.length > 0 && (
+          <button
+            type="button"
+            className={`filtre-chip ${filtreAy !== 'hepsi' || genisleyenFiltre === 'ay' ? 'secili' : ''}`}
+            onClick={() => setGenisleyenFiltre(genisleyenFiltre === 'ay' ? null : 'ay')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <span>📅 {getAyEtiketi()}</span>
+            <span style={{ fontSize: 10, opacity: 0.85 }}>{genisleyenFiltre === 'ay' ? '▲' : '▼'}</span>
+          </button>
+        )}
+
+        {/* FİLTRELERİ TEMİZLE BUTONU (AKTİF FİLTRE VARSA GÖSTERİLİR) */}
+        {aktifFiltreSayisi > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setFiltreTur('hepsi')
+              setFiltreSantiye('hepsi')
+              setFiltreBanka('hepsi')
+              setFiltreAy('hepsi')
+              setAramaMetni('')
+              setGenisleyenFiltre(null)
+            }}
+            style={{
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              color: '#DC2626',
+              borderRadius: 999,
+              padding: '6px 12px',
+              fontSize: 11.5,
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+          >
+            ✕ Filtreleri Sıfırla ({aktifFiltreSayisi})
+          </button>
+        )}
       </div>
 
-      {/* ŞANTİYE FİLTRESİ */}
-      <div className="filtre-satiri">
-        <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
-        {santiyeler.map((s) => (
-          <button key={s.id} className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`} onClick={() => setFiltreSantiye(s.id)}>{s.ad}</button>
-        ))}
-      </div>
-
-      {/* BANKA FİLTRESİ */}
-      {bankalar.length > 0 && (
-        <div className="filtre-satiri">
-          <button className={`filtre-chip ${filtreBanka === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreBanka('hepsi')}>Tüm bankalar</button>
-          {bankalar.map((b) => (
-            <button key={b} className={`filtre-chip ${filtreBanka === b ? 'secili' : ''}`} onClick={() => setFiltreBanka(b)}>{b}</button>
-          ))}
-        </div>
-      )}
-
-      {/* AY FİLTRESİ */}
-      {aylar.length > 0 && (
-        <div className="filtre-satiri">
-          <button className={`filtre-chip ${filtreAy === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreAy('hepsi')}>Tüm aylar</button>
-          {aylar.map((a) => (
-            <button key={a} className={`filtre-chip ${filtreAy === a ? 'secili' : ''}`} onClick={() => setFiltreAy(a)}>
-              {ayFormatla(a)}
+      {/* AŞAĞI DOĞRU GENİŞLEYEN SEÇİM ALANI */}
+      {genisleyenFiltre && (
+        <div style={{
+          background: '#FFFFFF',
+          border: '1.5px solid #CBD5E1',
+          borderRadius: 12,
+          padding: '12px 14px',
+          marginBottom: 12,
+          boxShadow: '0 4px 14px rgba(0,0,0,0.06)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              {genisleyenFiltre === 'tur' && '🎯 Çek Türü veya Emanet Seçin'}
+              {genisleyenFiltre === 'santiye' && '🏗️ Şantiye Seçin'}
+              {genisleyenFiltre === 'banka' && '🏦 Banka Seçin'}
+              {genisleyenFiltre === 'ay' && '📅 Vade Ayı Seçin'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setGenisleyenFiltre(null)}
+              style={{
+                background: '#F1F5F9',
+                border: 'none',
+                borderRadius: 6,
+                padding: '3px 8px',
+                fontSize: 11,
+                color: '#64748B',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Kapat ✕
             </button>
-          ))}
+          </div>
+
+          {/* 1. TÜR SEÇENEKLERİ */}
+          {genisleyenFiltre === 'tur' && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <button
+                type="button"
+                className={`filtre-chip ${filtreTur === 'hepsi' ? 'secili' : ''}`}
+                onClick={() => { setFiltreTur('hepsi'); setGenisleyenFiltre(null) }}
+              >
+                Tüm Çekler ({cekler.length})
+              </button>
+              <button
+                type="button"
+                className={`filtre-chip ${filtreTur === 'kendi_cekimiz' ? 'secili' : ''}`}
+                onClick={() => { setFiltreTur('kendi_cekimiz'); setGenisleyenFiltre(null) }}
+              >
+                🏢 Kendi Çeklerimiz ({kendiCekler.length})
+              </button>
+              <button
+                type="button"
+                className={`filtre-chip ${filtreTur === 'ciro' ? 'secili' : ''}`}
+                onClick={() => { setFiltreTur('ciro'); setGenisleyenFiltre(null) }}
+              >
+                🔄 Cirolu Malik Çekleri ({ciroCekler.length})
+              </button>
+              <button
+                type="button"
+                className={`filtre-chip ${filtreTur === 'portfoy' ? 'secili' : ''}`}
+                onClick={() => { setFiltreTur('portfoy'); setGenisleyenFiltre(null) }}
+              >
+                💼 Portföy (Alınan/Kasada) ({portfoyCekler.length})
+              </button>
+              <button
+                type="button"
+                className={`filtre-chip ${filtreTur === 'emanet' ? 'secili' : ''}`}
+                onClick={() => { setFiltreTur('emanet'); setGenisleyenFiltre(null) }}
+                style={{
+                  borderColor: filtreTur === 'emanet' ? '#D97706' : '#F59E0B',
+                  background: filtreTur === 'emanet' ? '#FEF3C7' : '#FFFBEB',
+                  color: '#B45309',
+                  fontWeight: 700
+                }}
+              >
+                🤝 Emanet Çekler ({emanetCekler.length})
+              </button>
+            </div>
+          )}
+
+          {/* 2. ŞANTİYE SEÇENEKLERİ */}
+          {genisleyenFiltre === 'santiye' && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <button
+                type="button"
+                className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`}
+                onClick={() => { setFiltreSantiye('hepsi'); setGenisleyenFiltre(null) }}
+              >
+                Tüm şantiyeler
+              </button>
+              {santiyeler.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`filtre-chip ${filtreSantiye === s.id ? 'secili' : ''}`}
+                  onClick={() => { setFiltreSantiye(s.id); setGenisleyenFiltre(null) }}
+                >
+                  {s.ad}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* 3. BANKA SEÇENEKLERİ */}
+          {genisleyenFiltre === 'banka' && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <button
+                type="button"
+                className={`filtre-chip ${filtreBanka === 'hepsi' ? 'secili' : ''}`}
+                onClick={() => { setFiltreBanka('hepsi'); setGenisleyenFiltre(null) }}
+              >
+                Tüm bankalar
+              </button>
+              {bankalar.map((b) => (
+                <button
+                  key={b}
+                  type="button"
+                  className={`filtre-chip ${filtreBanka === b ? 'secili' : ''}`}
+                  onClick={() => { setFiltreBanka(b); setGenisleyenFiltre(null) }}
+                >
+                  {b}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* 4. VADE AYI SEÇENEKLERİ */}
+          {genisleyenFiltre === 'ay' && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <button
+                type="button"
+                className={`filtre-chip ${filtreAy === 'hepsi' ? 'secili' : ''}`}
+                onClick={() => { setFiltreAy('hepsi'); setGenisleyenFiltre(null) }}
+              >
+                Tüm aylar
+              </button>
+              {aylar.map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  className={`filtre-chip ${filtreAy === a ? 'secili' : ''}`}
+                  onClick={() => { setFiltreAy(a); setGenisleyenFiltre(null) }}
+                >
+                  {ayFormatla(a)}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -705,7 +909,8 @@ export default function CekTakip() {
           alignItems: 'center',
           gap: 8,
           padding: '8px 14px',
-          marginTop: 12,
+          marginTop: 8,
+          marginBottom: 10,
           borderRadius: 10,
           background: '#FFFBEB',
           border: '1px solid #FDE68A',
@@ -721,7 +926,7 @@ export default function CekTakip() {
       )}
 
       {/* ÇEK TABLOSU */}
-      <div style={{ overflowX: 'auto', marginTop: 12, background: 'white', borderRadius: 12, border: '1px solid #D3D1C7' }}>
+      <div style={{ overflowX: 'auto', marginTop: 8, background: 'white', borderRadius: 12, border: '1px solid #D3D1C7' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%' }}>
           <thead>
             <tr>
