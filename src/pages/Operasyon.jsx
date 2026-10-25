@@ -130,8 +130,9 @@ export default function Operasyon() {
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
-  // 3. HARİTADA GÖSTER (Google Maps Web / App)
+  // 3. HARİTADA GÖSTER / KONUMU AÇ (Google Maps Web / App)
   const haritadaGoster = (santiye) => {
+    if (!santiye) return
     if (santiye.google_maps_linki) {
       window.open(santiye.google_maps_linki, '_blank', 'noopener,noreferrer')
       return
@@ -139,6 +140,17 @@ export default function Operasyon() {
     const sorgu = haritaSorgusuOlustur(santiye)
     const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(sorgu)}`
     window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  // Şantiyeye tıklandığında hem seç hem de konumu açma desteği
+  const handleSantiyeTikla = (santiye) => {
+    if (seciliSantiyeId === santiye.id) {
+      // Eğer zaten seçiliyse tekrar tıklandığında doğrudan haritada konumunu açar
+      haritadaGoster(santiye)
+    } else {
+      // İlk tıklamada haritayı bu konuma odaklar
+      setSeciliSantiyeId(santiye.id)
+    }
   }
 
   // Haritada Odakla
@@ -178,7 +190,7 @@ export default function Operasyon() {
   }
 
   return (
-    <div className="sayfa" style={{ maxWidth: 840, paddingBottom: 60 }}>
+    <div className="sayfa" style={{ maxWidth: 900, paddingBottom: 60 }}>
       {/* TOAST BİLDİRİMİ */}
       {toastMesaj && (
         <div
@@ -224,7 +236,7 @@ export default function Operasyon() {
           )}
         </div>
         <p style={{ margin: 0, fontSize: 13, color: '#64748B' }}>
-          Şantiyelerin canlı Google Haritalar konumu, yol tarifleri ve hızlı saha operasyon araçları.
+          Şantiyelerin canlı Google Harita konumları, yol tarifleri ve tek tıkla konum açma paneli.
         </p>
       </div>
 
@@ -390,99 +402,159 @@ export default function Operasyon() {
               </button>
             </div>
 
-            {/* Google Haritalar'da Tam Ekran Aç */}
+            {/* Google Haritalar'da Konumu Aç Butonu */}
             {seciliSantiye && (
               <button
                 type="button"
                 onClick={() => haritadaGoster(seciliSantiye)}
-                title="Google Haritalar uygulamasında aç"
+                title="Bu konumu Google Haritalar uygulamasında / tam ekranda aç"
                 style={{
-                  padding: '6px 10px',
+                  padding: '6px 12px',
                   borderRadius: 8,
-                  border: '1px solid #CBD5E1',
-                  background: '#FFFFFF',
-                  color: '#334155',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #24B8B9, #1D9596)',
+                  color: '#FFFFFF',
                   fontSize: 11.5,
-                  fontWeight: 700,
+                  fontWeight: 800,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4
+                  gap: 5,
+                  boxShadow: '0 2px 6px rgba(29, 149, 150, 0.3)'
                 }}
               >
-                <span>↗ Tam Ekran</span>
+                <span>↗ Konumu Aç</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Şantiye Seçim Hapları (Harita Üstü) */}
+        {/* ŞANTİYELER SEÇİM VE KONTROL IZGARASI (TEK SEFERDE HEPSİ GÖRÜNÜR & SİMETRİK NİZAMİ) */}
         <div
           style={{
-            display: 'flex',
-            gap: 6,
-            padding: '8px 12px',
-            background: '#FFFFFF',
-            borderBottom: '1px solid #F1F5F9',
-            overflowX: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none'
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+            gap: 8,
+            padding: '12px 14px',
+            background: '#F8FAFC',
+            borderBottom: '1px solid #E2E8F0'
           }}
         >
+          {/* Genel Bakış Butonu */}
           <button
             type="button"
             onClick={() => setSeciliSantiyeId('hepsi')}
             style={{
-              padding: '5px 12px',
-              borderRadius: 20,
-              border: seciliSantiyeId === 'hepsi' ? '1.5px solid #1D9596' : '1px solid #E2E8F0',
-              background: seciliSantiyeId === 'hepsi' ? '#F0FDFA' : '#F8FAFC',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              height: 42,
+              padding: '8px 12px',
+              borderRadius: 10,
+              border: seciliSantiyeId === 'hepsi' ? '2px solid #1D9596' : '1px solid #CBD5E1',
+              background: seciliSantiyeId === 'hepsi' ? '#F0FDFA' : '#FFFFFF',
               color: seciliSantiyeId === 'hepsi' ? '#0F766E' : '#475569',
-              fontSize: 12,
-              fontWeight: 700,
+              fontSize: 12.5,
+              fontWeight: seciliSantiyeId === 'hepsi' ? 800 : 600,
               cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              flexShrink: 0
+              boxShadow: seciliSantiyeId === 'hepsi' ? '0 2px 6px rgba(29, 149, 150, 0.2)' : '0 1px 3px rgba(0,0,0,0.03)',
+              transition: 'all 0.15s ease'
             }}
           >
-            🌐 Genel Bakış
+            <span>🌐 Genel Bakış</span>
           </button>
 
+          {/* Tüm Şantiyeler Symmetrical Grid */}
           {santiyeler.map((s) => {
-            const aktifMi = seciliSantiyeId === s.id
+            const secili = seciliSantiyeId === s.id
+            const aktifSantiyeMi = s.id === aktifSantiye?.id
+
             return (
-              <button
+              <div
                 key={s.id}
-                type="button"
-                onClick={() => setSeciliSantiyeId(s.id)}
+                onClick={() => handleSantiyeTikla(s)}
                 style={{
-                  padding: '5px 12px',
-                  borderRadius: 20,
-                  border: aktifMi ? '1.5px solid #1D9596' : '1px solid #E2E8F0',
-                  background: aktifMi ? '#F0FDFA' : '#F8FAFC',
-                  color: aktifMi ? '#0F766E' : '#475569',
-                  fontSize: 12,
-                  fontWeight: aktifMi ? 800 : 600,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4
+                  justifyContent: 'space-between',
+                  gap: 6,
+                  height: 42,
+                  padding: '8px 10px',
+                  borderRadius: 10,
+                  border: secili ? '2px solid #1D9596' : '1px solid #CBD5E1',
+                  background: secili ? '#F0FDFA' : '#FFFFFF',
+                  color: secili ? '#0F766E' : '#334155',
+                  cursor: 'pointer',
+                  boxShadow: secili ? '0 2px 8px rgba(29, 149, 150, 0.2)' : '0 1px 3px rgba(0,0,0,0.02)',
+                  transition: 'all 0.15s ease',
+                  userSelect: 'none'
                 }}
+                title={secili ? 'Tekrar tıklandığında Google Haritalar konumunu açar' : 'Haritada bu konuma odaklan'}
               >
-                <span>📍 {s.ad}</span>
-                {s.id === aktifSantiye?.id && (
-                  <span style={{ fontSize: 9, background: '#1D9596', color: '#fff', padding: '1px 5px', borderRadius: 10 }}>
-                    Aktif
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+                  <span style={{ fontSize: 13, flexShrink: 0 }}>📍</span>
+                  <span
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: secili ? 800 : 600,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {s.ad}
                   </span>
-                )}
-              </button>
+                  {aktifSantiyeMi && (
+                    <span
+                      style={{
+                        fontSize: 9,
+                        background: '#1D9596',
+                        color: '#fff',
+                        padding: '1px 5px',
+                        borderRadius: 8,
+                        fontWeight: 700,
+                        flexShrink: 0
+                      }}
+                    >
+                      Aktif
+                    </span>
+                  )}
+                </div>
+
+                {/* Konumu Aç İkon Butonu */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    haritadaGoster(s)
+                  }}
+                  title={`${s.ad} konumunu Google Haritalar'da aç`}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 6,
+                    border: 'none',
+                    background: secili ? '#1D9596' : '#F1F5F9',
+                    color: secili ? '#FFFFFF' : '#64748B',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  ↗
+                </button>
+              </div>
             )
           })}
         </div>
 
-        {/* GOOGLE HARİTA IFRAME KESİTİ */}
+        {/* GOOGLE HARİTA IFRAME KESİTİ + HARİTA ÜSTÜ CANLI KONUM ROZETİ */}
         <div style={{ position: 'relative', width: '100%', height: 380, background: '#E2E8F0' }}>
           <iframe
             title="Google Haritalar Şantiye Kesiti"
@@ -494,6 +566,89 @@ export default function Operasyon() {
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
           />
+
+          {/* HARİTA ÜZERİNDEKİ TIKLANABİLİR KONUM ROZETİ / AÇ BUTONU */}
+          {seciliSantiye && (
+            <div
+              onClick={() => haritadaGoster(seciliSantiye)}
+              style={{
+                position: 'absolute',
+                bottom: 12,
+                left: 12,
+                right: 12,
+                maxWidth: 420,
+                margin: '0 auto',
+                background: 'rgba(255, 255, 255, 0.94)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                borderRadius: 14,
+                padding: '10px 14px',
+                boxShadow: '0 10px 25px rgba(0, 0, 0, 0.18)',
+                border: '2px solid #1D9596',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                zIndex: 10
+              }}
+              title="Google Haritalar'da bu konumu açmak için tıklayın"
+            >
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 16 }}>📍</span>
+                  <span
+                    style={{
+                      fontSize: 13.5,
+                      fontWeight: 800,
+                      color: '#0F172A',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {seciliSantiye.ad}
+                  </span>
+                  <span style={{ fontSize: 10, background: '#CCFBF1', color: '#0F766E', padding: '1px 6px', borderRadius: 6, fontWeight: 800 }}>
+                    Aç
+                  </span>
+                </div>
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    color: '#64748B',
+                    display: 'block',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    marginTop: 2
+                  }}
+                >
+                  {seciliSantiye.adres || 'Konumu tam ekranda açmak için dokunun'}
+                </span>
+              </div>
+
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #24B8B9, #1D9596)',
+                  color: '#FFFFFF',
+                  padding: '7px 13px',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  flexShrink: 0,
+                  boxShadow: '0 4px 10px rgba(29, 149, 150, 0.35)'
+                }}
+              >
+                <span>Konumu Aç</span>
+                <span>↗</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Harita Altı Hızlı Aksiyon Bandı */}
@@ -516,22 +671,23 @@ export default function Operasyon() {
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               <button
                 type="button"
-                onClick={() => linkPaylas(seciliSantiye)}
+                onClick={() => haritadaGoster(seciliSantiye)}
                 style={{
                   padding: '6px 12px',
                   borderRadius: 8,
-                  border: '1px solid #CBD5E1',
-                  background: '#FFFFFF',
-                  color: '#0F766E',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #24B8B9, #1D9596)',
+                  color: '#FFFFFF',
                   fontSize: 12,
-                  fontWeight: 700,
+                  fontWeight: 800,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4
+                  gap: 4,
+                  boxShadow: '0 2px 6px rgba(29, 149, 150, 0.25)'
                 }}
               >
-                <span>📤 Link Paylaş</span>
+                <span>📍 Konumu Aç</span>
               </button>
               <button
                 type="button"
@@ -553,14 +709,33 @@ export default function Operasyon() {
               >
                 <span>🚗 Yol Tarifi Al</span>
               </button>
+              <button
+                type="button"
+                onClick={() => linkPaylas(seciliSantiye)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  border: '1px solid #CBD5E1',
+                  background: '#FFFFFF',
+                  color: '#0F766E',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+              >
+                <span>📤 Link Paylaş</span>
+              </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* ŞANTİYELER LİSTESİ VE AKSİYON BUTONLARI */}
+      {/* ŞANTİYELER LİSTESİ VE SİMETRİK NİZAMİ AKSİYON KARTLARI */}
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 6 }}>
             <span>🏗️ Şantiye Konum Listesi</span>
             <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>({santiyeler.length} Şantiye)</span>
@@ -573,7 +748,7 @@ export default function Operasyon() {
             value={aramaMetni}
             onChange={(e) => setAramaMetni(e.target.value)}
             style={{
-              padding: '6px 12px',
+              padding: '7px 12px',
               borderRadius: 8,
               border: '1px solid #CBD5E1',
               background: '#FFFFFF',
@@ -584,8 +759,14 @@ export default function Operasyon() {
           />
         </div>
 
-        {/* KARTLAR LİSTESİ */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* SİMETRİK NİZAMİ KARTLAR IZGARASI (GRID) */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))',
+            gap: 14
+          }}
+        >
           {filtrelenmisSantiyeler.map((s) => {
             const seciliHaritada = seciliSantiyeId === s.id
             const aktifSantiyeMi = aktifSantiye?.id === s.id
@@ -599,39 +780,40 @@ export default function Operasyon() {
                   borderRadius: 14,
                   border: seciliHaritada ? '2px solid #1D9596' : '1px solid #E2E8F0',
                   padding: 16,
-                  boxShadow: seciliHaritada ? '0 4px 16px rgba(29, 149, 150, 0.12)' : '0 2px 8px rgba(0,0,0,0.02)',
-                  transition: 'all 0.2s ease'
+                  boxShadow: seciliHaritada ? '0 6px 20px rgba(29, 149, 150, 0.15)' : '0 2px 8px rgba(0,0,0,0.03)',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between'
                 }}
               >
-                {/* Kart Başlığı ve Durum Rozetleri */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>{s.ad}</span>
-                      {aktifSantiyeMi && (
-                        <span style={{ fontSize: 10.5, fontWeight: 800, background: '#1D9596', color: '#fff', padding: '1px 7px', borderRadius: 6 }}>
-                          ✓ Seçili Şantiye
+                <div>
+                  {/* Kart Başlığı ve Durum Rozetleri */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 15.5, fontWeight: 800, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {s.ad}
                         </span>
-                      )}
+                        {aktifSantiyeMi && (
+                          <span style={{ fontSize: 10, fontWeight: 800, background: '#1D9596', color: '#fff', padding: '1px 6px', borderRadius: 6 }}>
+                            ✓ Seçili
+                          </span>
+                        )}
+                      </div>
+
                       {s.google_maps_linki ? (
-                        <span style={{ fontSize: 10.5, fontWeight: 700, background: '#DCFCE7', color: '#15803D', padding: '1px 6px', borderRadius: 6 }}>
-                          📍 GPS Tanımlı
+                        <span style={{ display: 'inline-block', marginTop: 4, fontSize: 10.5, fontWeight: 700, background: '#DCFCE7', color: '#15803D', padding: '1px 6px', borderRadius: 6 }}>
+                          📍 Konum Bağlantısı Hazır
                         </span>
                       ) : (
-                        <span style={{ fontSize: 10.5, fontWeight: 600, background: '#FEF3C7', color: '#B45309', padding: '1px 6px', borderRadius: 6 }}>
+                        <span style={{ display: 'inline-block', marginTop: 4, fontSize: 10.5, fontWeight: 600, background: '#FEF3C7', color: '#B45309', padding: '1px 6px', borderRadius: 6 }}>
                           ⚠️ Adres ile
                         </span>
                       )}
                     </div>
 
-                    {/* Adres Metni */}
-                    <p style={{ margin: '4px 0 0', fontSize: 13, color: s.adres ? '#475569' : '#94A3B8', fontStyle: s.adres ? 'normal' : 'italic' }}>
-                      {s.adres ? `🏢 ${s.adres}` : 'Adres bilgisi girilmemiş'}
-                    </p>
-                  </div>
-
-                  {/* Düzenleme Butonu (Yönetici veya Yetkili) */}
-                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                    {/* Aktif Yap Butonu */}
                     {!aktifSantiyeMi && (
                       <button
                         type="button"
@@ -641,44 +823,38 @@ export default function Operasyon() {
                         }}
                         title="Bu şantiyeyi aktif çalışma şantiyesi yap"
                         style={{
-                          padding: '4px 8px',
+                          padding: '3px 8px',
                           borderRadius: 6,
                           border: '1px solid #CBD5E1',
                           background: '#F8FAFC',
                           color: '#475569',
-                          fontSize: 11,
+                          fontSize: 10.5,
                           fontWeight: 700,
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          flexShrink: 0
                         }}
                       >
                         Aktif Yap
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (duzenlemede) {
-                          setDuzenlenenId(null)
-                        } else {
-                          setDuzenlenenId(s.id)
-                          setDuzAdres(s.adres || '')
-                          setDuzMapsLink(s.google_maps_linki || '')
-                        }
-                      }}
-                      title="Konum ve adres bilgilerini düzenle"
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: 6,
-                        border: '1px solid #CBD5E1',
-                        background: '#FFFFFF',
-                        color: '#1D9596',
-                        fontSize: 11.5,
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {duzenlemede ? '✕ Kapat' : '✎ Düzenle'}
-                    </button>
+                  </div>
+
+                  {/* SİMETRİK ADRES METNİ KUTUSU */}
+                  <div
+                    style={{
+                      height: 38,
+                      overflow: 'hidden',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      fontSize: 12.5,
+                      color: s.adres ? '#475569' : '#94A3B8',
+                      fontStyle: s.adres ? 'normal' : 'italic',
+                      lineHeight: 1.4,
+                      marginBottom: 12
+                    }}
+                  >
+                    {s.adres ? `🏢 ${s.adres}` : 'Adres bilgisi girilmemiş'}
                   </div>
                 </div>
 
@@ -687,44 +863,40 @@ export default function Operasyon() {
                   <div
                     style={{
                       background: '#F8FAFC',
-                      padding: 12,
+                      padding: 10,
                       borderRadius: 10,
                       border: '1px dashed #CBD5E1',
-                      marginTop: 10,
                       marginBottom: 12,
                       display: 'flex',
                       flexDirection: 'column',
                       gap: 8
                     }}
                   >
-                    <span style={{ fontSize: 11.5, fontWeight: 700, color: '#334155' }}>
-                      ✏️ Şantiye Adresi ve Google Maps Bağlantısı:
-                    </span>
                     <input
                       type="text"
-                      placeholder="Açık adres (örn. Barbaros Mah. Ihlamur Sk. No:4 Kadıköy)"
+                      placeholder="Açık adres..."
                       value={duzAdres}
                       onChange={(e) => setDuzAdres(e.target.value)}
                       style={{
-                        padding: '8px 10px',
+                        padding: '6px 10px',
                         borderRadius: 6,
                         border: '1px solid #CBD5E1',
                         background: '#FFFFFF',
-                        fontSize: 12.5,
+                        fontSize: 12,
                         outline: 'none'
                       }}
                     />
                     <input
                       type="text"
-                      placeholder="Google Maps Linki (örn. https://maps.app.goo.gl/...)"
+                      placeholder="Google Maps Linki (https://...)"
                       value={duzMapsLink}
                       onChange={(e) => setDuzMapsLink(e.target.value)}
                       style={{
-                        padding: '8px 10px',
+                        padding: '6px 10px',
                         borderRadius: 6,
                         border: '1px solid #CBD5E1',
                         background: '#FFFFFF',
-                        fontSize: 12.5,
+                        fontSize: 12,
                         outline: 'none'
                       }}
                     />
@@ -733,12 +905,12 @@ export default function Operasyon() {
                         type="button"
                         onClick={() => setDuzenlenenId(null)}
                         style={{
-                          padding: '6px 12px',
+                          padding: '4px 10px',
                           borderRadius: 6,
                           border: '1px solid #CBD5E1',
                           background: '#FFFFFF',
                           color: '#64748B',
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: 600,
                           cursor: 'pointer'
                         }}
@@ -750,131 +922,159 @@ export default function Operasyon() {
                         onClick={() => konumKaydet(s.id)}
                         disabled={kaydediliyor}
                         style={{
-                          padding: '6px 14px',
+                          padding: '4px 12px',
                           borderRadius: 6,
                           border: 'none',
                           background: '#1D9596',
                           color: '#FFFFFF',
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: 700,
                           cursor: 'pointer'
                         }}
                       >
-                        {kaydediliyor ? 'Kaydediliyor...' : 'Kaydet'}
+                        {kaydediliyor ? '...' : 'Kaydet'}
                       </button>
                     </div>
                   </div>
                 )}
 
-                {/* 3 ANA BUTON + ODAKLA BUTONU */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                    gap: 8,
-                    marginTop: 12
-                  }}
-                >
-                  {/* 1. LİNK PAYLAŞ */}
-                  <button
-                    type="button"
-                    onClick={() => linkPaylas(s)}
+                {/* SİMETRİK 3 ANA BUTON GRUBU */}
+                <div>
+                  <div
                     style={{
-                      padding: '9px 12px',
-                      borderRadius: 10,
-                      border: '1.5px solid #CCFBF1',
-                      background: '#F0FDFA',
-                      color: '#0F766E',
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
                       gap: 6,
-                      transition: 'all 0.15s ease'
+                      marginTop: 6
                     }}
                   >
-                    <span>📤 Link Paylaş</span>
-                  </button>
+                    {/* 1. KONUMU AÇ (DOĞRUDAN O KONUMUN OLDUĞU YERİ AÇAR) */}
+                    <button
+                      type="button"
+                      onClick={() => haritadaGoster(s)}
+                      style={{
+                        padding: '8px 4px',
+                        borderRadius: 8,
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #24B8B9, #1D9596)',
+                        color: '#FFFFFF',
+                        fontSize: 11.5,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4,
+                        boxShadow: '0 2px 6px rgba(29, 149, 150, 0.25)',
+                        transition: 'all 0.15s ease'
+                      }}
+                      title="Bu konumu Google Haritalar'da aç"
+                    >
+                      <span>📍 Konumu Aç</span>
+                    </button>
 
-                  {/* 2. YOL TARİFİ AL */}
-                  <button
-                    type="button"
-                    onClick={() => yolTarifiAl(s)}
-                    style={{
-                      padding: '9px 12px',
-                      borderRadius: 10,
-                      border: 'none',
-                      background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
-                      color: '#FFFFFF',
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      boxShadow: '0 3px 8px rgba(37, 99, 235, 0.25)',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <span>🚗 Yol Tarifi Al</span>
-                  </button>
+                    {/* 2. YOL TARİFİ AL */}
+                    <button
+                      type="button"
+                      onClick={() => yolTarifiAl(s)}
+                      style={{
+                        padding: '8px 4px',
+                        borderRadius: 8,
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
+                        color: '#FFFFFF',
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4,
+                        boxShadow: '0 2px 6px rgba(37, 99, 235, 0.2)',
+                        transition: 'all 0.15s ease'
+                      }}
+                      title="Google Haritalar navigasyon / rota başlat"
+                    >
+                      <span>🚗 Yol Tarifi</span>
+                    </button>
 
-                  {/* 3. HARİTADA GÖSTER */}
-                  <button
-                    type="button"
-                    onClick={() => haritadaGoster(s)}
-                    style={{
-                      padding: '9px 12px',
-                      borderRadius: 10,
-                      border: '1.5px solid #E2E8F0',
-                      background: '#FFFFFF',
-                      color: '#334155',
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <span>🗺️ Haritada Göster</span>
-                  </button>
+                    {/* 3. LİNK PAYLAŞ */}
+                    <button
+                      type="button"
+                      onClick={() => linkPaylas(s)}
+                      style={{
+                        padding: '8px 4px',
+                        borderRadius: 8,
+                        border: '1px solid #CBD5E1',
+                        background: '#FFFFFF',
+                        color: '#0F766E',
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4,
+                        transition: 'all 0.15s ease'
+                      }}
+                      title="WhatsApp veya paylaşım menüsüyle link paylaş"
+                    >
+                      <span>📤 Paylaş</span>
+                    </button>
+                  </div>
 
-                  {/* 4. HARİTADA KESİTİ GÖR (ODAKLA) */}
-                  <button
-                    type="button"
-                    onClick={() => haritadaOdakla(s)}
-                    style={{
-                      padding: '9px 12px',
-                      borderRadius: 10,
-                      border: seciliHaritada ? '1.5px solid #1D9596' : '1px solid #CBD5E1',
-                      background: seciliHaritada ? '#1D9596' : '#F8FAFC',
-                      color: seciliHaritada ? '#FFFFFF' : '#475569',
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <span>🎯 Haritada Odakla</span>
-                  </button>
+                  {/* KART ALTI: HARİTADA ODAKLA & DÜZENLE */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 8, borderTop: '1px solid #F1F5F9' }}>
+                    <button
+                      type="button"
+                      onClick={() => haritadaOdakla(s)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: seciliHaritada ? '#1D9596' : '#64748B',
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: 0
+                      }}
+                    >
+                      <span>🎯 Haritada Odakla</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (duzenlemede) {
+                          setDuzenlenenId(null)
+                        } else {
+                          setDuzenlenenId(s.id)
+                          setDuzAdres(s.adres || '')
+                          setDuzMapsLink(s.google_maps_linki || '')
+                        }
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#94A3B8',
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        padding: 0
+                      }}
+                    >
+                      {duzenlemede ? 'Kapat' : '✎ Düzenle'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )
           })}
 
           {filtrelenmisSantiyeler.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 32, background: '#FFFFFF', borderRadius: 12, border: '1px dashed #CBD5E1' }}>
+            <div style={{ textAlign: 'center', padding: 32, background: '#FFFFFF', borderRadius: 12, border: '1px dashed #CBD5E1', gridColumn: '1 / -1' }}>
               <span style={{ fontSize: 32, display: 'block', marginBottom: 8 }}>🔍</span>
               <p style={{ margin: 0, fontSize: 14, color: '#64748B', fontWeight: 600 }}>Aramanızla eşleşen şantiye bulunamadı.</p>
             </div>
