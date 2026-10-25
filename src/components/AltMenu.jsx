@@ -100,9 +100,9 @@ export default function AltMenu() {
   const operasyonAltOgeleri = [
     { 
       yol: '/operasyon', 
-      etiket: 'Şantiye Haritası & Konumlar', 
-      aciklama: 'Google Haritalar canlı harita ve yol tarifi', 
-      simge: '🗺️', 
+      etiket: 'Şantiye Konumları', 
+      aciklama: 'Google Haritalar şantiye konumları ve yol tarifi', 
+      simge: '📍', 
       renk: '#0284c7',
       bg: '#e0f2fe',
       izinli: true

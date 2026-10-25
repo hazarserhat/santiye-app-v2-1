@@ -848,8 +848,10 @@ export default function Gorevler() {
 
   // Şantiyelerin aktif görev sayıları haritası
   const santiyeGorevSayilari = {}
+  const santiyeGecikenSayilari = {}
   karuselSantiyeler.forEach(s => {
     santiyeGorevSayilari[s.id] = aktifGorevler.filter(g => s.id === 'genel' ? !g.santiye_id : g.santiye_id === s.id).length
+    santiyeGecikenSayilari[s.id] = gorevler.filter(g => (s.id === 'genel' ? !g.santiye_id : g.santiye_id === s.id) && g.durum === 'gecikti').length
   })
 
   // Karusel Modu için o anki aktif şantiyenin görevleri
@@ -1019,26 +1021,79 @@ export default function Gorevler() {
         </div>
       )}
 
+      {/* TÜM ŞANTİYELER GÖREV DAĞILIMI & HIZLI SEÇİM IZGARASI (TEK BAKIŞTA TÜM ŞANTİYELER) */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>🏗️ Şantiye Görev Dağılımı</span>
+            <span style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>({karuselSantiyeler.length} Şantiye)</span>
+          </span>
+          <span style={{ fontSize: 11.5, color: '#0F766E', fontWeight: 600 }}>
+            {gorunumModu === 'karusel' ? 'Karuseli odaklamak için şantiyeye tıklayın' : 'Listeyi filtrelemek için şantiyeye tıklayın'}
+          </span>
+        </div>
+
+        <div className="santiye-gorev-izgara">
+          {/* Liste modunda 'Tümü' seçeneği */}
+          {gorunumModu === 'liste' && (
+            <button
+              type="button"
+              onClick={() => setFiltreSantiye('hepsi')}
+              className={`santiye-izgara-kart ${filtreSantiye === 'hepsi' ? 'aktif' : ''}`}
+            >
+              <div className="santiye-izgara-sol">
+                <span className="santiye-izgara-ikon">🌐</span>
+                <span className="santiye-izgara-ad">Tüm Şantiyeler</span>
+              </div>
+              <span className="santiye-izgara-rozet">{aktifGorevler.length}</span>
+            </button>
+          )}
+
+          {karuselSantiyeler.map((s, idx) => {
+            const aktifMi = gorunumModu === 'karusel'
+              ? idx === santiyeIndex
+              : filtreSantiye === s.id
+            const gorevSayisi = santiyeGorevSayilari[s.id] || 0
+            const gecikenSayisi = santiyeGecikenSayilari[s.id] || 0
+
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => {
+                  if (gorunumModu === 'karusel') {
+                    setSantiyeIndex(idx)
+                  } else {
+                    setFiltreSantiye(s.id)
+                  }
+                }}
+                className={`santiye-izgara-kart ${aktifMi ? 'aktif' : ''} ${gecikenSayisi > 0 ? 'gecikenli' : ''}`}
+                title={gecikenSayisi > 0 ? `${s.ad}: ${gorevSayisi} aktif görev, ${gecikenSayisi} gecikti!` : `${s.ad}: ${gorevSayisi} aktif görev`}
+              >
+                <div className="santiye-izgara-sol">
+                  <span className="santiye-izgara-ikon">{s.id === 'genel' ? '📋' : '🏗️'}</span>
+                  <span className="santiye-izgara-ad">{s.ad}</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                  {gecikenSayisi > 0 && (
+                    <span style={{ fontSize: 10, background: '#FEE2E2', color: '#B91C1C', padding: '1px 5px', borderRadius: 6, fontWeight: 800 }}>
+                      🔴 {gecikenSayisi}
+                    </span>
+                  )}
+                  <span className="santiye-izgara-rozet">
+                    {gorevSayisi}
+                  </span>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       {/* KARUSEL GÖRÜNÜMÜ */}
       {gorunumModu === 'karusel' ? (
         <div>
-          {/* Üst Şantiye Hızlı Geçiş Şeridi */}
-          <div className="santiye-karusel-serit">
-            {karuselSantiyeler.map((s, idx) => {
-              const aktifMi = idx === santiyeIndex
-              return (
-                <button
-                  key={s.id}
-                  className={`santiye-serit-chip ${aktifMi ? 'aktif' : ''}`}
-                  onClick={() => setSantiyeIndex(idx)}
-                >
-                  <span>🏗️ {s.ad}</span>
-                  <span className="sayi-rozet">{santiyeGorevSayilari[s.id] || 0}</span>
-                </button>
-              )
-            })}
-          </div>
-
           {/* 3D Sonsuz Dönen Karusel Sahnesi */}
           <div 
             className="karusel-sahne" 
@@ -1080,10 +1135,44 @@ export default function Gorevler() {
                     <div className="santiye-progress-bar">
                       <div className="santiye-progress-dolgu" style={{ width: `${oSantiyeYuzde}%` }} />
                     </div>
+                    {/* Karusel Gösterge Noktaları */}
+                    <div className="karusel-noktalar">
+                      {karuselSantiyeler.map((s, idx) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => setSantiyeIndex(idx)}
+                          className={`karusel-nokta ${idx === santiyeIndex ? 'aktif' : ''}`}
+                          title={`${s.ad} (${santiyeGorevSayilari[s.id] || 0} görev)`}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  {/* Önceki ve Sonraki Şantiye Butonları */}
+                  {toplamSantiye > 1 && (
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <button 
+                        type="button" 
+                        onClick={solaCevir} 
+                        className="karusel-nav-btn" 
+                        title={`Önceki Şantiye: ${oncekiSantiyeObj?.ad}`}
+                      >
+                        ◀
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={sagaCevir} 
+                        className="karusel-nav-btn" 
+                        title={`Sonraki Şantiye: ${sonrakiSantiyeObj?.ad}`}
+                      >
+                        ▶
+                      </button>
+                    </div>
+                  )}
+
                   <button 
                     className="hizli-ekle-mini-buton"
                     onClick={() => gorevEkleModaliniAc(aktifSantiyeKarusel?.id)}
