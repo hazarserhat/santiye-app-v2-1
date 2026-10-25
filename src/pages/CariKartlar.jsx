@@ -107,32 +107,91 @@ export default function CariKartlar() {
   const [duzHkKesinti, setDuzHkKesinti] = useState('')
   const [duzHkAciklama, setDuzHkAciklama] = useState('')
 
-  // Hızlı Temsilci Ekleme State'leri (Detay Görünümü İçin)
+  // Hızlı Temsilci / Kişi Ekleme ve Düzenleme State'leri (Detay Görünümü İçin)
   const [temsilciModalAcik, setTemsilciModalAcik] = useState(false)
   const [yeniTemsilciAd, setYeniTemsilciAd] = useState('')
   const [yeniTemsilciRol, setYeniTemsilciRol] = useState('Firma Yetkilisi')
   const [yeniTemsilciTel, setYeniTemsilciTel] = useState('')
   const [yeniTemsilciNot, setYeniTemsilciNot] = useState('')
 
-  const temsilciEkleHizli = async () => {
-    if (!yeniTemsilciAd.trim() && !yeniTemsilciTel.trim()) {
-      alert('Lütfen temsilcinin adını veya telefon numarasını giriniz.')
+  // İletişim Kişisini Satır İçi Düzenleme
+  const [duzenlenenKisiIdx, setDuzenlenenKisiIdx] = useState(null)
+  const [satirDuzAd, setSatirDuzAd] = useState('')
+  const [satirDuzRol, setSatirDuzRol] = useState('')
+  const [satirDuzTel, setSatirDuzTel] = useState('')
+  const [satirDuzNot, setSatirDuzNot] = useState('')
+
+  const kisiDuzenlemeyiBaslat = (kisi, idx) => {
+    setDuzenlenenKisiIdx(idx)
+    setSatirDuzAd(kisi.ad || '')
+    setSatirDuzRol(kisi.rol || 'Yetkili')
+    setSatirDuzTel(kisi.telefon || '')
+    setSatirDuzNot(kisi.not || '')
+  }
+
+  const kisiDuzenlemeyiKaydet = async (idx, mevcutKisiler) => {
+    if (!satirDuzAd.trim() && !satirDuzTel.trim()) {
+      alert('Lütfen en azından bir isim veya telefon numarası giriniz.')
       return
     }
-    const mevcut = parseContacts(seciliTaseron)
-    const temizMevcut = mevcut.filter(k => k.telefon || (k.ad && k.ad !== 'Yetkili'))
-    const yeniKisi = {
-      id: `k-${Date.now()}`,
-      ad: yeniTemsilciAd.trim() || seciliTaseron?.ad || 'Temsilci',
-      rol: yeniTemsilciRol.trim() || 'Yetkili',
-      telefon: yeniTemsilciTel.trim(),
-      not: yeniTemsilciNot.trim()
+    const guncelListe = mevcutKisiler.map((k, i) => i === idx ? {
+      ...k,
+      ad: satirDuzAd.trim() || k.ad,
+      rol: satirDuzRol.trim() || k.rol,
+      telefon: satirDuzTel.trim(),
+      not: satirDuzNot.trim()
+    } : k)
+
+    const serialized = serializeContacts(guncelListe)
+    const { error } = await supabase.from('taseronlar').update({ telefon: serialized }).eq('id', seciliId)
+    if (error) {
+      alert('Güncellenemedi: ' + error.message)
+      return
     }
-    const yeniListe = [...temizMevcut, yeniKisi]
+    setTaseronlar(prev => prev.map(t => t.id === seciliId ? { ...t, telefon: serialized } : t))
+    setDuzenlenenKisiIdx(null)
+  }
+
+  const temsilciEkleHizli = async () => {
+    if (!yeniTemsilciAd.trim() && !yeniTemsilciTel.trim()) {
+      alert('Lütfen kişinin adını veya telefon numarasını giriniz.')
+      return
+    }
+    const seciliT = taseronlar.find(t => t.id === seciliId) || seciliTaseron
+    const mevcut = parseContacts(seciliT)
+    const hedefAd = yeniTemsilciAd.trim() || seciliT?.ad || 'Temsilci'
+
+    // Zaten bu isimde biri var mı?
+    const eslesenIdx = mevcut.findIndex(k => k.ad?.toLowerCase() === hedefAd.toLowerCase())
+
+    let yeniListe = [...mevcut]
+    if (eslesenIdx >= 0) {
+      yeniListe[eslesenIdx] = {
+        ...yeniListe[eslesenIdx],
+        ad: hedefAd,
+        rol: yeniTemsilciRol.trim() || yeniListe[eslesenIdx].rol || 'Yetkili',
+        telefon: yeniTemsilciTel.trim(),
+        not: yeniTemsilciNot.trim() || yeniListe[eslesenIdx].not || ''
+      }
+    } else {
+      const yeniKisi = {
+        id: `k-${Date.now()}`,
+        ad: hedefAd,
+        rol: yeniTemsilciRol.trim() || (hedefAd.toLowerCase() === seciliT?.ad?.toLowerCase() ? 'Firma Sahibi / Şahıs' : 'Yetkili'),
+        telefon: yeniTemsilciTel.trim(),
+        not: yeniTemsilciNot.trim()
+      }
+      if (hedefAd.toLowerCase() === seciliT?.ad?.toLowerCase()) {
+        yeniListe.unshift(yeniKisi)
+      } else {
+        yeniListe.push(yeniKisi)
+      }
+    }
+
     const serialized = serializeContacts(yeniListe)
     const { error } = await supabase.from('taseronlar').update({ telefon: serialized }).eq('id', seciliId)
     if (error) {
-      alert('Temsilci eklenirken hata: ' + error.message)
+      alert('Kişi eklenirken hata: ' + error.message)
       return
     }
     setTaseronlar(prev => prev.map(t => t.id === seciliId ? { ...t, telefon: serialized } : t))
@@ -143,10 +202,10 @@ export default function CariKartlar() {
     setTemsilciModalAcik(false)
   }
 
-  const temsilciSilHizli = async (idx) => {
+  const temsilciSilHizli = async (idx, mevcutKisiler) => {
     if (!window.confirm('Bu iletişim kişisini silmek istediğinize emin misiniz?')) return
-    const mevcut = parseContacts(seciliTaseron)
-    const yeniListe = mevcut.filter((_, i) => i !== idx)
+    const liste = mevcutKisiler || parseContacts(seciliTaseron)
+    const yeniListe = liste.filter((_, i) => i !== idx)
     const serialized = serializeContacts(yeniListe)
     const { error } = await supabase.from('taseronlar').update({ telefon: serialized }).eq('id', seciliId)
     if (error) {
@@ -513,7 +572,9 @@ export default function CariKartlar() {
       setDuzAd(taseron.ad)
       setDuzKategoriler(parseKategoriler(taseron.sifat))
       setDuzFirma(taseron.firma || '')
-      setDuzTelefon(taseron.telefon || '')
+      const contacts = parseContacts(taseron)
+      const anaKisi = contacts.find(k => k.ad?.toLowerCase() === taseron.ad?.toLowerCase() || k.rol?.includes('Sahibi') || k.rol?.includes('Şahıs') || k.rol?.includes('Yetkili')) || contacts[0]
+      setDuzTelefon(anaKisi?.telefon || (typeof taseron.telefon === 'string' && !taseron.telefon.startsWith('[') ? taseron.telefon : ''))
       setDuzAdres(taseron.adres || '')
       setDuzKategori(taseron.kategori || '')
     }
@@ -618,9 +679,43 @@ export default function CariKartlar() {
   const taseronGuncelle = async () => {
     if (!duzAd.trim()) return
     const serializedSifat = serializeKategoriler(duzKategoriler)
+    const seciliT = taseronlar.find(t => t.id === seciliId)
+    let mevcutContacts = parseContacts(seciliT)
+
+    const anaIndex = mevcutContacts.findIndex(k => 
+      k.ad?.toLowerCase() === duzAd.toLowerCase() || 
+      k.ad?.toLowerCase() === seciliT?.ad?.toLowerCase() ||
+      k.rol?.includes('Sahibi') ||
+      k.rol?.includes('Şahıs')
+    )
+
+    if (anaIndex >= 0) {
+      mevcutContacts[anaIndex] = {
+        ...mevcutContacts[anaIndex],
+        ad: duzAd,
+        telefon: duzTelefon.trim()
+      }
+    } else if (duzTelefon.trim()) {
+      mevcutContacts.unshift({
+        id: `k-ana-${Date.now()}`,
+        ad: duzAd,
+        rol: 'Firma Sahibi / Şahıs',
+        telefon: duzTelefon.trim(),
+        not: ''
+      })
+    }
+
+    const serializedTel = serializeContacts(mevcutContacts)
+
     const { error } = await supabase.from('taseronlar').update({
-      ad: duzAd, sifat: serializedSifat, firma: duzFirma, telefon: duzTelefon, adres: duzAdres, kategori: duzKategoriler[0] || duzKategori || 'Taşeronlar'
+      ad: duzAd,
+      sifat: serializedSifat,
+      firma: duzFirma,
+      telefon: serializedTel,
+      adres: duzAdres,
+      kategori: duzKategoriler[0] || duzKategori || 'Taşeronlar'
     }).eq('id', seciliId)
+
     if (error) { alert('Güncellenemedi: ' + error.message); return }
     setDuzenleModu(false)
     taseronlariYukle()
@@ -761,7 +856,31 @@ export default function CariKartlar() {
         {duzenleModu ? (
           <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <input type="text" placeholder="Firma / Kişi Adı" value={duzAd} onChange={(e) => setDuzAd(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
+              <div>
+                <label style={{ fontSize: 11.5, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                  Firma / Kişi Adı: *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Firma / Kişi Adı"
+                  value={duzAd}
+                  onChange={(e) => setDuzAd(e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 11.5, fontWeight: 700, color: '#0F766E', display: 'block', marginBottom: 4 }}>
+                  📞 Telefon Numarası (Ana Kişi / Şahıs / Firma):
+                </label>
+                <input
+                  type="text"
+                  placeholder="Örn: 0532 123 45 67"
+                  value={duzTelefon}
+                  onChange={(e) => setDuzTelefon(e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: 10, border: '1.5px solid #1D9596', background: '#fcfcf9', fontSize: 13, outline: 'none', boxSizing: 'border-box', fontWeight: 600 }}
+                />
+              </div>
 
               <div>
                 <label style={{ fontSize: 11.5, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
@@ -775,8 +894,31 @@ export default function CariKartlar() {
                 />
               </div>
 
-              <input type="text" placeholder="Firma Adı" value={duzFirma} onChange={(e) => setDuzFirma(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
-              <input type="text" placeholder="Açık Adres" value={duzAdres} onChange={(e) => setDuzAdres(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
+              <div>
+                <label style={{ fontSize: 11.5, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                  Firma / Kuruluş Ünvanı (Opsiyonel):
+                </label>
+                <input
+                  type="text"
+                  placeholder="Varsa resmi şirket ünvanı"
+                  value={duzFirma}
+                  onChange={(e) => setDuzFirma(e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 11.5, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                  Açık Adres / Konum:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Açık Adres"
+                  value={duzAdres}
+                  onChange={(e) => setDuzAdres(e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
 
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => setDuzenleModu(false)} style={{ flex: 1, padding: '10px', background: '#f4f3ed', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 10, color: '#555', fontWeight: 600, cursor: 'pointer' }}>Vazgeç</button>
@@ -792,180 +934,372 @@ export default function CariKartlar() {
         )}
 
         {/* İLETİŞİM KİŞİLERİ VE TEMSİLCİLER (DETAY KARTI) */}
-        <div style={{ background: '#ffffff', border: '1px solid #CBD5E1', borderRadius: 16, padding: 16, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-            <div>
-              <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>👥</span> İletişim Kişileri & Temsilciler ({parseContacts(seciliTaseron).length})
-              </p>
-              <span style={{ fontSize: 11.5, color: '#64748B' }}>Firma sahibi, ortak, ustabaşı ve diğer yetkili personeller</span>
-            </div>
-            {yonetici && (
-              <button
-                type="button"
-                onClick={() => setTemsilciModalAcik(!temsilciModalAcik)}
-                style={{
-                  padding: '7px 14px',
-                  background: temsilciModalAcik ? '#E2E8F0' : 'linear-gradient(135deg, #1D9596, #117575)',
-                  color: temsilciModalAcik ? '#334155' : '#fff',
-                  border: 'none',
-                  borderRadius: 8,
-                  fontSize: 12.5,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  boxShadow: temsilciModalAcik ? 'none' : '0 2px 6px rgba(29, 149, 150, 0.3)'
-                }}
-              >
-                {temsilciModalAcik ? '✕ Vazgeç' : '➕ Temsilci Ekle'}
-              </button>
-            )}
-          </div>
+        {(() => {
+          const rawContacts = parseContacts(seciliTaseron)
+          const anaKisiVar = rawContacts.some(k => k.ad?.toLowerCase() === seciliTaseron.ad?.toLowerCase())
+          const contactsListesi = anaKisiVar ? rawContacts : [
+            {
+              id: 'ana-kayit',
+              ad: seciliTaseron.ad,
+              rol: 'Firma Sahibi / Şahıs',
+              telefon: (typeof seciliTaseron.telefon === 'string' && !seciliTaseron.telefon.startsWith('[')) ? seciliTaseron.telefon : '',
+              not: 'Ana Kayıt'
+            },
+            ...rawContacts.filter(k => k.telefon || (k.ad && k.ad !== 'Yetkili'))
+          ]
 
-          {/* Hızlı Temsilci Ekleme Formu */}
-          {temsilciModalAcik && (
-            <div style={{ background: '#F8FAFC', border: '1.5px solid #1D9596', borderRadius: 12, padding: 14, marginBottom: 14 }}>
-              <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#0F766E' }}>Yeni Temsilci / Numara Ekle</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginBottom: 8 }}>
+          return (
+            <div style={{ background: '#ffffff', border: '1px solid #CBD5E1', borderRadius: 16, padding: 16, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 3 }}>Temsilci Ad Soyad *</label>
-                  <input
-                    type="text"
-                    placeholder="Örn: Ahmet Akın"
-                    value={yeniTemsilciAd}
-                    onChange={(e) => setYeniTemsilciAd(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
-                  />
+                  <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>👥</span> İletişim Kişileri & Temsilciler ({contactsListesi.length})
+                  </p>
+                  <span style={{ fontSize: 11.5, color: '#64748B' }}>Ana kişi, firma yetkilileri, ustabaşı ve diğer temsilciler</span>
                 </div>
-                <div>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 3 }}>Ünvan / Rol</label>
-                  <input
-                    type="text"
-                    placeholder="Örn: Kardeşi, Şantiye Sorumlusu, Usta"
-                    value={yeniTemsilciRol}
-                    onChange={(e) => setYeniTemsilciRol(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
-                  />
-                </div>
+                {yonetici && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTemsilciModalAcik(!temsilciModalAcik)
+                      setDuzenlenenKisiIdx(null)
+                    }}
+                    style={{
+                      padding: '7px 14px',
+                      background: temsilciModalAcik ? '#E2E8F0' : 'linear-gradient(135deg, #1D9596, #117575)',
+                      color: temsilciModalAcik ? '#334155' : '#fff',
+                      border: 'none',
+                      borderRadius: 8,
+                      fontSize: 12.5,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      boxShadow: temsilciModalAcik ? 'none' : '0 2px 6px rgba(29, 149, 150, 0.3)'
+                    }}
+                  >
+                    {temsilciModalAcik ? '✕ Vazgeç' : '➕ Kişi / Temsilci Ekle'}
+                  </button>
+                )}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginBottom: 12 }}>
-                <div>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 3 }}>Telefon Numarası *</label>
-                  <input
-                    type="text"
-                    placeholder="Örn: 0532 123 45 67"
-                    value={yeniTemsilciTel}
-                    onChange={(e) => setYeniTemsilciTel(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 3 }}>Özel Not / Dahili (Opsiyonel)</label>
-                  <input
-                    type="text"
-                    placeholder="Örn: Muhasebe dahili 12, Pazar aranmaz"
-                    value={yeniTemsilciNot}
-                    onChange={(e) => setYeniTemsilciNot(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  type="button"
-                  onClick={() => setTemsilciModalAcik(false)}
-                  style={{ flex: 1, padding: '9px', background: '#E2E8F0', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
-                >
-                  Vazgeç
-                </button>
-                <button
-                  type="button"
-                  onClick={temsilciEkleHizli}
-                  style={{ flex: 2, padding: '9px', background: 'linear-gradient(135deg, #1D9596, #117575)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 6px rgba(29, 149, 150, 0.3)' }}
-                >
-                  ✓ Temsilciyi Kaydet
-                </button>
-              </div>
-            </div>
-          )}
 
-          {/* Temsilciler Listesi */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {parseContacts(seciliTaseron).map((kisi, idx) => (
-              <div
-                key={kisi.id || idx}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 10,
-                  padding: '10px 14px',
-                  background: '#F8FAFC',
-                  borderRadius: 10,
-                  border: '1px solid #E2E8F0',
-                  flexWrap: 'wrap'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #E0F2FE, #BAE6FD)', color: '#0369A1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, flexShrink: 0 }}>
-                    {(kisi.ad || 'Y').slice(0, 2).toUpperCase()}
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 700, fontSize: 14, color: '#1E293B' }}>{kisi.ad || seciliTaseron.ad}</span>
-                      {kisi.rol && (
-                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: '#E6FFFA', color: '#0F766E', border: '1px solid #99F6E4' }}>
-                          {kisi.rol}
-                        </span>
-                      )}
+              {/* Hızlı Kişi / Temsilci Ekleme Formu */}
+              {temsilciModalAcik && (
+                <div style={{ background: '#F8FAFC', border: '1.5px solid #1D9596', borderRadius: 12, padding: 14, marginBottom: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0F766E' }}>Yeni İletişim Kişisi / Numara Ekle</p>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setYeniTemsilciAd(seciliTaseron.ad)
+                          setYeniTemsilciRol('Firma Sahibi / Şahıs')
+                          const bul = contactsListesi.find(k => k.ad?.toLowerCase() === seciliTaseron.ad.toLowerCase())
+                          if (bul?.telefon) setYeniTemsilciTel(bul.telefon)
+                        }}
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          border: '1px solid #99F6E4',
+                          background: '#E6FFFA',
+                          color: '#0F766E',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                        title={`Ana kişi (${seciliTaseron.ad}) için bilgileri doldur`}
+                      >
+                        👤 Ana Kişi ({seciliTaseron.ad})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setYeniTemsilciAd('')
+                          setYeniTemsilciRol('Firma Yetkilisi')
+                          setYeniTemsilciTel('')
+                        }}
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          border: '1px solid #CBD5E1',
+                          background: '#FFFFFF',
+                          color: '#475569',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        👥 Yeni Temsilci
+                      </button>
                     </div>
-                    {kisi.telefon ? (
-                      <span style={{ fontSize: 12.5, color: '#475569', fontWeight: 600 }}>{kisi.telefon}</span>
-                    ) : (
-                      <span style={{ fontSize: 11.5, color: '#94A3B8' }}>Telefon girilmedi</span>
-                    )}
-                    {kisi.not && (
-                      <div style={{ fontSize: 11, color: '#64748B', fontStyle: 'italic', marginTop: 1 }}>{kisi.not}</div>
-                    )}
                   </div>
-                </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto' }}>
-                  {kisi.telefon && (
-                    <>
-                      <a
-                        href={`tel:${kisi.telefon.replace(/[^0-9+]/g, '')}`}
-                        style={{ padding: '5px 10px', borderRadius: 6, background: '#E0F2FE', color: '#0369A1', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                      >
-                        📞 Ara
-                      </a>
-                      <a
-                        href={whatsappBaglantisi(kisi.telefon)}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{ padding: '5px 10px', borderRadius: 6, background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                      >
-                        💬 WhatsApp
-                      </a>
-                    </>
-                  )}
-                  {yonetici && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginBottom: 8 }}>
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 3 }}>Kişi Ad Soyad *</label>
+                      <input
+                        type="text"
+                        placeholder="Örn: Ergin Düzyurt veya Ahmet Akın"
+                        value={yeniTemsilciAd}
+                        onChange={(e) => setYeniTemsilciAd(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 3 }}>Ünvan / Rol</label>
+                      <input
+                        type="text"
+                        placeholder="Örn: Firma Sahibi, Ortak, Usta Başı"
+                        value={yeniTemsilciRol}
+                        onChange={(e) => setYeniTemsilciRol(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginBottom: 12 }}>
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 3 }}>Telefon Numarası *</label>
+                      <input
+                        type="text"
+                        placeholder="Örn: 0532 123 45 67"
+                        value={yeniTemsilciTel}
+                        onChange={(e) => setYeniTemsilciTel(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 3 }}>Özel Not / Dahili (Opsiyonel)</label>
+                      <input
+                        type="text"
+                        placeholder="Örn: Yıkım ustası, Hafta içi aranabilir"
+                        value={yeniTemsilciNot}
+                        onChange={(e) => setYeniTemsilciNot(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
                     <button
                       type="button"
-                      onClick={() => temsilciSilHizli(idx)}
-                      style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#DC2626', fontSize: 14, padding: '4px' }}
-                      title="Temsilciyi Kaldır"
+                      onClick={() => setTemsilciModalAcik(false)}
+                      style={{ flex: 1, padding: '9px', background: '#E2E8F0', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
                     >
-                      🗑️
+                      Vazgeç
                     </button>
-                  )}
+                    <button
+                      type="button"
+                      onClick={temsilciEkleHizli}
+                      style={{ flex: 2, padding: '9px', background: 'linear-gradient(135deg, #1D9596, #117575)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 6px rgba(29, 149, 150, 0.3)' }}
+                    >
+                      ✓ Kaydet
+                    </button>
+                  </div>
                 </div>
+              )}
+
+              {/* Kişiler & Temsilciler Listesi */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {contactsListesi.map((kisi, idx) => {
+                  const isAnaKisi = kisi.ad?.toLowerCase() === seciliTaseron.ad?.toLowerCase() || idx === 0
+                  const isEditingThis = duzenlenenKisiIdx === idx
+
+                  if (isEditingThis) {
+                    return (
+                      <div
+                        key={kisi.id || idx}
+                        style={{
+                          background: '#F0FDFA',
+                          border: '1.5px solid #1D9596',
+                          borderRadius: 10,
+                          padding: 12,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 8
+                        }}
+                      >
+                        <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#0F766E' }}>Kişi Bilgilerini Düzenle</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                          <input
+                            type="text"
+                            value={satirDuzAd}
+                            onChange={(e) => setSatirDuzAd(e.target.value)}
+                            placeholder="Ad Soyad"
+                            style={{ padding: '7px 9px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 12.5 }}
+                          />
+                          <input
+                            type="text"
+                            value={satirDuzRol}
+                            onChange={(e) => setSatirDuzRol(e.target.value)}
+                            placeholder="Rol / Ünvan"
+                            style={{ padding: '7px 9px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 12.5 }}
+                          />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                          <input
+                            type="text"
+                            value={satirDuzTel}
+                            onChange={(e) => setSatirDuzTel(e.target.value)}
+                            placeholder="Telefon Numarası"
+                            style={{ padding: '7px 9px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 12.5 }}
+                          />
+                          <input
+                            type="text"
+                            value={satirDuzNot}
+                            onChange={(e) => setSatirDuzNot(e.target.value)}
+                            placeholder="Özel Not"
+                            style={{ padding: '7px 9px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 12.5 }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 2 }}>
+                          <button
+                            type="button"
+                            onClick={() => setDuzenlenenKisiIdx(null)}
+                            style={{ padding: '4px 10px', borderRadius: 6, background: '#E2E8F0', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
+                          >
+                            Vazgeç
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => kisiDuzenlemeyiKaydet(idx, contactsListesi)}
+                            style={{ padding: '4px 14px', borderRadius: 6, background: '#0F766E', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
+                          >
+                            ✓ Kaydet
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <div
+                      key={kisi.id || idx}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 10,
+                        padding: '10px 14px',
+                        background: isAnaKisi ? '#F0FDFA' : '#F8FAFC',
+                        borderRadius: 10,
+                        border: isAnaKisi ? '1.5px solid #CCFBF1' : '1px solid #E2E8F0',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                        <div style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: '50%',
+                          background: isAnaKisi ? 'linear-gradient(135deg, #1D9596, #0F766E)' : 'linear-gradient(135deg, #E0F2FE, #BAE6FD)',
+                          color: isAnaKisi ? '#FFFFFF' : '#0369A1',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800,
+                          fontSize: 13,
+                          flexShrink: 0
+                        }}>
+                          {(kisi.ad || seciliTaseron.ad || 'K').slice(0, 2).toUpperCase()}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 800, fontSize: 14, color: '#1E293B' }}>
+                              {kisi.ad || seciliTaseron.ad}
+                            </span>
+                            {isAnaKisi && (
+                              <span style={{ fontSize: 10.5, fontWeight: 800, padding: '1px 7px', borderRadius: 6, background: '#1D9596', color: '#FFFFFF' }}>
+                                Ana Kişi / Şahıs
+                              </span>
+                            )}
+                            {kisi.rol && !isAnaKisi && (
+                              <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: '#E6FFFA', color: '#0F766E', border: '1px solid #99F6E4' }}>
+                                {kisi.rol}
+                              </span>
+                            )}
+                          </div>
+                          {kisi.telefon ? (
+                            <span style={{ fontSize: 12.5, color: '#334155', fontWeight: 600 }}>{kisi.telefon}</span>
+                          ) : (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                              <span style={{ fontSize: 11.5, color: '#E11D48', fontStyle: 'italic', fontWeight: 600 }}>
+                                ⚠️ Telefon girilmedi
+                              </span>
+                              {yonetici && (
+                                <button
+                                  type="button"
+                                  onClick={() => kisiDuzenlemeyiBaslat(kisi, idx)}
+                                  style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 6,
+                                    background: '#E6FFFA',
+                                    color: '#0D9488',
+                                    border: '1px solid #99F6E4',
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  ➕ Numara Ekle
+                                </button>
+                              )}
+                            </div>
+                          )}
+                          {kisi.not && (
+                            <div style={{ fontSize: 11, color: '#64748B', fontStyle: 'italic', marginTop: 1 }}>{kisi.not}</div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto' }}>
+                        {kisi.telefon && (
+                          <>
+                            <a
+                              href={`tel:${kisi.telefon.replace(/[^0-9+]/g, '')}`}
+                              style={{ padding: '5px 10px', borderRadius: 6, background: '#E0F2FE', color: '#0369A1', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            >
+                              📞 Ara
+                            </a>
+                            <a
+                              href={whatsappBaglantisi(kisi.telefon)}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ padding: '5px 10px', borderRadius: 6, background: '#DCFCE7', color: '#15803D', textDecoration: 'none', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            >
+                              💬 WhatsApp
+                            </a>
+                          </>
+                        )}
+                        {yonetici && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => kisiDuzenlemeyiBaslat(kisi, idx)}
+                              style={{ border: 'none', background: '#F1F5F9', borderRadius: 6, cursor: 'pointer', color: '#475569', fontSize: 12, padding: '4px 7px', fontWeight: 600 }}
+                              title="Kişiyi veya Numarayı Düzenle"
+                            >
+                              ✏️
+                            </button>
+                            {contactsListesi.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => temsilciSilHizli(idx, contactsListesi)}
+                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#DC2626', fontSize: 14, padding: '4px' }}
+                                title="Kişiyi Kaldır"
+                              >
+                                🗑️
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          )
+        })()}
 
         {/* Tanımlı Şantiyeler Checkbox Grid */}
         <div style={{ marginBottom: 20 }}>

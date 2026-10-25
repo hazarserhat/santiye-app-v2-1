@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useSite } from '../../context/SiteContext'
@@ -18,6 +18,30 @@ const ayFormatla = (yilAy) => {
   return yilAy
 }
 
+// Mükerrer çek seri numaraları için Soft Pastel Renk Paleti
+const SOFT_PASTEL_RENKLER = [
+  { bg: '#FFF7ED', border: '#FDBA74', badgeBg: '#FFEDD5', text: '#9A3412', ad: 'Soft Kehribar' },
+  { bg: '#FEF2F2', border: '#FCA5A5', badgeBg: '#FEE2E2', text: '#991B1B', ad: 'Soft Gül' },
+  { bg: '#FAF5FF', border: '#D8B4FE', badgeBg: '#F3E8FF', text: '#6B21A8', ad: 'Soft Mor' },
+  { bg: '#F0F9FF', border: '#7DD3FC', badgeBg: '#E0F2FE', text: '#0369A1', ad: 'Soft Gök Mavisi' },
+  { bg: '#ECFDF5', border: '#6EE7B7', badgeBg: '#D1FAE5', text: '#065F46', ad: 'Soft Zümrüt' },
+  { bg: '#FDF4FF', border: '#F0ABFC', badgeBg: '#FAE8FF', text: '#86198F', ad: 'Soft Fuşya' },
+  { bg: '#FEFCE8', border: '#FDE047', badgeBg: '#FEF9C3', text: '#854D0E', ad: 'Soft Sarı' },
+  { bg: '#F0FDFA', border: '#5EEAD4', badgeBg: '#CCFBF1', text: '#115E59', ad: 'Soft Turkuaz' },
+  { bg: '#F5F3FF', border: '#C4B5FD', badgeBg: '#EDE9FE', text: '#5B21B6', ad: 'Soft Leylak' },
+  { bg: '#FFFBEB', border: '#FCD34D', badgeBg: '#FEF3C7', text: '#78350F', ad: 'Soft Bal' }
+]
+
+const getMukerrerRenk = (seriNo) => {
+  if (!seriNo) return null
+  let hash = 0
+  const s = String(seriNo).trim().toLowerCase()
+  for (let i = 0; i < s.length; i++) {
+    hash = (hash * 37 + s.charCodeAt(i)) >>> 0
+  }
+  return SOFT_PASTEL_RENKLER[hash % SOFT_PASTEL_RENKLER.length]
+}
+
 export default function CekTakip() {
   const { santiyeler } = useSite()
   const [cekler, setCekler] = useState([])
@@ -34,46 +58,12 @@ export default function CekTakip() {
       if (error) { alert('Çekler yüklenemedi: ' + error.message); return }
 
       const tumCekler = data || []
-
-      // Verilen çeklerin seri numaraları
-      const verilenSeriNolari = new Set(
-        tumCekler
-          .filter(c => (c.yon === 'verilen' || !c.yon) && c.cek_seri_no)
-          .map(c => String(c.cek_seri_no).trim().toLowerCase())
-      )
-
-      // Ciro çekleri
       const ciroCekleri = tumCekler.filter(c => c.yon === 'verilen' && c.aciklama && c.aciklama.toLowerCase().includes('ciro'))
 
-      const tekillestirilmis = []
-      const gorulenAnahtarlar = new Set()
-
-      tumCekler.forEach(c => {
+      const islenmis = tumCekler.map(c => {
         const seriNoTemiz = c.cek_seri_no ? String(c.cek_seri_no).trim().toLowerCase() : ''
-
-        // Eğer bu bir 'alinan' çek ise ve aynı seri numaralı 'verilen' çek zaten varsa:
-        // 'verilen' çek asıl harcama/ödeme kaydı olduğu için alinan kopyayı atla (mükerrerliği önle)
-        if (c.yon === 'alinan' && seriNoTemiz && verilenSeriNolari.has(seriNoTemiz)) {
-          return
-        }
-
-        // Eğer 'verilen' ciro kopyası ise ve aynı seri numaralı alinan çek listede tutuluyorsa atla
-        if (c.yon === 'verilen' && c.aciklama && c.aciklama.toLowerCase().includes('(ciro edildi)')) {
-          const alinanVar = tumCekler.some(a => a.yon === 'alinan' && String(a.cek_seri_no).trim().toLowerCase() === seriNoTemiz)
-          if (alinanVar) return
-        }
-
-        // Aynı seri_no + tutar + vade + kişi mükerrerliğini önle
-        const benzersizAnahtar = seriNoTemiz 
-          ? `${seriNoTemiz}_${c.tutar}_${c.cek_vadesi || ''}_${(c.odenen || c.odeyen || '').trim().toLowerCase()}`
-          : c.id
-
-        if (gorulenAnahtarlar.has(benzersizAnahtar)) {
-          return // Mükerrer kaydı atla
-        }
-        gorulenAnahtarlar.add(benzersizAnahtar)
-
         let eklenecek = { ...c }
+
         if (c.yon === 'alinan' && seriNoTemiz) {
           const ciroKarsiligi = ciroCekleri.find(ciro => String(ciro.cek_seri_no).trim().toLowerCase() === seriNoTemiz)
           if (ciroKarsiligi) {
@@ -82,12 +72,38 @@ export default function CekTakip() {
             eklenecek.aciklama = `(Ciro: ${ciroKarsiligi.odenen || ciroKarsiligi.odeyen}) ` + (c.aciklama || '')
           }
         }
-        tekillestirilmis.push(eklenecek)
+        return eklenecek
       })
 
-      setCekler(tekillestirilmis)
+      setCekler(islenmis)
     })
   }, [])
+
+  // Seri Numarası Tekrar Eden Çekleri Say
+  const seriNoSayilari = useMemo(() => {
+    const sayilar = {}
+    cekler.forEach(c => {
+      const s = c.cek_seri_no ? String(c.cek_seri_no).trim().toLowerCase() : ''
+      if (s) {
+        sayilar[s] = (sayilar[s] || 0) + 1
+      }
+    })
+    return sayilar
+  }, [cekler])
+
+  // Çek Silme (Mükerrer veya yanlış girilmiş kayıtları doğrudan temizleyebilmek için)
+  const cekSil = async (id, seriNo, kisi) => {
+    const onayMetni = `"${kisi || 'İsimsiz'}" adına kayıtlı ${seriNo ? `(Seri No: ${seriNo})` : ''} çek kaydını silmek istediğinize emin misiniz?`
+    if (!window.confirm(onayMetni)) return
+
+    const { error } = await supabase.from('cekler').delete().eq('id', id)
+    if (error) {
+      alert('Çek silinemedi: ' + error.message)
+      return
+    }
+    setCekler(prev => prev.filter(c => c.id !== id))
+    setSeciliCekler(prev => prev.filter(x => x !== id))
+  }
 
   const siralamaTikla = (alan) => {
     if (siralamaAlani === alan) setSiralamaYonu((y) => (y === 'asc' ? 'desc' : 'asc'))
@@ -299,6 +315,28 @@ export default function CekTakip() {
         </div>
       )}
 
+      {/* Mükerrer Çek Uyarısı */}
+      {Object.values(seriNoSayilari).some(sayi => sayi > 1) && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '8px 14px',
+          marginTop: 12,
+          borderRadius: 10,
+          background: '#FFFBEB',
+          border: '1px solid #FDE68A',
+          color: '#92400E',
+          fontSize: 12.5,
+          fontWeight: 600
+        }}>
+          <span style={{ fontSize: 16 }}>⚠️</span>
+          <span>
+            Tabloda aynı seri numarasına sahip <strong>mükerrer çek kayıtları</strong> tespit edildi. Bu çekler ayırt edilebilmeleri için eşleşen <strong>soft pastel renklerle</strong> vurgulanmıştır. Fazla/hatalı kayıtları sağdaki 🗑️ butonuyla doğrudan silebilirsiniz.
+          </span>
+        </div>
+      )}
+
       <div style={{ overflowX: 'auto', marginTop: 12, background: 'white', borderRadius: 12, border: '1px solid #D3D1C7' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%' }}>
           <thead>
@@ -315,52 +353,109 @@ export default function CekTakip() {
               <th style={{ ...baslikStil, maxWidth: 150 }}>Açıklama</th>
               <th style={baslikStil} onClick={() => siralamaTikla('santiyeler')}>Şantiye{ok('santiyeler')}</th>
               <th style={baslikStil}>Durum</th>
+              <th style={{ ...baslikStil, width: 48, textAlign: 'center' }}>İşlem</th>
             </tr>
           </thead>
           <tbody>
-            {liste.map((c) => (
-              <tr key={c.id} style={{ backgroundColor: seciliCekler.includes(c.id) ? '#F3F8FF' : 'transparent' }}>
-                <td style={{ ...hucreStil, textAlign: 'center' }}>
-                  <input type="checkbox" checked={seciliCekler.includes(c.id)} onChange={() => cekSecToggle(c.id)} />
-                </td>
-                <td style={hucreStil}>{c.banka || '—'}</td>
-                <td style={hucreStil}>{c.cek_seri_no || '—'}</td>
-                <td style={hucreStil}>
-                  {c.verilis_tarihi ? (
-                    <div>
-                      <div>{new Date(c.verilis_tarihi).toLocaleDateString('tr-TR')}</div>
-                      <div style={{ fontSize: 10, color: '#64748B' }}>{ayFormatla(c.verilis_tarihi.slice(0, 7))}</div>
+            {liste.map((c) => {
+              const seriNoTemiz = c.cek_seri_no ? String(c.cek_seri_no).trim().toLowerCase() : ''
+              const mukerrerSayisi = seriNoTemiz ? (seriNoSayilari[seriNoTemiz] || 0) : 0
+              const isMukerrer = mukerrerSayisi > 1
+              const softRenk = isMukerrer ? getMukerrerRenk(seriNoTemiz) : null
+
+              return (
+                <tr
+                  key={c.id}
+                  style={{
+                    backgroundColor: seciliCekler.includes(c.id)
+                      ? '#E0F2FE'
+                      : (isMukerrer ? softRenk.bg : 'transparent'),
+                    borderLeft: isMukerrer ? `5px solid ${softRenk.border}` : '5px solid transparent',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <td style={{ ...hucreStil, textAlign: 'center' }}>
+                    <input type="checkbox" checked={seciliCekler.includes(c.id)} onChange={() => cekSecToggle(c.id)} />
+                  </td>
+                  <td style={hucreStil}>{c.banka || '—'}</td>
+                  <td style={hucreStil}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: isMukerrer ? 700 : 500 }}>{c.cek_seri_no || '—'}</span>
+                      {isMukerrer && (
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '2px 7px',
+                            fontSize: 10,
+                            fontWeight: 700,
+                            borderRadius: 6,
+                            background: softRenk.badgeBg,
+                            color: softRenk.text,
+                            border: `1px solid ${softRenk.border}`,
+                            whiteSpace: 'nowrap'
+                          }}
+                          title={`Bu seri numarası (${c.cek_seri_no}) sistemde ${mukerrerSayisi} kez kayıtlı!`}
+                        >
+                          ⚠️ Tekrar ({mukerrerSayisi})
+                        </span>
+                      )}
                     </div>
-                  ) : '—'}
-                </td>
-                <td style={hucreStil}>
-                  {c.cek_vadesi ? (
-                    <div>
-                      <div>{new Date(c.cek_vadesi).toLocaleDateString('tr-TR')}</div>
-                      <div style={{ fontSize: 10, color: '#1D9596', fontWeight: 600 }}>{ayFormatla(c.cek_vadesi.slice(0, 7))}</div>
-                    </div>
-                  ) : '—'}
-                </td>
-                <td style={hucreStil}>{c.odenen || '—'}</td>
-                <td style={hucreStil}>{paraFormatla(c.tutar)} ₺</td>
-                <td style={{ ...hucreStil, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }} title={c.aciklama}>{c.aciklama || '—'}</td>
-                <td style={hucreStil}>{c.santiyeler?.ad || '—'}</td>
-                <td style={hucreStil}>
-                  {c.isCiroEdildi
-                    ? <span className="durum-rozet" style={{ background: '#E3F2FD', color: '#1976D2' }}>Ciro Edildi</span>
-                    : (c.cek_vadesi && c.cek_vadesi < bugun
-                      ? <span className="durum-rozet rozet-yesil">Ödendi</span>
-                      : <span className="durum-rozet rozet-sari">Bekliyor</span>)}
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td style={hucreStil}>
+                    {c.verilis_tarihi ? (
+                      <div>
+                        <div>{new Date(c.verilis_tarihi).toLocaleDateString('tr-TR')}</div>
+                        <div style={{ fontSize: 10, color: '#64748B' }}>{ayFormatla(c.verilis_tarihi.slice(0, 7))}</div>
+                      </div>
+                    ) : '—'}
+                  </td>
+                  <td style={hucreStil}>
+                    {c.cek_vadesi ? (
+                      <div>
+                        <div>{new Date(c.cek_vadesi).toLocaleDateString('tr-TR')}</div>
+                        <div style={{ fontSize: 10, color: '#1D9596', fontWeight: 600 }}>{ayFormatla(c.cek_vadesi.slice(0, 7))}</div>
+                      </div>
+                    ) : '—'}
+                  </td>
+                  <td style={hucreStil}>{c.odenen || '—'}</td>
+                  <td style={{ ...hucreStil, fontWeight: 700 }}>{paraFormatla(c.tutar)} ₺</td>
+                  <td style={{ ...hucreStil, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }} title={c.aciklama}>{c.aciklama || '—'}</td>
+                  <td style={hucreStil}>{c.santiyeler?.ad || '—'}</td>
+                  <td style={hucreStil}>
+                    {c.isCiroEdildi
+                      ? <span className="durum-rozet" style={{ background: '#E3F2FD', color: '#1976D2' }}>Ciro Edildi</span>
+                      : (c.cek_vadesi && c.cek_vadesi < bugun
+                        ? <span className="durum-rozet rozet-yesil">Ödendi</span>
+                        : <span className="durum-rozet rozet-sari">Bekliyor</span>)}
+                  </td>
+                  <td style={{ ...hucreStil, textAlign: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={() => cekSil(c.id, c.cek_seri_no, c.odenen || c.odeyen)}
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: 12,
+                        background: '#FEF2F2',
+                        color: '#DC2626',
+                        border: '1px solid #FECACA',
+                        borderRadius: 6,
+                        cursor: 'pointer'
+                      }}
+                      title="Bu çek kaydını sil"
+                    >
+                      🗑️
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
           {liste.length > 0 && (
             <tfoot>
               <tr>
                 <td colSpan="6" style={{ ...hucreStil, fontWeight: 'bold', textAlign: 'right' }}>Filtrelenen Toplam:</td>
                 <td style={{ ...hucreStil, fontWeight: 'bold' }}>{paraFormatla(filtreliToplam)} ₺</td>
-                <td colSpan="3" style={hucreStil}></td>
+                <td colSpan="4" style={hucreStil}></td>
               </tr>
             </tfoot>
           )}
