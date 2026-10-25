@@ -113,11 +113,12 @@ export default function PlanlananOdemeler() {
     let query = supabase
       .from('planlanan_odemeler')
       .select('*, masraf_kategorileri(ad), taseronlar(ad)')
+      .or('siklik.neq.vaat,siklik.is.null')
       .order('vade_tarihi', { ascending: true })
       
     const { data, error } = await query
     if (error) {
-      console.error('Planlanan ödemeler yüklenirken hata:', error)
+      console.error('Düzenli ödemeler yüklenirken hata:', error)
       return
     }
     setOdemeler(data || [])
@@ -405,7 +406,7 @@ export default function PlanlananOdemeler() {
       </div>
 
       <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
-        <p style={{ fontWeight: 600, fontSize: 13, marginBottom: 10, color: '#0F6E56' }}>Yeni Ödeme Planla</p>
+        <p style={{ fontWeight: 600, fontSize: 13, marginBottom: 10, color: '#0F6E56' }}>Yeni Düzenli Ödeme Ekle</p>
         
         <select value={secilenSantiyeId} onChange={e => setSecilenSantiyeId(e.target.value)} style={{ marginBottom: 8, width: '100%', padding: 8, borderRadius: 6 }}>
           {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}

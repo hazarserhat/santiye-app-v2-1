@@ -99,92 +99,69 @@ function GorevKarti({ gorev, seviye, ctx }) {
           gap: 8
         }}
       >
-        {/* ÜST SATIR */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', width: '100%', gap: 10 }}>
-          
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flex: 1, minWidth: 0 }}>
-            {/* 1 Tıkla Tamamlama Kutusu */}
-            <div 
-              onClick={() => {
-                const yeniDurum = gorev.durum === 'tamamlandi' ? 'bekliyor' : 'tamamlandi'
-                durumGuncelle(gorev.id, yeniDurum)
-              }}
-              className={`gorev-tamamla-kutusu ${gorev.durum === 'tamamlandi' ? 'tamamlandi' : ''}`}
-              title={gorev.durum === 'tamamlandi' ? 'Görevi geri al' : 'Görevi tamamla (1 tıkla)'}
-            >
-              {gorev.durum === 'tamamlandi' ? '✓' : ''}
-            </div>
+        {/* ÜST SATIR - BAŞLIK VE TAMAMLAMA (TAM GENİŞLİK) */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, width: '100%' }}>
+          {/* 1 Tıkla Tamamlama Kutusu */}
+          <div 
+            onClick={() => {
+              const yeniDurum = gorev.durum === 'tamamlandi' ? 'bekliyor' : 'tamamlandi'
+              durumGuncelle(gorev.id, yeniDurum)
+            }}
+            className={`gorev-tamamla-kutusu ${gorev.durum === 'tamamlandi' ? 'tamamlandi' : ''}`}
+            title={gorev.durum === 'tamamlandi' ? 'Görevi geri al' : 'Görevi tamamla (1 tıkla)'}
+          >
+            {gorev.durum === 'tamamlandi' ? '✓' : ''}
+          </div>
 
-            {/* Paylaşım / Çoklu Seçim Checkbox'ı */}
-            <input
-              type="checkbox"
-              checked={seciliGorevler.includes(gorev.id)}
-              onChange={() => setSeciliGorevler((onceki) =>
-                onceki.includes(gorev.id) ? onceki.filter((x) => x !== gorev.id) : [...onceki, gorev.id]
-              )}
-              style={{ width: 15, height: 15, marginTop: 4, margin: 0, flexShrink: 0, cursor: 'pointer', opacity: 0.5 }}
-              title="Paylaşmak için seç"
-            />
-
-            {numaraHaritasi[gorev.id] && (
-              <span style={{ fontSize: 12, fontWeight: 800, color: '#1D9596', marginTop: 1, flexShrink: 0, textShadow: '0 1px 1px rgba(29,149,150,0.2)' }}>
-                {numaraHaritasi[gorev.id]}
-              </span>
+          {/* Paylaşım / Çoklu Seçim Checkbox'ı */}
+          <input
+            type="checkbox"
+            checked={seciliGorevler.includes(gorev.id)}
+            onChange={() => setSeciliGorevler((onceki) =>
+              onceki.includes(gorev.id) ? onceki.filter((x) => x !== gorev.id) : [...onceki, gorev.id]
             )}
-            
-            {duzenlenenId === gorev.id ? (
+            style={{ width: 15, height: 15, marginTop: 4, margin: 0, flexShrink: 0, cursor: 'pointer', opacity: 0.5 }}
+            title="Paylaşmak için seç"
+          />
+
+          {numaraHaritasi[gorev.id] && (
+            <span style={{ fontSize: 12, fontWeight: 800, color: '#1D9596', marginTop: 1, flexShrink: 0, textShadow: '0 1px 1px rgba(29,149,150,0.2)' }}>
+              {numaraHaritasi[gorev.id]}
+            </span>
+          )}
+          
+          {duzenlenenId === gorev.id ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
               <input
                 type="text"
                 value={duzenlenenBaslik}
                 onChange={(e) => setDuzenlenenBaslik(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && basligiKaydet(gorev.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') basligiKaydet(gorev.id)
+                  if (e.key === 'Escape') setDuzenlenenId(null)
+                }}
                 autoFocus
                 style={{ flex: 1, padding: '4px 8px', fontSize: 14, borderRadius: 6, border: '1.5px solid #1D9596', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)', background: '#faf9f5', outline: 'none', minWidth: 0 }}
               />
-            ) : (
-              <div 
-                title={gorev.baslik}
-                style={{ 
-                  fontSize: 14.5, 
-                  fontWeight: 600, 
-                  flex: 1, 
-                  lineHeight: 1.45,
-                  wordBreak: 'break-word',
-                  color: gorev.durum === 'tamamlandi' ? '#94A3B8' : '#1E293B', 
-                  textDecoration: gorev.durum === 'tamamlandi' ? 'line-through' : 'none'
-                }}
-              >
-                {gorev.baslik}
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, background: '#f8f7f2', padding: '3px 6px', borderRadius: 8, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)' }}>
-            {duzenlenenId === gorev.id ? (
-              <button className="sil-buton" onClick={() => basligiKaydet(gorev.id)} style={{ padding: '4px 8px', background: 'linear-gradient(to bottom, #24b8b9, #1D9596)', color: 'white', borderRadius: 4, boxShadow: '0 2px 4px rgba(29,149,150,0.3)' }}>✓</button>
-            ) : (
-              <>
-                <button className="sil-buton" onClick={() => { setDuzenlenenId(gorev.id); setDuzenlenenBaslik(gorev.baslik) }} style={{ padding: '2px 4px', fontSize: 13, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }} title="Düzenle">✎</button>
-                {seviye < 2 && <button className="sil-buton" onClick={() => { setAltGorevAcikId(altGorevAcikId === gorev.id ? null : gorev.id); setAltGorevMetni('') }} style={{ padding: '2px 4px', fontSize: 13, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }} title="Alt Görev Ekle">➕</button>}
-                {!gorselUrl && (
-                  <label style={{ cursor: 'pointer', padding: '2px 4px', fontSize: 13, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }} title="Fotoğraf Ekle">
-                    📷
-                    <input 
-                      type="file" 
-                      accept="image/*,application/pdf" 
-                      hidden 
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          goreveSonradanFotografEkle(gorev, e.target.files[0])
-                        }
-                      }} 
-                    />
-                  </label>
-                )}
-                <button className="sil-buton" onClick={() => gorevSil(gorev.id)} style={{ padding: '2px 4px', fontSize: 13, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }} title="Sil">🗑</button>
-              </>
-            )}
-          </div>
+              <button className="sil-buton" onClick={() => basligiKaydet(gorev.id)} style={{ padding: '4px 8px', background: 'linear-gradient(to bottom, #24b8b9, #1D9596)', color: 'white', borderRadius: 4, boxShadow: '0 2px 4px rgba(29,149,150,0.3)', flexShrink: 0 }} title="Kaydet">✓</button>
+              <button className="sil-buton" onClick={() => setDuzenlenenId(null)} style={{ padding: '4px 8px', background: '#e2e8f0', color: '#475569', borderRadius: 4, flexShrink: 0 }} title="Vazgeç">✕</button>
+            </div>
+          ) : (
+            <div 
+              title={gorev.baslik}
+              style={{ 
+                fontSize: 14.5, 
+                fontWeight: 600, 
+                flex: 1, 
+                lineHeight: 1.45,
+                wordBreak: 'break-word',
+                color: gorev.durum === 'tamamlandi' ? '#94A3B8' : '#1E293B', 
+                textDecoration: gorev.durum === 'tamamlandi' ? 'line-through' : 'none'
+              }}
+            >
+              {gorev.baslik}
+            </div>
+          )}
         </div>
 
         {/* GÖRSEL GÖSTERİMİ */}
@@ -220,10 +197,11 @@ function GorevKarti({ gorev, seviye, ctx }) {
           </div>
         )}
 
-        {/* ALT SATIR */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 8, flexWrap: 'wrap', paddingTop: 4, borderTop: '1px solid rgba(0,0,0,0.04)' }}>
+        {/* ALT SATIR (BİLGİLER, İŞLEM BUTONLARI & DURUM) */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 8, flexWrap: 'wrap', paddingTop: 6, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, overflow: 'hidden' }}>
+          {/* Sol Kısım: Öncelik, Şantiye, Kişiler, Yazar ve Tarih */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
             <div 
               onClick={() => setOncelikSeciciAcikId(oncelikSeciciAcikId === gorev.id ? null : gorev.id)}
               style={{ width: 14, height: 14, borderRadius: '50%', background: oncelik ? oncelik.renk : '#e2e0d8', cursor: 'pointer', border: '1px solid rgba(0,0,0,0.05)', boxShadow: oncelik ? `0 2px 6px ${oncelik.renk}66, inset 0 2px 4px rgba(255,255,255,0.4)` : 'inset 0 2px 4px rgba(0,0,0,0.1)', flexShrink: 0 }}
@@ -262,20 +240,44 @@ function GorevKarti({ gorev, seviye, ctx }) {
             </span>
           </div>
 
-          <select 
-            value={gorev.durum} 
-            onChange={(ev) => durumGuncelle(gorev.id, ev.target.value)}
-            className="durum-pill-select"
-            style={{ 
-              background: stColor.bg, 
-              color: stColor.color, 
-              borderColor: stColor.border 
-            }}
-          >
-            {DURUMLAR.filter((d) => d.deger !== 'hepsi').map((d) => (
-              <option key={d.deger} value={d.deger}>{d.etiket}</option>
-            ))}
-          </select>
+          {/* Sağ Kısım: İşlem Butonları (Düzenle, Alt Görev, Fotoğraf, Sil) ve Durum Seçici */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: '#f8f7f2', padding: '2px 4px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.06)' }}>
+              <button className="sil-buton" onClick={() => { setDuzenlenenId(gorev.id); setDuzenlenenBaslik(gorev.baslik) }} style={{ padding: '3px 5px', fontSize: 13, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }} title="Düzenle">✎</button>
+              {seviye < 2 && <button className="sil-buton" onClick={() => { setAltGorevAcikId(altGorevAcikId === gorev.id ? null : gorev.id); setAltGorevMetni('') }} style={{ padding: '3px 5px', fontSize: 13, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }} title="Alt Görev Ekle">➕</button>}
+              {!gorselUrl && (
+                <label style={{ cursor: 'pointer', padding: '3px 5px', fontSize: 13, display: 'inline-flex', alignItems: 'center', margin: 0, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }} title="Fotoğraf Ekle">
+                  📷
+                  <input 
+                    type="file" 
+                    accept="image/*,application/pdf" 
+                    hidden 
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        goreveSonradanFotografEkle(gorev, e.target.files[0])
+                      }
+                    }} 
+                  />
+                </label>
+              )}
+              <button className="sil-buton" onClick={() => gorevSil(gorev.id)} style={{ padding: '3px 5px', fontSize: 13, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }} title="Sil">🗑</button>
+            </div>
+
+            <select 
+              value={gorev.durum} 
+              onChange={(ev) => durumGuncelle(gorev.id, ev.target.value)}
+              className="durum-pill-select"
+              style={{ 
+                background: stColor.bg, 
+                color: stColor.color, 
+                borderColor: stColor.border 
+              }}
+            >
+              {DURUMLAR.filter((d) => d.deger !== 'hepsi').map((d) => (
+                <option key={d.deger} value={d.deger}>{d.etiket}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Seçici Paneller */}
