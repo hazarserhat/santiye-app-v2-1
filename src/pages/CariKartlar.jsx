@@ -1083,8 +1083,8 @@ export default function CariKartlar() {
         </div>
       </div>
 
-      {/* KATEGORİ SEKMELERİ (HIZLI SINIFLANDIRMA HAPLARI) */}
-      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 6, marginBottom: 14, scrollbarWidth: 'none' }}>
+      {/* KATEGORİ SEKMELERİ (TEK BAKIŞTA TÜMÜ GÖRÜNÜR - FLEX-WRAP) */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
         {KATEGORILER.map(k => {
           const aktif = aktifSekme === k.id
           const sayi = kategoriSayilari[k.id] || 0
@@ -1097,7 +1097,7 @@ export default function CariKartlar() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '8px 12px',
+                padding: '7px 12px',
                 borderRadius: 20,
                 border: aktif ? '1.5px solid #1D9596' : '1px solid #E2E8F0',
                 background: aktif ? '#1D9596' : '#FFFFFF',
@@ -1105,7 +1105,6 @@ export default function CariKartlar() {
                 fontSize: 12,
                 fontWeight: 800,
                 cursor: 'pointer',
-                whiteSpace: 'nowrap',
                 boxShadow: aktif ? '0 2px 8px rgba(29, 149, 150, 0.25)' : '0 1px 2px rgba(0,0,0,0.03)',
                 transition: 'all 0.15s ease'
               }}
@@ -1168,8 +1167,8 @@ export default function CariKartlar() {
         </div>
       </div>
 
-      {/* NESTED FİRMA VE KİŞİ KARTLARI LİSTESİ */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* FİRMA VE KİŞİ KARTLARI LİSTESİ */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {filtreliFirmalar.map((grup) => {
           const kategoriIkon = 
             grup.kategori?.includes('Hafriyat') || grup.kategori?.includes('Makine') ? '🚜' :
@@ -1178,60 +1177,79 @@ export default function CariKartlar() {
             grup.kategori?.includes('Ortak') ? '👥' :
             grup.kategori?.includes('Personel') || grup.kategori?.includes('Bekçi') ? '🛡️' : '🏗️'
 
-          return (
-            <div 
-              key={grup.anahtar} 
-              style={{
-                background: '#FFFFFF',
-                borderRadius: 16,
-                border: '1px solid #E2E8F0',
-                boxShadow: '0 3px 12px rgba(0, 0, 0, 0.04)',
-                overflow: 'hidden',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {/* FİRMA BAŞLIK KARTI */}
-              <div style={{ padding: '14px 16px', background: '#FAFBFD', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 240 }}>
+          const cokluKisiVarMi = grup.kisiler.length > 1
+          const tekKisi = grup.kisiler[0] || {}
+          const tekTel = (tekKisi.telefon || '').trim()
+          const tekWa = whatsappBaglantisi(tekTel)
+
+          // -------------------------------------------------------------
+          // DURUM A: TEK KİŞİLİK / STANDART CARİ (KOMPAKT & DOĞRUDAN SATIR)
+          // Her firma için nested mimarisine gerek yok; tek bakışta tüm bilgiler ve arama
+          // -------------------------------------------------------------
+          if (!cokluKisiVarMi) {
+            return (
+              <div 
+                key={grup.anahtar} 
+                style={{
+                  background: '#FFFFFF',
+                  borderRadius: 14,
+                  border: '1px solid #E2E8F0',
+                  padding: '12px 14px',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  flexWrap: 'wrap',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {/* Sol: İkon ve Bilgiler */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 220 }}>
                   <div style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 12,
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
                     background: 'linear-gradient(135deg, #1D9596, #0F766E)',
                     color: '#FFFFFF',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: 800,
                     flexShrink: 0,
-                    boxShadow: '0 3px 8px rgba(29, 149, 150, 0.25)'
+                    boxShadow: '0 2px 6px rgba(29, 149, 150, 0.2)'
                   }}>
                     {kategoriIkon}
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0F172A' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 14.5, fontWeight: 800, color: '#0F172A' }}>
                         {grup.firmaAdi}
-                      </h3>
+                      </span>
+                      {tekKisi.rol && tekKisi.rol !== 'Yetkili' && (
+                        <span style={{ fontSize: 10.5, fontWeight: 700, background: '#FEF3C7', color: '#92400E', padding: '1px 6px', borderRadius: 4 }}>
+                          {tekKisi.rol}
+                        </span>
+                      )}
                       {grup.sifat && (
-                        <span style={{ fontSize: 11, fontWeight: 700, background: '#F0FDFA', color: '#0F766E', border: '1px solid #CCFBF1', padding: '1px 8px', borderRadius: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, background: '#F0FDFA', color: '#0F766E', border: '1px solid #CCFBF1', padding: '1px 7px', borderRadius: 6 }}>
                           🏷️ {grup.sifat}
                         </span>
                       )}
-                      <span style={{ fontSize: 10.5, fontWeight: 700, background: '#F1F5F9', color: '#475569', padding: '1px 7px', borderRadius: 6 }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, background: '#F1F5F9', color: '#475569', padding: '1px 6px', borderRadius: 6 }}>
                         {grup.kategori}
                       </span>
                     </div>
 
                     {/* Tanımlı Şantiyeler */}
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
                       {Array.from(grup.santiyeler).map(sid => {
                         const s = santiyeler.find(item => item.id === sid)
                         if (!s) return null
                         return (
-                          <span key={sid} style={{ fontSize: 10, fontWeight: 700, background: '#E0F2FE', color: '#0369A1', padding: '1px 6px', borderRadius: 6 }}>
+                          <span key={sid} style={{ fontSize: 10, fontWeight: 700, background: '#E0F2FE', color: '#0369A1', padding: '1px 5px', borderRadius: 4 }}>
                             📍 {s.ad}
                           </span>
                         )
@@ -1245,54 +1263,107 @@ export default function CariKartlar() {
                   </div>
                 </div>
 
-                {/* Butonlar: Detay / Finans ve Yönetim Aksiyonları */}
+                {/* Sağ: İletişim Butonları & Yönetim Aksiyonları */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  {tekTel ? (
+                    <>
+                      <a
+                        href={`tel:${tekTel}`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          padding: '6px 11px',
+                          borderRadius: 8,
+                          background: '#1D9596',
+                          color: '#FFFFFF',
+                          fontSize: 12,
+                          fontWeight: 800,
+                          textDecoration: 'none',
+                          boxShadow: '0 2px 6px rgba(29, 149, 150, 0.25)'
+                        }}
+                        title="Doğrudan Ara"
+                      >
+                        <span>📞</span>
+                        <span>{tekTel}</span>
+                      </a>
+
+                      {tekWa && (
+                        <a
+                          href={tekWa}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            padding: '6px 9px',
+                            borderRadius: 8,
+                            background: '#25D366',
+                            color: '#FFFFFF',
+                            fontSize: 11.5,
+                            fontWeight: 800,
+                            textDecoration: 'none'
+                          }}
+                          title="WhatsApp İle Mesaj At"
+                        >
+                          <span>💬</span>
+                          <span>WP</span>
+                        </a>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(tekTel)
+                          alert(`Telefon numarası kopyalandı: ${tekTel}`)
+                        }}
+                        style={{
+                          padding: '5px 7px',
+                          borderRadius: 6,
+                          border: '1px solid #CBD5E1',
+                          background: '#FFFFFF',
+                          color: '#475569',
+                          cursor: 'pointer',
+                          fontSize: 11
+                        }}
+                        title="Numarayı Kopyala"
+                      >
+                        📋
+                      </button>
+                    </>
+                  ) : (
+                    <span style={{ fontSize: 11.5, color: '#94A3B8', fontStyle: 'italic', marginRight: 4 }}>
+                      Telefon yok
+                    </span>
+                  )}
+
+                  {/* Yönetim Modu Açıkken Gözüken Kontroller */}
                   {yonetimModu && (
                     <>
-                      {/* Şef Görünürlük Rozeti */}
                       <button
                         type="button"
                         onClick={(e) => gorunurlukDegistir(grup.anaKayit.id, grup.sef_gorunur, e)}
                         style={{
-                          padding: '4px 8px',
+                          padding: '4px 7px',
                           borderRadius: 6,
                           border: grup.sef_gorunur ? '1px solid #86EFAC' : '1px solid #CBD5E1',
                           background: grup.sef_gorunur ? '#DCFCE7' : '#F1F5F9',
                           color: grup.sef_gorunur ? '#166534' : '#64748B',
-                          fontSize: 10.5,
+                          fontSize: 10,
                           fontWeight: 700,
                           cursor: 'pointer'
                         }}
                         title="Şantiye şeflerinin rehberde görmesini aç/kapat"
                       >
-                        {grup.sef_gorunur ? '✓ Şef Görür' : '✕ Şefe Gizli'}
+                        {grup.sef_gorunur ? '✓ Şef' : '✕ Şefe Gizli'}
                       </button>
 
-                      {/* Puantaj Rozeti */}
-                      <button
-                        type="button"
-                        onClick={(e) => puantajGorunurlukDegistir(grup.anaKayit.id, grup.puantajda_goster, e)}
-                        style={{
-                          padding: '4px 8px',
-                          borderRadius: 6,
-                          border: grup.puantajda_goster !== false ? '1px solid #BAE6FD' : '1px solid #CBD5E1',
-                          background: grup.puantajda_goster !== false ? '#E0F2FE' : '#F1F5F9',
-                          color: grup.puantajda_goster !== false ? '#0369A1' : '#64748B',
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                        title="Puantaj sayfasında ekip olarak çıkmasını aç/kapat"
-                      >
-                        {grup.puantajda_goster !== false ? '✓ Puantajda' : '✕ Puantaj Dışı'}
-                      </button>
-
-                      {/* Düzenle Butonu */}
                       <button
                         type="button"
                         onClick={(e) => duzenleModaliAc(grup, e)}
                         style={{
-                          padding: '4px 10px',
+                          padding: '4px 8px',
                           borderRadius: 6,
                           border: '1px solid #CBD5E1',
                           background: '#FFFFFF',
@@ -1301,17 +1372,16 @@ export default function CariKartlar() {
                           fontWeight: 800,
                           cursor: 'pointer'
                         }}
-                        title="Firma ve iletişim kişilerini düzenle"
+                        title="Düzenle veya birden fazla kişi ekle"
                       >
                         ✏️ Düzenle
                       </button>
 
-                      {/* Sil Butonu */}
                       <button
                         type="button"
                         onClick={(e) => taseronSil(grup.anaKayit.id, e)}
                         style={{
-                          padding: '4px 8px',
+                          padding: '4px 6px',
                           borderRadius: 6,
                           border: '1px solid #FECACA',
                           background: '#FEF2F2',
@@ -1320,40 +1390,163 @@ export default function CariKartlar() {
                           fontWeight: 800,
                           cursor: 'pointer'
                         }}
-                        title="Bu cariyi sil"
+                        title="Sil"
                       >
                         🗑️
                       </button>
                     </>
                   )}
 
-                  {/* Cari Hesap Detay / Finans Butonu */}
                   <button
                     type="button"
                     onClick={() => detayYukle(grup.anaKayit.id)}
                     style={{
-                      padding: '6px 12px',
-                      borderRadius: 8,
+                      padding: '5px 10px',
+                      borderRadius: 6,
                       border: '1px solid #CBD5E1',
                       background: '#FFFFFF',
                       color: '#1E293B',
-                      fontSize: 11.5,
+                      fontSize: 11,
                       fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4
+                      cursor: 'pointer'
+                    }}
+                    title="Cari Hesap Hakediş ve Finans Detayı"
+                  >
+                    Detay
+                  </button>
+                </div>
+              </div>
+            )
+          }
+
+          // -------------------------------------------------------------
+          // DURUM B: ÇOK KİŞİLİ FİRMA (NESTED / ÖBEK MİMARİSİ)
+          // Sadece Serhat Hazar birden fazla kişi/usta eklediyse (Örn: Öz Marmara)
+          // -------------------------------------------------------------
+          return (
+            <div 
+              key={grup.anahtar} 
+              style={{
+                background: '#FFFFFF',
+                borderRadius: 16,
+                border: '1.5px solid #CCFBF1',
+                boxShadow: '0 3px 12px rgba(29, 149, 150, 0.06)',
+                overflow: 'hidden',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {/* FİRMA BAŞLIK KARTI */}
+              <div style={{ padding: '12px 16px', background: '#F0FDFA', borderBottom: '1px solid #CCFBF1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 220 }}>
+                  <div style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 10,
+                    background: 'linear-gradient(135deg, #1D9596, #0F766E)',
+                    color: '#FFFFFF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 20,
+                    fontWeight: 800,
+                    flexShrink: 0
+                  }}>
+                    {kategoriIkon}
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <h3 style={{ margin: 0, fontSize: 15.5, fontWeight: 800, color: '#0F172A' }}>
+                        {grup.firmaAdi}
+                      </h3>
+                      <span style={{ fontSize: 10.5, fontWeight: 800, background: '#1D9596', color: '#FFFFFF', padding: '1px 7px', borderRadius: 10 }}>
+                        👥 {grup.kisiler.length} Yetkili / Usta
+                      </span>
+                      {grup.sifat && (
+                        <span style={{ fontSize: 11, fontWeight: 700, background: '#FFFFFF', color: '#0F766E', border: '1px solid #CCFBF1', padding: '1px 7px', borderRadius: 6 }}>
+                          🏷️ {grup.sifat}
+                        </span>
+                      )}
+                      <span style={{ fontSize: 10.5, fontWeight: 700, background: '#E2E8F0', color: '#475569', padding: '1px 6px', borderRadius: 6 }}>
+                        {grup.kategori}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
+                      {Array.from(grup.santiyeler).map(sid => {
+                        const s = santiyeler.find(item => item.id === sid)
+                        if (!s) return null
+                        return (
+                          <span key={sid} style={{ fontSize: 10, fontWeight: 700, background: '#E0F2FE', color: '#0369A1', padding: '1px 5px', borderRadius: 4 }}>
+                            📍 {s.ad}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  {yonetimModu && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => duzenleModaliAc(grup, e)}
+                        style={{
+                          padding: '4px 9px',
+                          borderRadius: 6,
+                          border: '1px solid #CBD5E1',
+                          background: '#FFFFFF',
+                          color: '#0F766E',
+                          fontSize: 11,
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ✏️ Düzenle
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => taseronSil(grup.anaKayit.id, e)}
+                        style={{
+                          padding: '4px 6px',
+                          borderRadius: 6,
+                          border: '1px solid #FECACA',
+                          background: '#FEF2F2',
+                          color: '#DC2626',
+                          fontSize: 11,
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🗑️
+                      </button>
+                    </>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => detayYukle(grup.anaKayit.id)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 6,
+                      border: '1px solid #CBD5E1',
+                      background: '#FFFFFF',
+                      color: '#1E293B',
+                      fontSize: 11,
+                      fontWeight: 800,
+                      cursor: 'pointer'
                     }}
                   >
-                    <span>📋</span>
-                    <span>Cari Hareketler</span>
+                    Detay
                   </button>
                 </div>
               </div>
 
-              {/* NESTED İLETİŞİM KİŞİLERİ (FİRMA SAHİBİ, ORTAK, USTA, ŞANTİYE ŞEFİ ÇAĞRI LİSTESİ) */}
-              <div style={{ padding: '12px 16px', background: '#FFFFFF' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* NESTED ÇALIŞANLAR VE NUMARALARI */}
+              <div style={{ padding: '10px 14px', background: '#FFFFFF' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {grup.kisiler.map((kisi, kidx) => {
                     const telTemiz = (kisi.telefon || '').trim()
                     const waLink = whatsappBaglantisi(telTemiz)
@@ -1366,37 +1559,35 @@ export default function CariKartlar() {
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           gap: 10,
-                          padding: '10px 12px',
-                          borderRadius: 10,
+                          padding: '8px 10px',
+                          borderRadius: 8,
                           background: '#F8FAFC',
                           border: '1px solid #EDF2F7',
                           flexWrap: 'wrap'
                         }}
                       >
-                        {/* Kişi Bilgisi */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 200 }}>
-                          <span style={{ fontSize: 16, background: '#E2E8F0', padding: 6, borderRadius: '50%' }}>👤</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 180 }}>
+                          <span style={{ fontSize: 14 }}>👤</span>
                           <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: 13.5, fontWeight: 800, color: '#1E293B' }}>
+                              <span style={{ fontSize: 13, fontWeight: 800, color: '#1E293B' }}>
                                 {kisi.ad || grup.firmaAdi}
                               </span>
                               {kisi.rol && (
-                                <span style={{ fontSize: 10.5, fontWeight: 700, background: '#FEF3C7', color: '#92400E', padding: '1px 6px', borderRadius: 4 }}>
+                                <span style={{ fontSize: 10, fontWeight: 700, background: '#FEF3C7', color: '#92400E', padding: '1px 5px', borderRadius: 4 }}>
                                   {kisi.rol}
                                 </span>
                               )}
                             </div>
                             {kisi.not && (
-                              <p style={{ margin: '1px 0 0', fontSize: 11, color: '#64748B', fontStyle: 'italic' }}>
+                              <p style={{ margin: '1px 0 0', fontSize: 10.5, color: '#64748B', fontStyle: 'italic' }}>
                                 {kisi.not}
                               </p>
                             )}
                           </div>
                         </div>
 
-                        {/* Telefon, WhatsApp ve Arama Aksiyonları (Şefler ve Yönetici İçin Tek Tıkla Arama) */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                           {telTemiz ? (
                             <>
                               <a
@@ -1404,17 +1595,15 @@ export default function CariKartlar() {
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: 6,
-                                  padding: '7px 12px',
-                                  borderRadius: 8,
+                                  gap: 5,
+                                  padding: '5px 10px',
+                                  borderRadius: 6,
                                   background: '#1D9596',
                                   color: '#FFFFFF',
-                                  fontSize: 12.5,
+                                  fontSize: 11.5,
                                   fontWeight: 800,
-                                  textDecoration: 'none',
-                                  boxShadow: '0 2px 6px rgba(29, 149, 150, 0.25)'
+                                  textDecoration: 'none'
                                 }}
-                                title="Doğrudan Ara"
                               >
                                 <span>📞</span>
                                 <span>{telTemiz}</span>
@@ -1428,19 +1617,16 @@ export default function CariKartlar() {
                                   style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: 4,
-                                    padding: '7px 10px',
-                                    borderRadius: 8,
+                                    padding: '5px 8px',
+                                    borderRadius: 6,
                                     background: '#25D366',
                                     color: '#FFFFFF',
-                                    fontSize: 12,
+                                    fontSize: 11,
                                     fontWeight: 800,
                                     textDecoration: 'none'
                                   }}
-                                  title="WhatsApp Üzerinden Mesaj At"
                                 >
-                                  <span>💬</span>
-                                  <span>WP</span>
+                                  💬 WP
                                 </a>
                               )}
 
@@ -1448,10 +1634,10 @@ export default function CariKartlar() {
                                 type="button"
                                 onClick={() => {
                                   navigator.clipboard.writeText(telTemiz)
-                                  alert(`Telefon numarası kopyalandı: ${telTemiz}`)
+                                  alert(`Telefon kopyalandı: ${telTemiz}`)
                                 }}
                                 style={{
-                                  padding: '6px 8px',
+                                  padding: '5px 7px',
                                   borderRadius: 6,
                                   border: '1px solid #CBD5E1',
                                   background: '#FFFFFF',
@@ -1459,14 +1645,13 @@ export default function CariKartlar() {
                                   cursor: 'pointer',
                                   fontSize: 11
                                 }}
-                                title="Numarayı Kopyala"
                               >
                                 📋
                               </button>
                             </>
                           ) : (
-                            <span style={{ fontSize: 11.5, color: '#94A3B8', fontStyle: 'italic' }}>
-                              Telefon tanımlanmamış
+                            <span style={{ fontSize: 11, color: '#94A3B8', fontStyle: 'italic' }}>
+                              Telefon yok
                             </span>
                           )}
                         </div>

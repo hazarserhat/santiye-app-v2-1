@@ -33,6 +33,7 @@ export default function KasaVirmanlar() {
   const [notMetni, setNotMetni] = useState('')
 
   // Filtre State'leri
+  const [aramaMetni, setAramaMetni] = useState('')
   const [filtreMuhasebe, setFiltreMuhasebe] = useState('hepsi')
   const [filtreKasa, setFiltreKasa] = useState('hepsi')
   const [filtreTip, setFiltreTip] = useState('hepsi')
@@ -254,6 +255,19 @@ export default function KasaVirmanlar() {
       if (filtreBitis && islem.tarih > filtreBitis) return false
       return true
     })
+    .filter(islem => {
+      if (!aramaMetni.trim()) return true
+      const q = aramaMetni.trim().toLocaleLowerCase('tr-TR')
+      const cikisMatch = (islem.cikis_noktasi || '').toLocaleLowerCase('tr-TR').includes(q)
+      const girisMatch = (islem.giris_noktasi || '').toLocaleLowerCase('tr-TR').includes(q)
+      const notMatch = (islem.not_metni || '').toLocaleLowerCase('tr-TR').includes(q)
+      const tutarMatch = (islem.tutar ? String(islem.tutar) : '').includes(q)
+      const profilMatch = (islem.profiles?.ad_soyad || '').toLocaleLowerCase('tr-TR').includes(q)
+      const tipMatch = (islem.tip || '').toLocaleLowerCase('tr-TR').includes(q) ||
+        (islem.tip === 'virman' && 'virman transfer'.includes(q)) ||
+        (islem.tip?.startsWith('mutabakat') && 'mutabakat kasa düzeltme'.includes(q))
+      return cikisMatch || girisMatch || notMatch || tutarMatch || profilMatch || tipMatch
+    })
 
   return (
     <div className="sayfa">
@@ -344,6 +358,54 @@ export default function KasaVirmanlar() {
         <button className="ekle-buton-genis" onClick={islemKaydet} disabled={yukleniyor} style={{ marginTop: 8 }}>
           {yukleniyor ? 'Kaydediliyor...' : 'İşlemi Kaydet'}
         </button>
+      </div>
+
+      {/* HIZLI ARAMA ÇUBUĞU */}
+      <div style={{
+        position: 'relative',
+        marginBottom: 10,
+        display: 'flex',
+        alignItems: 'center',
+        background: '#ffffff',
+        borderRadius: 10,
+        border: '1.5px solid #CBD5E1',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        padding: '2px 10px'
+      }}>
+        <span style={{ fontSize: 16, marginRight: 8, color: '#64748B' }}>🔍</span>
+        <input
+          type="text"
+          value={aramaMetni}
+          onChange={(e) => setAramaMetni(e.target.value)}
+          placeholder="İşlemlerde ara (kasa, not, tutar, kişi, virman, mutabakat...)"
+          style={{
+            width: '100%',
+            border: 'none',
+            outline: 'none',
+            padding: '9px 0',
+            fontSize: 13.5,
+            background: 'transparent',
+            color: '#1E293B'
+          }}
+        />
+        {aramaMetni && (
+          <button
+            type="button"
+            onClick={() => setAramaMetni('')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#94A3B8',
+              fontSize: 14,
+              cursor: 'pointer',
+              padding: '4px 6px',
+              fontWeight: 'bold'
+            }}
+            title="Aramayı Temizle"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       {/* FİLTRE ALANI */}

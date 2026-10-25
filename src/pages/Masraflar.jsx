@@ -58,6 +58,7 @@ export default function Masraflar() {
   const [taseronlar, setTaseronlar] = useState([])
 
   // Filtre ve Sıralama State'leri
+  const [aramaMetni, setAramaMetni] = useState('')
   const [filtreCari, setFiltreCari] = useState('hepsi')
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreOdemeYontemi, setFiltreOdemeYontemi] = useState('hepsi')
@@ -242,6 +243,34 @@ export default function Masraflar() {
       if (filtreBitis && m.harcama_tarihi > filtreBitis) return false
       return true
     })
+
+  if (aramaMetni.trim()) {
+    const q = aramaMetni.trim().toLocaleLowerCase('tr-TR')
+    islenecekListe = islenecekListe.filter(m => {
+      const baslikMatch = (m.baslik || '').toLocaleLowerCase('tr-TR').includes(q)
+      const aciklamaMatch = (m.aciklama || '').toLocaleLowerCase('tr-TR').includes(q)
+      const kisiMatch = (m.odenen_kisi || '').toLocaleLowerCase('tr-TR').includes(q)
+      const kategoriMatch = (m.masraf_kategorileri?.ad || '').toLocaleLowerCase('tr-TR').includes(q)
+      const odemeMatch = (m.odeme_yontemleri?.ad || '').toLocaleLowerCase('tr-TR').includes(q)
+      const tutarMatch = (m.tutar ? String(m.tutar) : '').includes(q)
+      const profilMatch = (m.profiles?.ad_soyad || '').toLocaleLowerCase('tr-TR').includes(q)
+      let santiyeMatch = false
+      if (m.santiye_id) {
+        const s = santiyeler.find(x => x.id === m.santiye_id)
+        if (s && (s.ad || '').toLocaleLowerCase('tr-TR').includes(q)) santiyeMatch = true
+      }
+      if (m.santiye_dagilimi && Array.isArray(m.santiye_dagilimi)) {
+        for (const d of m.santiye_dagilimi) {
+          const s = santiyeler.find(x => x.id === d.santiye_id)
+          if (s && (s.ad || '').toLocaleLowerCase('tr-TR').includes(q)) {
+            santiyeMatch = true
+            break
+          }
+        }
+      }
+      return baslikMatch || aciklamaMatch || kisiMatch || kategoriMatch || odemeMatch || tutarMatch || profilMatch || santiyeMatch
+    })
+  }
 
   islenecekListe.sort((a, b) => {
     if (siralama === 'kayit_yeni') return new Date(b.kayit_tarihi || 0) - new Date(a.kayit_tarihi || 0)
@@ -668,6 +697,54 @@ export default function Masraflar() {
             <button className="ekle-buton-genis" onClick={masrafEkle} disabled={yukleniyor}>
               {yukleniyor ? 'Ekleniyor...' : 'Masrafı kaydet'}
             </button>
+          </div>
+
+          {/* HIZLI ARAMA ÇUBUĞU */}
+          <div style={{
+            position: 'relative',
+            marginBottom: 10,
+            display: 'flex',
+            alignItems: 'center',
+            background: '#ffffff',
+            borderRadius: 10,
+            border: '1.5px solid #CBD5E1',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            padding: '2px 10px'
+          }}>
+            <span style={{ fontSize: 16, marginRight: 8, color: '#64748B' }}>🔍</span>
+            <input
+              type="text"
+              value={aramaMetni}
+              onChange={(e) => setAramaMetni(e.target.value)}
+              placeholder="Giderlerde ara (başlık, kişi, kategori, kasa, tutar, şantiye...)"
+              style={{
+                width: '100%',
+                border: 'none',
+                outline: 'none',
+                padding: '9px 0',
+                fontSize: 13.5,
+                background: 'transparent',
+                color: '#1E293B'
+              }}
+            />
+            {aramaMetni && (
+              <button
+                type="button"
+                onClick={() => setAramaMetni('')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94A3B8',
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  padding: '4px 6px',
+                  fontWeight: 'bold'
+                }}
+                title="Aramayı Temizle"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
           {/* FİLTRE VE SIRALAMA ALANI */}

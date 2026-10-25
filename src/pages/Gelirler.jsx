@@ -27,6 +27,7 @@ export default function Gelirler() {
 
   // Filtre ve Sıralama State'leri
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
+  const [aramaMetni, setAramaMetni] = useState('')
   const [filtreTahsilat, setFiltreTahsilat] = useState('hepsi')
   const [filtreMalik, setFiltreMalik] = useState('hepsi')
   const [filtreMuhasebe, setFiltreMuhasebe] = useState('hepsi')
@@ -422,6 +423,20 @@ export default function Gelirler() {
       return true
     })
 
+  if (aramaMetni.trim()) {
+    const q = aramaMetni.trim().toLocaleLowerCase('tr-TR')
+    gorunenler = gorunenler.filter(g => {
+      const odemeYapanMatch = (g.odeme_yapan_adi || '').toLocaleLowerCase('tr-TR').includes(q)
+      const malikMatch = (g.malikler?.ad_soyad || '').toLocaleLowerCase('tr-TR').includes(q)
+      const notMatch = (g.not_metni || '').toLocaleLowerCase('tr-TR').includes(q)
+      const tahsilatMatch = (g.tahsilat_noktasi || '').toLocaleLowerCase('tr-TR').includes(q)
+      const tutarMatch = (g.tutar ? String(g.tutar) : '').includes(q)
+      const santiye = santiyeler.find(s => s.id === g.santiye_id)
+      const santiyeMatch = santiye && (santiye.ad || '').toLocaleLowerCase('tr-TR').includes(q)
+      return odemeYapanMatch || malikMatch || notMatch || tahsilatMatch || tutarMatch || santiyeMatch
+    })
+  }
+
   gorunenler.sort((a, b) => {
     if (siralama === 'islem_yeni') return new Date(b.tarih || 0) - new Date(a.tarih || 0)
     if (siralama === 'islem_eski') return new Date(a.tarih || 0) - new Date(b.tarih || 0)
@@ -620,6 +635,54 @@ export default function Gelirler() {
             <button className="ekle-buton-genis" onClick={gelirEkle} disabled={yukleniyor} style={{ marginTop: 8 }}>
               {yukleniyor ? 'Ekleniyor...' : 'Geliri kaydet'}
             </button>
+          </div>
+
+          {/* HIZLI ARAMA ÇUBUĞU */}
+          <div style={{
+            position: 'relative',
+            marginBottom: 10,
+            display: 'flex',
+            alignItems: 'center',
+            background: '#ffffff',
+            borderRadius: 10,
+            border: '1.5px solid #CBD5E1',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            padding: '2px 10px'
+          }}>
+            <span style={{ fontSize: 16, marginRight: 8, color: '#64748B' }}>🔍</span>
+            <input
+              type="text"
+              value={aramaMetni}
+              onChange={(e) => setAramaMetni(e.target.value)}
+              placeholder="Gelirlerde ara (ödeyen, malik, not, tahsilat noktası, tutar, şantiye...)"
+              style={{
+                width: '100%',
+                border: 'none',
+                outline: 'none',
+                padding: '9px 0',
+                fontSize: 13.5,
+                background: 'transparent',
+                color: '#1E293B'
+              }}
+            />
+            {aramaMetni && (
+              <button
+                type="button"
+                onClick={() => setAramaMetni('')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94A3B8',
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  padding: '4px 6px',
+                  fontWeight: 'bold'
+                }}
+                title="Aramayı Temizle"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
           {/* FİLTRE VE SIRALAMA ALANI */}
