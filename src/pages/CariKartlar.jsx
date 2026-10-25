@@ -3,6 +3,24 @@ import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 import { paraFormatla, sadeceSayiTuslari } from '../lib/format'
+import KategoriCokluSecici from '../components/KategoriCokluSecici'
+
+// --- YARDIMCI: KATEGORİLERİ DİZİ VE VİRGÜLLÜ METİN ARASINDA DÖNÜŞTÜRME ---
+function parseKategoriler(sifatStr) {
+  if (!sifatStr || typeof sifatStr !== 'string') return []
+  return sifatStr
+    .split(/[,/]/)
+    .map(s => s.trim())
+    .filter(Boolean)
+}
+
+function serializeKategoriler(kategoriler) {
+  if (!Array.isArray(kategoriler)) return ''
+  return kategoriler
+    .map(s => (typeof s === 'string' ? s.trim() : ''))
+    .filter(Boolean)
+    .join(', ')
+}
 
 // --- YARDIMCI: TELEFON ALANINDAKİ KİŞİLERİ ÇÖZÜMLEME (JSON, Çoklu Satır veya Klasik Tel) ---
 function parseContacts(t) {
@@ -93,6 +111,8 @@ export default function CariKartlar() {
   const [arama, setArama] = useState('')
   const [aktifSekme, setAktifSekme] = useState('tumu')
 
+  const [arsivGoster, setArsivGoster] = useState(false)
+
   // --- SERHAT HAZAR YÖNETİM & DÜZENLEME MODU ---
   const [yonetimModu, setYonetimModu] = useState(false)
 
@@ -102,7 +122,7 @@ export default function CariKartlar() {
   const [modalFirmaId, setModalFirmaId] = useState(null)
   const [formFirmaAdi, setFormFirmaAdi] = useState('')
   const [formKategori, setFormKategori] = useState('Taşeronlar')
-  const [formSifat, setFormSifat] = useState('')
+  const [formKategoriler, setFormKategoriler] = useState([])
   const [formAdres, setFormAdres] = useState('')
   const [formSefGorunur, setFormSefGorunur] = useState(true)
   const [formPuantajdaGoster, setFormPuantajdaGoster] = useState(true)
@@ -110,7 +130,6 @@ export default function CariKartlar() {
   const [formKisiler, setFormKisiler] = useState([
     { id: '1', ad: '', rol: 'Firma Sahibi', telefon: '', not: '' }
   ])
-  const [formSifatOneriAcik, setFormSifatOneriAcik] = useState(false)
   const [kaydediliyor, setKaydediliyor] = useState(false)
 
   // --- BİLGİ KARTI VE DETAY STATE'LERİ ---
@@ -123,12 +142,11 @@ export default function CariKartlar() {
 
   const [duzenleModu, setDuzenleModu] = useState(false)
   const [duzAd, setDuzAd] = useState('')
-  const [duzSifat, setDuzSifat] = useState('')
+  const [duzKategoriler, setDuzKategoriler] = useState([])
   const [duzFirma, setDuzFirma] = useState('')
   const [duzTelefon, setDuzTelefon] = useState('')
   const [duzAdres, setDuzAdres] = useState('')
   const [duzKategori, setDuzKategori] = useState('')
-  const [duzSifatOneriAcik, setDuzSifatOneriAcik] = useState(false)
 
   const [yeniNot, setYeniNot] = useState('')
   const [duzenlenenNotId, setDuzenlenenNotId] = useState(null)
@@ -177,42 +195,16 @@ export default function CariKartlar() {
     setTaseronSantiyeHaritasi(harita)
   }
 
-  // --- KATEGORİ TANIMLARI & ÖRNEK ORTAKLAR ---
-  const KATEGORILER = [
-    { id: 'tumu', ad: 'Tümü', ikon: '🌐' },
-    { id: 'taseronlar', ad: 'Taşeronlar', ikon: '🏗️' },
-    { id: 'is_makinesi', ad: 'İş Makinesi & Hafriyat', ikon: '🚜' },
-    { id: 'tedarikciler', ad: 'Tedarikçiler', ikon: '🧱' },
-    { id: 'kurumlar', ad: 'Resmi Kurumlar', ikon: '🏛️' },
-    { id: 'ortaklar', ad: 'Ortaklar & Malikler', ikon: '👥' },
-    { id: 'personel', ad: 'Personel & Bekçi', ikon: '🛡️' },
-    { id: 'diger', ad: 'Diğer', ikon: '📂' },
-    { id: 'ikincil', ad: 'Arşiv / İkincil', ikon: '📦' }
-  ]
-
-  const ORTAKLAR_ISIMLERI = ['Fuat Hazar', 'Fırat Tekstil Diyarbakır', 'Abdullah Tufan']
-
   // Mevcut Hizmet Kategorileri (Otomatik tamamlama için)
   const mevcutHizmetKategorileri = useMemo(() => {
     const set = new Set()
     taseronlar.forEach(t => {
-      const s = t.sifat?.trim()
-      if (s) set.add(s)
+      parseKategoriler(t.sifat).forEach(kat => {
+        if (kat) set.add(kat)
+      })
     })
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'tr-TR'))
   }, [taseronlar])
-
-  const formSifatOnerileri = useMemo(() => {
-    if (!formSifat.trim()) return mevcutHizmetKategorileri.slice(0, 10)
-    const q = formSifat.trim().toLocaleLowerCase('tr-TR')
-    return mevcutHizmetKategorileri.filter(k => k.toLocaleLowerCase('tr-TR').includes(q))
-  }, [formSifat, mevcutHizmetKategorileri])
-
-  const duzSifatOnerileri = useMemo(() => {
-    if (!duzSifat.trim()) return mevcutHizmetKategorileri.slice(0, 10)
-    const q = duzSifat.trim().toLocaleLowerCase('tr-TR')
-    return mevcutHizmetKategorileri.filter(k => k.toLocaleLowerCase('tr-TR').includes(q))
-  }, [duzSifat, mevcutHizmetKategorileri])
 
   // --- ÇEKİRDEK: FİRMALARI VE ÇALIŞANLARI ARKA PLANDA GRUPLAMA (NESTED ARCHITECTURE) ---
   const firmalarGruplanmis = useMemo(() => {
@@ -265,80 +257,23 @@ export default function CariKartlar() {
     return Object.values(gruplar)
   }, [taseronlar, taseronSantiyeHaritasi])
 
-  // Kategoriye Göre Sayılar
-  const kategoriSayilari = useMemo(() => {
-    const sayac = { tumu: 0, taseronlar: 0, is_makinesi: 0, tedarikciler: 0, kurumlar: 0, ortaklar: 0, personel: 0, diger: 0, ikincil: 0 }
-    firmalarGruplanmis.forEach(g => {
-      if (g.ikincil) {
-        sayac.ikincil++
-        return
-      }
-      sayac.tumu++
-      const kat = (g.kategori || '').toLowerCase()
-      const sif = (g.sifat || '').toLowerCase()
-
-      if (kat === 'iş makinesi & hafriyat' || kat === 'iş makinesi' || sif.includes('hafriyat') || sif.includes('makine') || sif.includes('kepçe')) {
-        sayac.is_makinesi++
-      } else if (kat === 'tedarikçiler' || kat === 'tedarikçi') {
-        sayac.tedarikciler++
-      } else if (kat === 'kurumlar' || kat === 'resmi kurumlar' || kat === 'resmi kurumlar & belediyeler') {
-        sayac.kurumlar++
-      } else if (kat === 'ortaklar' || kat === 'ortaklar & malikler' || ORTAKLAR_ISIMLERI.includes(g.firmaAdi)) {
-        sayac.ortaklar++
-      } else if (kat === 'personel' || kat === 'personel & bekçi') {
-        sayac.personel++
-      } else if (kat === 'diğer') {
-        sayac.diger++
-      } else {
-        sayac.taseronlar++
-      }
-    })
-    return sayac
-  }, [firmalarGruplanmis])
-
   // --- FİLTRELENMİŞ FİRMA LİSTESİ ---
   const filtreliFirmalar = useMemo(() => {
     let list = firmalarGruplanmis
 
-    // 1. İkincil / Arşiv Sekmesi
-    if (aktifSekme === 'ikincil') {
+    // 1. İkincil / Arşiv Filtresi
+    if (arsivGoster) {
       list = list.filter(g => g.ikincil)
     } else {
       list = list.filter(g => !g.ikincil)
-
-      // 2. Kategori Sekmesi
-      if (aktifSekme === 'taseronlar') {
-        list = list.filter(g => {
-          const kat = (g.kategori || '').toLowerCase()
-          const sif = (g.sifat || '').toLowerCase()
-          const isMakine = kat.includes('makine') || sif.includes('hafriyat') || sif.includes('makine') || sif.includes('kepçe')
-          return !isMakine && (kat === 'taşeronlar' || kat === 'taşeron' || (!kat && !ORTAKLAR_ISIMLERI.includes(g.firmaAdi)))
-        })
-      } else if (aktifSekme === 'is_makinesi') {
-        list = list.filter(g => {
-          const kat = (g.kategori || '').toLowerCase()
-          const sif = (g.sifat || '').toLowerCase()
-          return kat === 'iş makinesi & hafriyat' || kat === 'iş makinesi' || sif.includes('hafriyat') || sif.includes('makine') || sif.includes('kepçe')
-        })
-      } else if (aktifSekme === 'tedarikciler') {
-        list = list.filter(g => (g.kategori || '').toLowerCase().includes('tedarik'))
-      } else if (aktifSekme === 'kurumlar') {
-        list = list.filter(g => (g.kategori || '').toLowerCase().includes('kurum'))
-      } else if (aktifSekme === 'ortaklar') {
-        list = list.filter(g => (g.kategori || '').toLowerCase().includes('ortak') || ORTAKLAR_ISIMLERI.includes(g.firmaAdi))
-      } else if (aktifSekme === 'personel') {
-        list = list.filter(g => (g.kategori || '').toLowerCase().includes('personel') || (g.kategori || '').toLowerCase().includes('bekçi'))
-      } else if (aktifSekme === 'diger') {
-        list = list.filter(g => g.kategori === 'Diğer')
-      }
     }
 
-    // 3. Şantiye Filtresi
+    // 2. Şantiye Filtresi
     if (filtreSantiye !== 'hepsi') {
       list = list.filter(g => g.santiyeler.has(filtreSantiye))
     }
 
-    // 4. Arama Filtresi (Firma adı, kişi adı, telefon, hizmet alanı, adres)
+    // 3. Arama Filtresi (Firma adı, kişi adı, telefon, hizmet kategorisi / sifat, adres)
     if (arama.trim()) {
       const q = arama.trim().toLocaleLowerCase('tr-TR')
       list = list.filter(g => {
@@ -354,24 +289,24 @@ export default function CariKartlar() {
       })
     }
 
-    // 5. Sıralama
+    // 4. Sıralama
     return list.sort((a, b) => {
       if (siralama === 'alfabetik') return a.firmaAdi.localeCompare(b.firmaAdi, 'tr-TR')
       return new Date(b.anaKayit.created_at || 0) - new Date(a.anaKayit.created_at || 0)
     })
-  }, [firmalarGruplanmis, aktifSekme, filtreSantiye, arama, siralama])
+  }, [firmalarGruplanmis, arsivGoster, filtreSantiye, arama, siralama])
 
   // --- MODAL İŞLEMLERİ: YENİ KAYIT EKLE VEYA DÜZENLE ---
   const yeniKayitModaliAc = () => {
     setModalMod('ekle')
     setModalFirmaId(null)
     setFormFirmaAdi('')
-    setFormKategori(aktifSekme === 'is_makinesi' ? 'İş Makinesi & Hafriyat' : (aktifSekme === 'tedarikciler' ? 'Tedarikçiler' : (aktifSekme === 'kurumlar' ? 'Resmi Kurumlar & Belediyeler' : 'Taşeronlar')))
-    setFormSifat('')
+    setFormKategori('Taşeronlar')
+    setFormKategoriler([])
     setFormAdres('')
     setFormSefGorunur(true)
     setFormPuantajdaGoster(true)
-    setFormSantiyeler([])
+    setFormSantiyeler(santiyeler.length > 0 ? [santiyeler[0].id] : [])
     setFormKisiler([
       { id: '1', ad: '', rol: 'Firma Sahibi', telefon: '', not: '' }
     ])
@@ -384,7 +319,7 @@ export default function CariKartlar() {
     setModalFirmaId(grup.anaKayit.id)
     setFormFirmaAdi(grup.firmaAdi)
     setFormKategori(grup.kategori || 'Taşeronlar')
-    setFormSifat(grup.sifat || '')
+    setFormKategoriler(parseKategoriler(grup.sifat))
     setFormAdres(grup.adres || '')
     setFormSefGorunur(grup.sef_gorunur !== false)
     setFormPuantajdaGoster(grup.puantajda_goster !== false)
@@ -425,6 +360,7 @@ export default function CariKartlar() {
     setKaydediliyor(true)
     try {
       const serializedTel = serializeContacts(formKisiler)
+      const serializedSifat = serializeKategoriler(formKategoriler)
 
       if (modalMod === 'ekle') {
         const { data: yeniCari, error: cariHata } = await supabase
@@ -432,8 +368,8 @@ export default function CariKartlar() {
           .insert({
             ad: formFirmaAdi.trim(),
             firma: formFirmaAdi.trim(),
-            sifat: formSifat.trim(),
-            kategori: formKategori,
+            sifat: serializedSifat,
+            kategori: formKategoriler[0] || 'Taşeronlar',
             telefon: serializedTel,
             adres: formAdres.trim(),
             sef_gorunur: formSefGorunur,
@@ -458,8 +394,8 @@ export default function CariKartlar() {
           .update({
             ad: formFirmaAdi.trim(),
             firma: formFirmaAdi.trim(),
-            sifat: formSifat.trim(),
-            kategori: formKategori,
+            sifat: serializedSifat,
+            kategori: formKategoriler[0] || formKategori || 'Taşeronlar',
             telefon: serializedTel,
             adres: formAdres.trim(),
             sef_gorunur: formSefGorunur,
@@ -576,7 +512,7 @@ export default function CariKartlar() {
     const taseron = taseronlar.find((t) => t.id === id)
     if (taseron) {
       setDuzAd(taseron.ad)
-      setDuzSifat(taseron.sifat || '')
+      setDuzKategoriler(parseKategoriler(taseron.sifat))
       setDuzFirma(taseron.firma || '')
       setDuzTelefon(taseron.telefon || '')
       setDuzAdres(taseron.adres || '')
@@ -647,21 +583,44 @@ export default function CariKartlar() {
     }
   }
 
-  const handleHizliKategoriAta = async (yeniKat) => {
+  const handleKategoriEkle = async (yeniKat) => {
     if (!seciliId || !yeniKat) return
-    const { error } = await supabase.from('taseronlar').update({ sifat: yeniKat }).eq('id', seciliId)
+    const seciliT = taseronlar.find(t => t.id === seciliId)
+    const mevcutlar = parseKategoriler(seciliT?.sifat)
+    const duzgun = (yeniKat || '').trim()
+    if (!duzgun) return
+    if (mevcutlar.some(k => k.toLocaleLowerCase('tr-TR') === duzgun.toLocaleLowerCase('tr-TR'))) return
+    const guncel = [...mevcutlar, duzgun]
+    const serialized = serializeKategoriler(guncel)
+    const { error } = await supabase.from('taseronlar').update({ sifat: serialized }).eq('id', seciliId)
     if (error) {
-      alert('Hizmet kategorisi atanamadı: ' + error.message)
+      alert('Kategori eklenemedi: ' + error.message)
       return
     }
-    setTaseronlar(prev => prev.map(t => t.id === seciliId ? { ...t, sifat: yeniKat } : t))
-    setDuzSifat(yeniKat)
+    setTaseronlar(prev => prev.map(t => t.id === seciliId ? { ...t, sifat: serialized } : t))
+    setDuzKategoriler(guncel)
+  }
+
+  const handleKategoriSil = async (silinecekKat) => {
+    if (!seciliId || !silinecekKat) return
+    const seciliT = taseronlar.find(t => t.id === seciliId)
+    const mevcutlar = parseKategoriler(seciliT?.sifat)
+    const guncel = mevcutlar.filter(k => k !== silinecekKat)
+    const serialized = serializeKategoriler(guncel)
+    const { error } = await supabase.from('taseronlar').update({ sifat: serialized }).eq('id', seciliId)
+    if (error) {
+      alert('Kategori silinemedi: ' + error.message)
+      return
+    }
+    setTaseronlar(prev => prev.map(t => t.id === seciliId ? { ...t, sifat: serialized } : t))
+    setDuzKategoriler(guncel)
   }
 
   const taseronGuncelle = async () => {
     if (!duzAd.trim()) return
+    const serializedSifat = serializeKategoriler(duzKategoriler)
     const { error } = await supabase.from('taseronlar').update({
-      ad: duzAd, sifat: duzSifat, firma: duzFirma, telefon: duzTelefon, adres: duzAdres, kategori: duzKategori
+      ad: duzAd, sifat: serializedSifat, firma: duzFirma, telefon: duzTelefon, adres: duzAdres, kategori: duzKategoriler[0] || duzKategori || 'Taşeronlar'
     }).eq('id', seciliId)
     if (error) { alert('Güncellenemedi: ' + error.message); return }
     setDuzenleModu(false)
@@ -768,36 +727,57 @@ export default function CariKartlar() {
             <p style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700, color: '#333', letterSpacing: '-0.3px' }}>
               {seciliTaseron.firma || seciliTaseron.ad}
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              {seciliTaseron.sifat ? (
-                <span style={{ padding: '3px 10px', background: '#F0FDFA', color: '#0F766E', border: '1px solid #CCFBF1', borderRadius: 8, fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  🏷️ {seciliTaseron.sifat}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+              {parseKategoriler(seciliTaseron.sifat).map((kat, idx) => (
+                <span 
+                  key={idx} 
+                  style={{ 
+                    padding: '3px 8px 3px 10px', 
+                    background: '#F0FDFA', 
+                    color: '#0F766E', 
+                    border: '1px solid #99F6E4', 
+                    borderRadius: 8, 
+                    fontSize: 12, 
+                    fontWeight: 700, 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: 6,
+                    boxShadow: '0 1px 2px rgba(15, 118, 110, 0.05)'
+                  }}
+                >
+                  🏷️ {kat}
+                  {yonetici && (
+                    <button
+                      type="button"
+                      onClick={() => handleKategoriSil(kat)}
+                      style={{ background: 'transparent', border: 'none', color: '#0F766E', cursor: 'pointer', padding: '0 2px', fontWeight: 800, fontSize: 12 }}
+                      title={`${kat} kategorisini sil`}
+                    >
+                      ✕
+                    </button>
+                  )}
                 </span>
-              ) : null}
-              {seciliTaseron.kategori && (
-                <span style={{ padding: '2px 8px', background: '#f1f5f9', color: '#475569', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
-                  {seciliTaseron.kategori}
-                </span>
-              )}
+              ))}
             </div>
 
-            {!seciliTaseron.sifat && mevcutHizmetKategorileri.length > 0 && yonetici && !duzenleModu && (
-              <div style={{ marginTop: 10, background: '#fefce8', padding: '10px 12px', borderRadius: 10, border: '1px dashed #fde047' }}>
-                <span style={{ fontSize: 11.5, fontWeight: 800, color: '#854d0e', display: 'block', marginBottom: 6 }}>
-                  ⚡ Hızlı Hizmet Kategorisi Ata:
-                </span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {mevcutHizmetKategorileri.map((kat, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleHizliKategoriAta(kat)}
-                      style={{ padding: '4px 10px', background: '#ffffff', border: '1px solid #fde047', borderRadius: 8, fontSize: 11.5, fontWeight: 700, color: '#a16207', cursor: 'pointer' }}
-                    >
-                      + {kat}
-                    </button>
-                  ))}
-                </div>
+            {/* Yönetici için Hızlı Kategori Arama & Ekleme (Önerili - 3 Harf) */}
+            {yonetici && !duzenleModu && (
+              <div style={{ marginTop: 8, maxWidth: 380 }}>
+                <KategoriCokluSecici
+                  seciliKategoriler={parseKategoriler(seciliTaseron.sifat)}
+                  onDegisti={(yeniDizi) => {
+                    const serialized = serializeKategoriler(yeniDizi)
+                    supabase.from('taseronlar').update({ sifat: serialized }).eq('id', seciliId).then(({ error }) => {
+                      if (error) alert('Güncellenemedi: ' + error.message)
+                      else {
+                        setTaseronlar(prev => prev.map(t => t.id === seciliId ? { ...t, sifat: serialized } : t))
+                        setDuzKategoriler(yeniDizi)
+                      }
+                    })
+                  }}
+                  mevcutKategoriler={mevcutHizmetKategorileri}
+                  placeholder="+ Kategori ekle (3 harf yazın: örn. Parke, Kapı)..."
+                />
               </div>
             )}
           </div>
@@ -816,38 +796,18 @@ export default function CariKartlar() {
         {duzenleModu ? (
           <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input type="text" placeholder="Firma / Kişi Adı" value={duzAd} onChange={(e) => setDuzAd(e.target.value)} style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
-                <select value={duzKategori} onChange={(e) => setDuzKategori(e.target.value)} style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
-                  <option value="" disabled>Kategori Seçin</option>
-                  <option value="Taşeronlar">Taşeronlar</option>
-                  <option value="İş Makinesi & Hafriyat">İş Makinesi & Hafriyat</option>
-                  <option value="Tedarikçiler">Tedarikçiler</option>
-                  <option value="Resmi Kurumlar & Belediyeler">Resmi Kurumlar & Belediyeler</option>
-                  <option value="Ortaklar & Malikler">Ortaklar & Malikler</option>
-                  <option value="Personel & Bekçi">Personel & Bekçi</option>
-                  <option value="Diğer">Diğer</option>
-                </select>
-              </div>
+              <input type="text" placeholder="Firma / Kişi Adı" value={duzAd} onChange={(e) => setDuzAd(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
 
-              <div style={{ position: 'relative' }}>
-                <input 
-                  type="text" 
-                  placeholder="Hizmet Kategorisi (örn. Doğrama, Kalıp, Hafriyat)" 
-                  value={duzSifat} 
-                  onChange={(e) => { setDuzSifat(e.target.value); setDuzSifatOneriAcik(true) }}
-                  onFocus={() => setDuzSifatOneriAcik(true)}
-                  style={{ width: '100%', padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} 
+              <div>
+                <label style={{ fontSize: 11.5, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                  Hizmet Kategorileri (Örn: Parke, Kapı, Doğrama)
+                </label>
+                <KategoriCokluSecici
+                  seciliKategoriler={duzKategoriler}
+                  onDegisti={setDuzKategoriler}
+                  mevcutKategoriler={mevcutHizmetKategorileri}
+                  placeholder="Kategori ekle (3 harf yazın)..."
                 />
-                {duzSifatOneriAcik && duzSifatOnerileri.length > 0 && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: '1px solid #e2e8f0', zIndex: 50, maxHeight: 180, overflowY: 'auto', marginTop: 4, padding: 4 }}>
-                    {duzSifatOnerileri.map((kat, idx) => (
-                      <div key={idx} onMouseDown={() => { setDuzSifat(kat); setDuzSifatOneriAcik(false) }} style={{ padding: '7px 10px', borderRadius: 6, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', background: duzSifat.toLowerCase() === kat.toLowerCase() ? '#f0fdfa' : 'transparent', color: duzSifat.toLowerCase() === kat.toLowerCase() ? '#0f766e' : '#334155' }}>
-                        🏷️ {kat}
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
 
               <input type="text" placeholder="Firma Adı" value={duzFirma} onChange={(e) => setDuzFirma(e.target.value)} style={{ padding: '12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.05)', background: '#fcfcf9', fontSize: 13, outline: 'none' }} />
@@ -1083,54 +1043,30 @@ export default function CariKartlar() {
         </div>
       </div>
 
-      {/* KATEGORİ SEKMELERİ (TEK BAKIŞTA TÜMÜ GÖRÜNÜR - FLEX-WRAP) */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-        {KATEGORILER.map(k => {
-          const aktif = aktifSekme === k.id
-          const sayi = kategoriSayilari[k.id] || 0
-          return (
-            <button
-              key={k.id}
-              type="button"
-              onClick={() => setAktifSekme(k.id)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '7px 12px',
-                borderRadius: 20,
-                border: aktif ? '1.5px solid #1D9596' : '1px solid #E2E8F0',
-                background: aktif ? '#1D9596' : '#FFFFFF',
-                color: aktif ? '#FFFFFF' : '#475569',
-                fontSize: 12,
-                fontWeight: 800,
-                cursor: 'pointer',
-                boxShadow: aktif ? '0 2px 8px rgba(29, 149, 150, 0.25)' : '0 1px 2px rgba(0,0,0,0.03)',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <span>{k.ikon}</span>
-              <span>{k.ad}</span>
-              <span style={{
-                fontSize: 10.5,
-                background: aktif ? 'rgba(255,255,255,0.25)' : '#F1F5F9',
-                color: aktif ? '#FFFFFF' : '#64748B',
-                padding: '1px 6px',
-                borderRadius: 10,
-                fontWeight: 800
-              }}>
-                {sayi}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+      {/* SIRALAMA VE ARŞİV SEÇİCİ */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: '#64748B' }}>
+            Toplam {filtreliFirmalar.length} kayıt listeleniyor
+          </span>
+          <button
+            type="button"
+            onClick={() => setArsivGoster(!arsivGoster)}
+            style={{
+              padding: '3px 8px',
+              borderRadius: 6,
+              border: arsivGoster ? '1.5px solid #F59E0B' : '1px solid #E2E8F0',
+              background: arsivGoster ? '#FEF3C7' : '#FFFFFF',
+              color: arsivGoster ? '#B45309' : '#64748B',
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            📦 {arsivGoster ? 'Arşivdekiler Gösteriliyor' : 'Arşivdekileri Göster'}
+          </button>
+        </div>
 
-      {/* SIRALAMA SEÇİCİ */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B' }}>
-          Toplam {filtreliFirmalar.length} kayıt listeleniyor
-        </span>
         <div style={{ display: 'inline-flex', background: '#F1F5F9', padding: 3, borderRadius: 8 }}>
           <button 
             type="button"
@@ -1233,14 +1169,11 @@ export default function CariKartlar() {
                           {tekKisi.rol}
                         </span>
                       )}
-                      {grup.sifat && (
-                        <span style={{ fontSize: 11, fontWeight: 700, background: '#F0FDFA', color: '#0F766E', border: '1px solid #CCFBF1', padding: '1px 7px', borderRadius: 6 }}>
-                          🏷️ {grup.sifat}
+                      {parseKategoriler(grup.sifat).map((kat, ki) => (
+                        <span key={ki} style={{ fontSize: 11, fontWeight: 700, background: '#F0FDFA', color: '#0F766E', border: '1px solid #CCFBF1', padding: '1px 7px', borderRadius: 6 }}>
+                          🏷️ {kat}
                         </span>
-                      )}
-                      <span style={{ fontSize: 10.5, fontWeight: 700, background: '#F1F5F9', color: '#475569', padding: '1px 6px', borderRadius: 6 }}>
-                        {grup.kategori}
-                      </span>
+                      ))}
                     </div>
 
                     {/* Tanımlı Şantiyeler */}
@@ -1462,14 +1395,11 @@ export default function CariKartlar() {
                       <span style={{ fontSize: 10.5, fontWeight: 800, background: '#1D9596', color: '#FFFFFF', padding: '1px 7px', borderRadius: 10 }}>
                         👥 {grup.kisiler.length} Yetkili / Usta
                       </span>
-                      {grup.sifat && (
-                        <span style={{ fontSize: 11, fontWeight: 700, background: '#FFFFFF', color: '#0F766E', border: '1px solid #CCFBF1', padding: '1px 7px', borderRadius: 6 }}>
-                          🏷️ {grup.sifat}
+                      {parseKategoriler(grup.sifat).map((kat, ki) => (
+                        <span key={ki} style={{ fontSize: 11, fontWeight: 700, background: '#FFFFFF', color: '#0F766E', border: '1px solid #CCFBF1', padding: '1px 7px', borderRadius: 6 }}>
+                          🏷️ {kat}
                         </span>
-                      )}
-                      <span style={{ fontSize: 10.5, fontWeight: 700, background: '#E2E8F0', color: '#475569', padding: '1px 6px', borderRadius: 6 }}>
-                        {grup.kategori}
-                      </span>
+                      ))}
                     </div>
 
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
@@ -1753,63 +1683,31 @@ export default function CariKartlar() {
                   1. Firma & Hizmet Bilgileri
                 </span>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-                  <div>
-                    <label style={{ fontSize: 11.5, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
-                      Firma / Ekip Adı *
-                    </label>
-                    <input 
-                      type="text" 
-                      placeholder="Örn. Öz Marmara, Cevher Hafriyat, İSKİ" 
-                      value={formFirmaAdi} 
-                      onChange={(e) => setFormFirmaAdi(e.target.value)} 
-                      required
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, outline: 'none' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: 11.5, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
-                      Sınıflandırma / Kategori *
-                    </label>
-                    <select 
-                      value={formKategori} 
-                      onChange={(e) => setFormKategori(e.target.value)}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, outline: 'none', background: '#fff' }}
-                    >
-                      <option value="Taşeronlar">🏗️ Taşeronlar (İmalat Ekipleri)</option>
-                      <option value="İş Makinesi & Hafriyat">🚜 İş Makinesi & Hafriyat</option>
-                      <option value="Tedarikçiler">🧱 Tedarikçiler (Malzeme & Beton)</option>
-                      <option value="Resmi Kurumlar & Belediyeler">🏛️ Resmi Kurumlar & Belediyeler</option>
-                      <option value="Ortaklar & Malikler">👥 Ortaklar & Malikler</option>
-                      <option value="Personel & Bekçi">🛡️ Personel & Bekçi</option>
-                      <option value="Diğer">📂 Diğer</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Hizmet Alanı (Autocomplete) */}
-                <div style={{ position: 'relative', marginBottom: 10 }}>
+                <div style={{ marginBottom: 12 }}>
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
-                    Hizmet Alanı / Branş (Örn: Doğrama, Kalıp, Asansör, Hafriyat)
+                    Firma / Cari / Ekip Adı *
                   </label>
                   <input 
                     type="text" 
-                    placeholder="Hizmet kategorisini yazın veya listeden seçin..." 
-                    value={formSifat} 
-                    onChange={(e) => { setFormSifat(e.target.value); setFormSifatOneriAcik(true) }}
-                    onFocus={() => setFormSifatOneriAcik(true)}
+                    placeholder="Örn. Öz Marmara, Cevher Hafriyat, İSKİ" 
+                    value={formFirmaAdi} 
+                    onChange={(e) => setFormFirmaAdi(e.target.value)} 
+                    required
                     style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, outline: 'none' }}
                   />
-                  {formSifatOneriAcik && formSifatOnerileri.length > 0 && (
-                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: '1px solid #e2e8f0', zIndex: 60, maxHeight: 150, overflowY: 'auto', marginTop: 4, padding: 4 }}>
-                      {formSifatOnerileri.map((kat, idx) => (
-                        <div key={idx} onMouseDown={() => { setFormSifat(kat); setFormSifatOneriAcik(false) }} style={{ padding: '6px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', background: formSifat.toLowerCase() === kat.toLowerCase() ? '#f0fdfa' : 'transparent', color: formSifat.toLowerCase() === kat.toLowerCase() ? '#0f766e' : '#334155' }}>
-                          🏷️ {kat}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                </div>
+
+                {/* Kategoriler / Hizmet Kalemleri (Çoklu Seçici & 3 Harfli Arama) */}
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontSize: 11.5, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                    Hizmet Kategorileri (Birden fazla seçilebilir: örn. Parke, Kapı, Doğrama)
+                  </label>
+                  <KategoriCokluSecici
+                    seciliKategoriler={formKategoriler}
+                    onDegisti={setFormKategoriler}
+                    mevcutKategoriler={mevcutHizmetKategorileri}
+                    placeholder="Kategori yazın veya arayın (en az 3 harf)..."
+                  />
                 </div>
 
                 <div>
