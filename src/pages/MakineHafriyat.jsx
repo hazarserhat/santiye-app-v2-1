@@ -94,7 +94,7 @@ export default function MakineHafriyat() {
 
   // Rehberden taşeron/cari verilerini çek
   useEffect(() => {
-    supabase.from('taseronlar').select('id, ad, sifat, firma').then(({ data, error }) => {
+    supabase.from('taseronlar').select('id, ad, sifat, firma, kategori').then(({ data, error }) => {
       if (!error && data) setTumCariler(data)
     })
   }, [])
@@ -630,13 +630,28 @@ export default function MakineHafriyat() {
     return Object.values(harita)
   }, [hafriyatListesi, seciliTarih, seciliSantiyeId])
 
-  // Rehber Arama Önerileri
+  // Rehber Arama Önerileri (Resmi kurumlar, ortaklar filtrelenir; hafriyat/makine önceliklendirilir)
   const onerilenCariler = useMemo(() => {
-    if (!cariAramaInput.trim()) return tumCariler.slice(0, 10)
+    const filtrelenmis = tumCariler.filter(c => 
+      c.kategori !== 'Kurumlar' && 
+      c.kategori !== 'Resmi Kurumlar' && 
+      c.kategori !== 'Resmi Kurumlar & Belediyeler' && 
+      c.kategori !== 'Ortaklar' && 
+      c.kategori !== 'Ortaklar & Malikler'
+    )
+    if (!cariAramaInput.trim()) {
+      const oncelikli = filtrelenmis.filter(c => 
+        c.kategori === 'İş Makinesi & Hafriyat' || 
+        c.kategori === 'İş Makinesi' ||
+        (c.sifat && (c.sifat.toLowerCase().includes('hafriyat') || c.sifat.toLowerCase().includes('makine') || c.sifat.toLowerCase().includes('kepçe')))
+      )
+      return (oncelikli.length > 0 ? oncelikli : filtrelenmis).slice(0, 10)
+    }
     const aranan = cariAramaInput.toLocaleLowerCase('tr-TR')
-    return tumCariler.filter(c => 
+    return filtrelenmis.filter(c => 
       c.ad?.toLocaleLowerCase('tr-TR').includes(aranan) || 
-      c.firma?.toLocaleLowerCase('tr-TR').includes(aranan)
+      c.firma?.toLocaleLowerCase('tr-TR').includes(aranan) ||
+      c.sifat?.toLocaleLowerCase('tr-TR').includes(aranan)
     ).slice(0, 10)
   }, [tumCariler, cariAramaInput])
 
