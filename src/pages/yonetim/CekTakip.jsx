@@ -4,6 +4,11 @@ import { supabase } from '../../lib/supabase'
 import { useSite } from '../../context/SiteContext'
 import { paraFormatla } from '../../lib/format'
 import { generateAndSharePDF } from '../../lib/pdfGenerator'
+import {
+  getGoogleDriveInlineImageUrl,
+  getGoogleDriveViewUrl,
+  uploadToGoogleDrive
+} from '../../lib/googleDrive'
 
 const ayFormatla = (yilAy) => {
   if (!yilAy || typeof yilAy !== 'string') return ''
@@ -46,13 +51,17 @@ export default function CekTakip() {
   const { santiyeler } = useSite()
   const [cekler, setCekler] = useState([])
   const [aramaMetni, setAramaMetni] = useState('')
-  const [filtreTur, setFiltreTur] = useState('hepsi') // 'hepsi' | 'ciro' | 'kendi_cekimiz' | 'portfoy'
+  const [filtreTur, setFiltreTur] = useState('hepsi') // 'hepsi' | 'kendi_cekimiz' | 'ciro' | 'portfoy' | 'emanet'
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreBanka, setFiltreBanka] = useState('hepsi')
   const [filtreAy, setFiltreAy] = useState('hepsi')
   const [siralamaAlani, setSiralamaAlani] = useState('cek_vadesi')
   const [siralamaYonu, setSiralamaYonu] = useState('asc')
   const [seciliCekler, setSeciliCekler] = useState([])
+
+  // Görsel İnceleme Modalı & Yükleme State'i
+  const [seciliGorsel, setSeciliGorsel] = useState(null)
+  const [yukleniyorGorselId, setYukleniyorGorselId] = useState(null)
 
   // Manuel tür geçersiz kılmaları (Kullanıcı dilerse rozete tıklayarak türü Kendi / Ciro olarak anında değiştirebilir)
   const [turOverrides, setTurOverrides] = useState(() => {
@@ -68,7 +77,7 @@ export default function CekTakip() {
       supabase.from('cekler').select('*, santiyeler(ad)'),
       supabase.from('malikler').select('id, ad_soyad')
     ]).then(([{ data: cekData, error: cekError }, { data: malikData }]) => {
-      if (cekError) { alert('Çekler yüklenemedi: ' + cekError.message); return }
+      if (cekError) { alert('Çekler yüklenemedi: ' + error.message); return }
 
       const tumCekler = cekData || []
       const maliklerListesi = malikData || []
@@ -105,7 +114,6 @@ export default function CekTakip() {
           const alinanOdeyenLower = alinanOdeyen.toLowerCase()
 
           // Gerçekten Malik'ten / Dış Müşteriden mi alınmış?
-          // Eğer ödeyen firma, ortak, şirket veya bizim tarafımız ise, bu çek malik çeki DEĞİL, firmanın/ortağın kendi çekidir.
           const isFirmaVeyaOrtak = alinanOdeyenLower.includes('ortak') ||
                                    alinanOdeyenLower.includes('firma') ||
                                    alinanOdeyenLower.includes('şirket') ||
@@ -114,15 +122,20 @@ export default function CekTakip() {
 
           const isGercekMalik = malikIsimleri.has(alinanOdeyenLower) || (!isFirmaVeyaOrtak && Boolean(alinanOdeyen))
 
-          // Varsayılan Tür Tespiti:
           let varsayilanTur = isGercekMalik && !isFirmaVeyaOrtak ? 'ciro' : 'kendi_cekimiz'
-
-          // Kullanıcı bu çekin türünü manuel değiştirmişse onu uygula
           const overrideTur = turOverrides[ver.id] || turOverrides[eslesenAlinan.id]
           const nihaiTur = overrideTur || varsayilanTur
 
           const kesideci = alinanOdeyen || ver.odeyen || (nihaiTur === 'ciro' ? 'Malik / Keşideci' : 'Biz (Firma)')
           const odenen = ver.odenen || eslesenAlinan.odenen || '—'
+
+          // Emanet Kontrolü
+          const isEmanet = Boolean(
+            ver.is_emanet ||
+            eslesenAlinan.is_emanet ||
+            (ver.aciklama && ver.aciklama.toUpperCase().includes('EMANET')) ||
+            (eslesenAlinan.aciklama && eslesenAlinan.aciklama.toUpperCase().includes('EMANET'))
+          )
 
           ciroBirlestirilmis.push({
             id: ver.id,
@@ -131,6 +144,7 @@ export default function CekTakip() {
             tum_idler: [ver.id, eslesenAlinan.id],
             cek_turu: nihaiTur,
             isCiroEdildi: nihaiTur === 'ciro',
+            is_emanet: isEmanet,
             banka: ver.banka || eslesenAlinan.banka || '',
             cek_seri_no: ver.cek_seri_no || eslesenAlinan.cek_seri_no || '',
             verilis_tarihi: ver.verilis_tarihi || eslesenAlinan.verilis_tarihi || null,
@@ -149,13 +163,17 @@ export default function CekTakip() {
         }
       })
 
-      // 3. Eşleşmeyen Verilenler -> Firmanın Kendi Keşide Ettiği Çekler (Müslüm'e verilen çekler gibi)
-      // Açıklamasında 'ciro' yazsa bile, alınan bir malik çeki yoksa bu çek FİRMANIN/ORTAĞIN KENDİ ÇEKİDİR.
+      // 3. Eşleşmeyen Verilenler -> Firmanın Kendi Keşide Ettiği Çekler
       const kendiCeklerimiz = verilenler
         .filter(ver => !eslesenVerilenIdleri.has(ver.id))
         .map(ver => {
           const overrideTur = turOverrides[ver.id]
           const nihaiTur = overrideTur || 'kendi_cekimiz'
+
+          const isEmanet = Boolean(
+            ver.is_emanet ||
+            (ver.aciklama && ver.aciklama.toUpperCase().includes('EMANET'))
+          )
 
           return {
             ...ver,
@@ -164,6 +182,7 @@ export default function CekTakip() {
             tum_idler: [ver.id],
             cek_turu: nihaiTur,
             isCiroEdildi: nihaiTur === 'ciro',
+            is_emanet: isEmanet,
             kesideci: ver.odeyen || 'Biz (Firma / Ortak)',
             odeyen: ver.odeyen || 'Firma',
             odenen: ver.odenen || '—',
@@ -178,6 +197,11 @@ export default function CekTakip() {
           const overrideTur = turOverrides[al.id]
           const nihaiTur = overrideTur || 'portfoy'
 
+          const isEmanet = Boolean(
+            al.is_emanet ||
+            (al.aciklama && al.aciklama.toUpperCase().includes('EMANET'))
+          )
+
           return {
             ...al,
             alinan_id: al.id,
@@ -185,6 +209,7 @@ export default function CekTakip() {
             tum_idler: [al.id],
             cek_turu: nihaiTur,
             isCiroEdildi: false,
+            is_emanet: isEmanet,
             kesideci: al.odeyen || 'Malik / Keşideci',
             odeyen: al.odeyen || 'Malik / Keşideci',
             odenen: '— (Portföyde / Kasada)',
@@ -237,6 +262,76 @@ export default function CekTakip() {
     }))
   }
 
+  // Emanet Verilen Çek Durumunu Değiştir (Açıklama ve Veritabanı Güncellemesi)
+  const emanetToggle = async (c) => {
+    const simdikiDurum = Boolean(c.is_emanet)
+    const yeniDurum = !simdikiDurum
+    const idler = c.tum_idler && c.tum_idler.length > 0 ? c.tum_idler : [c.id]
+
+    let yeniAciklama = c.aciklama || ''
+    if (yeniDurum) {
+      if (!yeniAciklama.toUpperCase().includes('EMANET')) {
+        yeniAciklama = `[EMANET] ${yeniAciklama}`.trim()
+      }
+    } else {
+      yeniAciklama = yeniAciklama.replace(/\[EMANET\]\s*/gi, '').replace(/\(Emanet Verildi\)\s*/gi, '').trim()
+    }
+
+    // State'i derhal güncelle (gecikmesiz reaksiyon)
+    setCekler(prev => prev.map(item => {
+      if (item.id === c.id || idler.includes(item.id)) {
+        return {
+          ...item,
+          is_emanet: yeniDurum,
+          aciklama: yeniAciklama
+        }
+      }
+      return item
+    }))
+
+    // Veritabanına kaydet
+    try {
+      const { error: err1 } = await supabase.from('cekler').update({ is_emanet: yeniDurum, aciklama: yeniAciklama }).in('id', idler)
+      if (err1) {
+        // Eğer is_emanet kolonu henüz yoksa aciklama ile güncelle
+        await supabase.from('cekler').update({ aciklama: yeniAciklama }).in('id', idler)
+      }
+    } catch (err) {
+      console.error('Emanet durumu kaydedilemedi:', err)
+    }
+  }
+
+  // Çeke Doğrudan Fotoğraf / Belge Yükleme
+  const cekGorselYukle = async (e, c) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setYukleniyorGorselId(c.id)
+
+    try {
+      const adSoyad = c.odenen || c.odeyen || 'Cek'
+      const driveSonuc = await uploadToGoogleDrive(file, 'Cekler', adSoyad, c.verilis_tarihi)
+      if (!driveSonuc.success || !driveSonuc.url) {
+        alert('Görsel yüklenemedi: ' + (driveSonuc.error || 'Bilinmeyen hata'))
+        return
+      }
+
+      const idler = c.tum_idler && c.tum_idler.length > 0 ? c.tum_idler : [c.id]
+      await supabase.from('cekler').update({ belge_url: driveSonuc.url }).in('id', idler)
+
+      setCekler(prev => prev.map(item => {
+        if (item.id === c.id || idler.includes(item.id)) {
+          return { ...item, belge_url: driveSonuc.url }
+        }
+        return item
+      }))
+    } catch (err) {
+      alert('Yükleme hatası: ' + err.message)
+    } finally {
+      setYukleniyorGorselId(null)
+      e.target.value = ''
+    }
+  }
+
   // Çek Silme (Ciro edilmişse hem alınan hem verilen ciro kaydını temizler)
   const cekSil = async (c) => {
     const kisi = c.odenen || c.odeyen || 'İsimsiz'
@@ -268,7 +363,11 @@ export default function CekTakip() {
   const aylar = [...new Set(cekler.map((c) => c.cek_vadesi?.slice(0, 7)).filter(Boolean))].sort()
 
   let liste = cekler
-    .filter((c) => filtreTur === 'hepsi' || c.cek_turu === filtreTur)
+    .filter((c) => {
+      if (filtreTur === 'hepsi') return true
+      if (filtreTur === 'emanet') return Boolean(c.is_emanet)
+      return c.cek_turu === filtreTur
+    })
     .filter((c) => filtreSantiye === 'hepsi' || c.santiye_id === filtreSantiye)
     .filter((c) => filtreBanka === 'hepsi' || c.banka === filtreBanka)
     .filter((c) => filtreAy === 'hepsi' || c.cek_vadesi?.slice(0, 7) === filtreAy)
@@ -283,10 +382,12 @@ export default function CekTakip() {
       const aciklama = (c.aciklama || '').toLowerCase()
       const santiye = (c.santiyeler?.ad || '').toLowerCase()
       const tutarStr = String(c.tutar || '')
+      const emanetStr = c.is_emanet ? 'emanet emaneten' : ''
       const turStr = c.cek_turu === 'ciro' ? 'ciro cirolu cirolanan malik' : (c.cek_turu === 'portfoy' ? 'portföy kasada alinan' : 'kendi verilen firma ortak')
       return odenen.includes(aranan) || odeyen.includes(aranan) || kesideci.includes(aranan) ||
              banka.includes(aranan) || seriNo.includes(aranan) || aciklama.includes(aranan) ||
-             santiye.includes(aranan) || tutarStr.includes(aranan) || turStr.includes(aranan)
+             santiye.includes(aranan) || tutarStr.includes(aranan) || turStr.includes(aranan) ||
+             emanetStr.includes(aranan)
     })
 
   liste = [...liste].sort((a, b) => {
@@ -321,6 +422,8 @@ export default function CekTakip() {
   const ciroCekler = cekler.filter(c => c.cek_turu === 'ciro')
   const kendiCekler = cekler.filter(c => c.cek_turu === 'kendi_cekimiz')
   const portfoyCekler = cekler.filter(c => c.cek_turu === 'portfoy')
+  const emanetCekler = cekler.filter(c => Boolean(c.is_emanet))
+  const emanetToplam = emanetCekler.reduce((t, c) => t + Number(c.tutar || 0), 0)
 
   // Finansal Özet İstatistikleri (Tekilleştirilmiş fiziksel çekler üzerinden hesaplanır)
   const vadesiGelmemis = cekler.filter((c) => c.cek_vadesi && c.cek_vadesi >= bugun)
@@ -337,13 +440,18 @@ export default function CekTakip() {
 
     const basliklar = ['Banka', 'Çek No', 'Tür', 'Veriliş', 'Vade', 'İlgili Kişi / Taşeron (Keşideci)', 'Tutar', 'Açıklama', 'Şantiye', 'Durum']
     const satirVerileri = dataListesi.map(c => {
-      const turEtiketi = c.cek_turu === 'ciro' ? 'Cirolu (Malik)' : (c.cek_turu === 'portfoy' ? 'Portföy (Alınan)' : 'Kendi Çekimiz')
+      let turEtiketi = c.cek_turu === 'ciro' ? 'Cirolu (Malik)' : (c.cek_turu === 'portfoy' ? 'Portföy (Alınan)' : 'Kendi Çekimiz')
+      if (c.is_emanet) turEtiketi += ' [EMANET]'
+
       const kisiMetni = c.cek_turu === 'ciro'
         ? `${c.odenen || '-'} (Keşideci: ${c.kesideci || '-'})`
         : (c.cek_turu === 'portfoy' ? `${c.odeyen || '-'} (Keşideci)` : `${c.odenen || '-'} (Kendi Çekimiz)`)
-      const durumMetni = c.cek_turu === 'ciro'
+      
+      let durumMetni = c.cek_turu === 'ciro'
         ? (c.cek_vadesi && c.cek_vadesi < bugun ? 'Cirolandı (Vadesi Geçti)' : 'Cirolandı (Vade Bekliyor)')
         : (c.cek_vadesi && c.cek_vadesi < bugun ? 'Ödendi' : 'Bekliyor')
+
+      if (c.is_emanet) durumMetni += ' - Emanet'
 
       return [
         c.banka || '-',
@@ -418,6 +526,46 @@ export default function CekTakip() {
         </div>
       </div>
 
+      {/* Emanet Çekler Bilgi Banner'ı */}
+      {emanetCekler.length > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 14px',
+          marginBottom: 10,
+          borderRadius: 10,
+          background: '#FEF3C7',
+          border: '1px solid #F59E0B',
+          color: '#92400E',
+          fontSize: 12.5,
+          fontWeight: 600
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16 }}>🤝</span>
+            <span>
+              Aktif <strong>{emanetCekler.length} adet</strong> emanet verilen çek bulunuyor (Toplam: <strong>{paraFormatla(emanetToplam)} ₺</strong>).
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFiltreTur(filtreTur === 'emanet' ? 'hepsi' : 'emanet')}
+            style={{
+              background: filtreTur === 'emanet' ? '#B45309' : '#FFFFFF',
+              color: filtreTur === 'emanet' ? '#FFFFFF' : '#92400E',
+              border: '1px solid #B45309',
+              borderRadius: 6,
+              padding: '3px 10px',
+              fontSize: 11.5,
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            {filtreTur === 'emanet' ? '✕ Filtreyi Kaldır' : 'Sadece Emanetleri Göster'}
+          </button>
+        </div>
+      )}
+
       {/* ARAMA ÇUBUĞU */}
       <div style={{
         display: 'flex',
@@ -432,7 +580,7 @@ export default function CekTakip() {
         <span style={{ fontSize: 15, marginRight: 8, color: '#64748B' }}>🔍</span>
         <input
           type="text"
-          placeholder="Çek takipte ara (Kişi, malik, banka, çek no, açıklama, şantiye, tutar)..."
+          placeholder="Çek takipte ara (Kişi, malik, banka, çek no, emanet, açıklama, şantiye, tutar)..."
           value={aramaMetni}
           onChange={(e) => setAramaMetni(e.target.value)}
           style={{
@@ -465,7 +613,7 @@ export default function CekTakip() {
         )}
       </div>
 
-      {/* ÇEK TÜRÜ FİLTRESİ */}
+      {/* ÇEK TÜRÜ & EMANET FİLTRELERİ */}
       <div className="filtre-satiri" style={{ marginBottom: 6 }}>
         <button
           className={`filtre-chip ${filtreTur === 'hepsi' ? 'secili' : ''}`}
@@ -505,6 +653,18 @@ export default function CekTakip() {
           }}
         >
           💼 Portföy (Alınan/Kasada) ({portfoyCekler.length})
+        </button>
+        <button
+          className={`filtre-chip ${filtreTur === 'emanet' ? 'secili' : ''}`}
+          onClick={() => setFiltreTur('emanet')}
+          style={{
+            borderColor: filtreTur === 'emanet' ? '#D97706' : '#F59E0B',
+            background: filtreTur === 'emanet' ? '#FEF3C7' : '#FFFBEB',
+            color: '#B45309',
+            fontWeight: 700
+          }}
+        >
+          🤝 Emanet Çekler ({emanetCekler.length})
         </button>
       </div>
 
@@ -569,6 +729,7 @@ export default function CekTakip() {
                 <input type="checkbox" checked={liste.length > 0 && seciliCekler.length === liste.length} onChange={tumunuSecToggle} />
               </th>
               <th style={baslikStil} onClick={() => siralamaTikla('cek_turu')}>Tür{ok('cek_turu')}</th>
+              <th style={{ ...baslikStil, textAlign: 'center', width: 70 }}>Belge</th>
               <th style={baslikStil} onClick={() => siralamaTikla('banka')}>Banka{ok('banka')}</th>
               <th style={baslikStil} onClick={() => siralamaTikla('cek_seri_no')}>Çek No{ok('cek_seri_no')}</th>
               <th style={baslikStil} onClick={() => siralamaTikla('verilis_tarihi')}>Veriliş T.{ok('verilis_tarihi')}</th>
@@ -577,7 +738,7 @@ export default function CekTakip() {
               <th style={baslikStil} onClick={() => siralamaTikla('tutar')}>Tutar{ok('tutar')}</th>
               <th style={{ ...baslikStil, maxWidth: 150 }}>Açıklama</th>
               <th style={baslikStil} onClick={() => siralamaTikla('santiyeler')}>Şantiye{ok('santiyeler')}</th>
-              <th style={baslikStil}>Durum</th>
+              <th style={baslikStil}>Durum / Emanet</th>
               <th style={{ ...baslikStil, width: 48, textAlign: 'center' }}>İşlem</th>
             </tr>
           </thead>
@@ -594,8 +755,10 @@ export default function CekTakip() {
                   style={{
                     backgroundColor: seciliCekler.includes(c.id)
                       ? '#E0F2FE'
-                      : (isMukerrer ? softRenk.bg : 'transparent'),
-                    borderLeft: isMukerrer ? `5px solid ${softRenk.border}` : '5px solid transparent',
+                      : (c.is_emanet ? '#FFFDF5' : (isMukerrer ? softRenk.bg : 'transparent')),
+                    borderLeft: c.is_emanet
+                      ? '5px solid #F59E0B'
+                      : (isMukerrer ? `5px solid ${softRenk.border}` : '5px solid transparent'),
                     transition: 'all 0.15s ease'
                   }}
                 >
@@ -664,6 +827,58 @@ export default function CekTakip() {
                       }}>
                         💼 Portföy
                       </span>
+                    )}
+                  </td>
+
+                  {/* BELGE / GÖRSEL SÜTUNU */}
+                  <td style={{ ...hucreStil, textAlign: 'center' }}>
+                    {c.belge_url ? (
+                      <button
+                        type="button"
+                        onClick={() => setSeciliGorsel(c)}
+                        title="Çek görselini görüntüle / büyüt"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          background: '#F0FDF4',
+                          border: '1px solid #86EFAC',
+                          color: '#15803D',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                        }}
+                      >
+                        🖼️ Görsel
+                      </button>
+                    ) : (
+                      <label
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          padding: '3px 6px',
+                          borderRadius: 6,
+                          background: '#F8FAFC',
+                          border: '1px dashed #CBD5E1',
+                          color: '#64748B',
+                          fontSize: 10.5,
+                          cursor: yukleniyorGorselId === c.id ? 'wait' : 'pointer'
+                        }}
+                        title="Bu çeke ait fotoğraf veya makbuz ekle"
+                      >
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          disabled={yukleniyorGorselId === c.id}
+                          onChange={(e) => cekGorselYukle(e, c)}
+                        />
+                        {yukleniyorGorselId === c.id ? '⏳...' : '📷 Ekle'}
+                      </label>
                     )}
                   </td>
 
@@ -749,30 +964,77 @@ export default function CekTakip() {
                   <td style={{ ...hucreStil, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }} title={c.aciklama}>{c.aciklama || '—'}</td>
                   <td style={hucreStil}>{c.santiyeler?.ad || '—'}</td>
 
-                  {/* DURUM SÜTUNU */}
+                  {/* DURUM / EMANET SÜTUNU */}
                   <td style={hucreStil}>
-                    {c.cek_turu === 'ciro' ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <span className="durum-rozet" style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE' }}>
-                          Ciro Edildi
-                        </span>
-                        {c.cek_vadesi && (
-                          <span style={{ fontSize: 10, color: c.cek_vadesi < bugun ? '#059669' : '#D97706', fontWeight: 600 }}>
-                            {c.cek_vadesi < bugun ? '✓ Vadesi Geçti' : '⏳ Vade Bekliyor'}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        {c.cek_turu === 'ciro' ? (
+                          <span className="durum-rozet" style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE' }}>
+                            Ciro Edildi
                           </span>
+                        ) : (
+                          c.cek_turu === 'portfoy' ? (
+                            c.cek_vadesi && c.cek_vadesi < bugun
+                              ? <span className="durum-rozet rozet-yesil">Tahsil Edildi</span>
+                              : <span className="durum-rozet rozet-mavi" style={{ background: '#FEF3C7', color: '#B45309' }}>Kasada (Bekliyor)</span>
+                          ) : (
+                            c.cek_vadesi && c.cek_vadesi < bugun
+                              ? <span className="durum-rozet rozet-yesil">Ödendi</span>
+                              : <span className="durum-rozet rozet-sari">Bekliyor</span>
+                          )
+                        )}
+
+                        {/* EMANET BUTONU / ROZETİ */}
+                        {c.is_emanet ? (
+                          <button
+                            type="button"
+                            onClick={() => emanetToggle(c)}
+                            title="Emanet işaretini kaldırmak için tıklayın"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              padding: '2px 7px',
+                              borderRadius: 6,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              background: '#FEF3C7',
+                              color: '#B45309',
+                              border: '1px solid #F59E0B',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            🤝 Emanet
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => emanetToggle(c)}
+                            title="Bu çeki 'Emanet Verilen' olarak işaretle"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 2,
+                              padding: '2px 6px',
+                              borderRadius: 5,
+                              fontSize: 9.5,
+                              color: '#94A3B8',
+                              background: 'transparent',
+                              border: '1px dashed #CBD5E1',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            + Emanet
+                          </button>
                         )}
                       </div>
-                    ) : (
-                      c.cek_turu === 'portfoy' ? (
-                        c.cek_vadesi && c.cek_vadesi < bugun
-                          ? <span className="durum-rozet rozet-yesil">Tahsil Edildi</span>
-                          : <span className="durum-rozet rozet-mavi" style={{ background: '#FEF3C7', color: '#B45309' }}>Kasada (Bekliyor)</span>
-                      ) : (
-                        c.cek_vadesi && c.cek_vadesi < bugun
-                          ? <span className="durum-rozet rozet-yesil">Ödendi</span>
-                          : <span className="durum-rozet rozet-sari">Bekliyor</span>
-                      )
-                    )}
+
+                      {c.cek_vadesi && (
+                        <span style={{ fontSize: 10, color: c.cek_vadesi < bugun ? '#059669' : '#D97706', fontWeight: 600 }}>
+                          {c.cek_vadesi < bugun ? '✓ Vadesi Geçti' : '⏳ Vade Bekliyor'}
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   {/* İŞLEM (SİL) */}
@@ -801,7 +1063,7 @@ export default function CekTakip() {
           {liste.length > 0 && (
             <tfoot>
               <tr>
-                <td colSpan="7" style={{ ...hucreStil, fontWeight: 'bold', textAlign: 'right' }}>Filtrelenen Toplam:</td>
+                <td colSpan="8" style={{ ...hucreStil, fontWeight: 'bold', textAlign: 'right' }}>Filtrelenen Toplam:</td>
                 <td style={{ ...hucreStil, fontWeight: 'bold' }}>{paraFormatla(filtreliToplam)} ₺</td>
                 <td colSpan="4" style={hucreStil}></td>
               </tr>
@@ -811,8 +1073,194 @@ export default function CekTakip() {
         {liste.length === 0 && <p className="bos-mesaj">Bu filtrede çek yok.</p>}
       </div>
       <p style={{ fontSize: 11, color: '#888780', marginTop: 8 }}>
-        💡 <strong>Tür Rozetine (🏢/🔄)</strong> tıklayarak dilediğiniz çekin türünü anında 'Kendi Çekimiz' veya 'Cirolu' olarak değiştirebilirsiniz. Maliklerden alınmayan, firmanın/ortağın kendi banka hesabından keşide ettiği tüm çekler 'Kendi Çekimiz' olarak listelenir.
+        💡 <strong>Tür Rozetine (🏢/🔄)</strong> tıklayarak dilediğiniz çekin türünü 'Kendi Çekimiz' veya 'Cirolu' olarak değiştirebilirsiniz. <strong>🖼️ Görsel</strong> butonuna tıklayarak çek fotoğrafını büyük ekranda inceleyebilir, <strong>🤝 Emanet</strong> butonuyla teminat/emanet çeklerini tek dokunuşla işaretleyebilirsiniz.
       </p>
+
+      {/* LIGHTBOX GÖRSEL ÖNİZLEME MODALI */}
+      {seciliGorsel && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16
+          }}
+          onClick={() => setSeciliGorsel(null)}
+        >
+          <div
+            style={{
+              background: '#FFFFFF',
+              borderRadius: 16,
+              maxWidth: 720,
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Başlık */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '14px 18px',
+              borderBottom: '1px solid #E2E8F0',
+              background: '#F8FAFC'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>🖼️ Çek Belgesi</span>
+                  <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 6, background: '#E0F2FE', color: '#0369A1', fontWeight: 600 }}>
+                    {seciliGorsel.banka || 'Banka'} • No: {seciliGorsel.cek_seri_no || '—'}
+                  </span>
+                </h3>
+                <div style={{ fontSize: 12, color: '#64748B', marginTop: 3 }}>
+                  {seciliGorsel.odenen ? `Verilen: ${seciliGorsel.odenen}` : `Ödeyen: ${seciliGorsel.odeyen || '—'}`} • <strong>{paraFormatla(seciliGorsel.tutar)} ₺</strong> • Vade: {seciliGorsel.cek_vadesi ? new Date(seciliGorsel.cek_vadesi).toLocaleDateString('tr-TR') : '—'}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSeciliGorsel(null)}
+                style={{
+                  background: '#F1F5F9',
+                  border: 'none',
+                  borderRadius: 8,
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  color: '#64748B',
+                  fontWeight: 'bold'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Görsel Alanı */}
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#0F172A',
+              padding: 16,
+              minHeight: 280
+            }}>
+              <img
+                src={getGoogleDriveInlineImageUrl(seciliGorsel.belge_url)}
+                alt="Çek Görseli"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '62vh',
+                  objectFit: 'contain',
+                  borderRadius: 8,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                }}
+                onError={(e) => {
+                  e.target.style.display = 'none'
+                  if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'block'
+                }}
+              />
+              <div style={{ display: 'none', textAlign: 'center', color: '#F8FAFC', padding: 24 }}>
+                <p style={{ fontSize: 14, marginBottom: 12 }}>⚠️ Görsel doğrudan yüklenemedi veya izin gerekiyor.</p>
+                <a
+                  href={getGoogleDriveViewUrl(seciliGorsel.belge_url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-block',
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    background: '#2563EB',
+                    color: '#FFFFFF',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    fontSize: 13
+                  }}
+                >
+                  Drive'da Aç / Görüntüle ↗
+                </a>
+              </div>
+            </div>
+
+            {/* Modal Alt Çubuk */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 18px',
+              borderTop: '1px solid #E2E8F0',
+              background: '#FFFFFF'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {seciliGorsel.is_emanet && (
+                  <span style={{ padding: '3px 8px', borderRadius: 6, background: '#FEF3C7', color: '#B45309', fontWeight: 700, fontSize: 11 }}>
+                    🤝 Emanet Verilen Çek
+                  </span>
+                )}
+                {seciliGorsel.aciklama && (
+                  <span style={{ fontSize: 12, color: '#64748B' }}>
+                    Not: {seciliGorsel.aciklama}
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <a
+                  href={getGoogleDriveViewUrl(seciliGorsel.belge_url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    background: '#2563EB',
+                    color: '#FFFFFF',
+                    textDecoration: 'none',
+                    fontSize: 13,
+                    fontWeight: 600
+                  }}
+                >
+                  ↗ Yeni Sekmede Aç
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setSeciliGorsel(null)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    background: '#F1F5F9',
+                    border: '1px solid #CBD5E1',
+                    color: '#475569',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Kapat
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
