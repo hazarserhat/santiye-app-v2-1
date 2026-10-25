@@ -96,7 +96,7 @@ export default function AltMenu() {
     profile?.rol !== 'santiye_sefi'
   )
 
-  // 3. Saha Operasyonları alt öğeleri (Şantiye Haritası, Beton Dökümü, Sevkiyat Planlama, Sevkiyat Kabul, Saha Cep Cetveli)
+  // 3. Saha Operasyonları alt öğeleri (Şantiye Konumları, Beton Dökümü, Sevkiyat Planlama, Sevkiyat Kabul, Saha Cep Cetveli)
   const operasyonAltOgeleri = [
     { 
       yol: '/operasyon', 

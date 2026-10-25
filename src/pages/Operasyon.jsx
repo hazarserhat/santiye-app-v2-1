@@ -167,13 +167,10 @@ export default function Operasyon() {
       )}
 
       {/* SAYFA ÜST BAŞLIĞI */}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
           <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>⚡ Saha Operasyonları</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#0F766E', background: '#CCFBF1', padding: '2px 8px', borderRadius: 6 }}>
-              Şantiye Konumları
-            </span>
+            <span>📍 Şantiye Konumları</span>
           </h2>
           {profile?.sistem_yoneticisi && (
             <Link
@@ -185,95 +182,8 @@ export default function Operasyon() {
           )}
         </div>
         <p style={{ margin: 0, fontSize: 13, color: '#64748B' }}>
-          Şantiyelerin Google Harita konumları, yol tarifleri ve hızlı saha operasyon araçları.
+          Tüm şantiyelerin güncel Google Harita konumları, yol tarifleri ve adres bilgileri.
         </p>
-      </div>
-
-      {/* HIZLI OPERASYON ARAÇLARI ÇUBUĞU */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-          gap: 8,
-          marginBottom: 20
-        }}
-      >
-        <Link
-          to="/beton-dokumu"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 12px',
-            background: '#EFF6FF',
-            borderRadius: 10,
-            border: '1px solid #BFDBFE',
-            textDecoration: 'none',
-            color: '#1E40AF',
-            fontSize: 12.5,
-            fontWeight: 700
-          }}
-        >
-          <span style={{ fontSize: 18 }}>🧪</span>
-          <span>Beton & Mikser</span>
-        </Link>
-        <Link
-          to="/sevkiyat-planlama"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 12px',
-            background: '#F0FDFA',
-            borderRadius: 10,
-            border: '1px solid #99F6E4',
-            textDecoration: 'none',
-            color: '#0F766E',
-            fontSize: 12.5,
-            fontWeight: 700
-          }}
-        >
-          <span style={{ fontSize: 18 }}>🚚</span>
-          <span>Sevkiyat Planı</span>
-        </Link>
-        <Link
-          to="/sevkiyat-kabul"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 12px',
-            background: '#ECFDF5',
-            borderRadius: 10,
-            border: '1px solid #A7F3D0',
-            textDecoration: 'none',
-            color: '#065F46',
-            fontSize: 12.5,
-            fontWeight: 700
-          }}
-        >
-          <span style={{ fontSize: 18 }}>📦</span>
-          <span>Sevkiyat Kabul</span>
-        </Link>
-        <Link
-          to="/saha-cep-cetveli"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 12px',
-            background: '#FFFBEB',
-            borderRadius: 10,
-            border: '1px solid #FDE68A',
-            textDecoration: 'none',
-            color: '#92400E',
-            fontSize: 12.5,
-            fontWeight: 700
-          }}
-        >
-          <span style={{ fontSize: 18 }}>🧮</span>
-          <span>Cep Cetveli</span>
-        </Link>
       </div>
 
       {/* ŞANTİYELER LİSTESİ VE SİMETRİK NİZAMİ AKSİYON KARTLARI */}

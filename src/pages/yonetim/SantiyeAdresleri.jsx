@@ -30,7 +30,7 @@ export default function SantiyeAdresleri() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <h2 style={{ margin: 0 }}>Şantiye Adresleri</h2>
         <Link to="/operasyon" style={{ fontSize: 12.5, fontWeight: 700, color: '#1D9596', textDecoration: 'none' }}>
-          🗺️ Canlı Haritayı Aç →
+          📍 Şantiye Konumlarını Aç →
         </Link>
       </div>
 
