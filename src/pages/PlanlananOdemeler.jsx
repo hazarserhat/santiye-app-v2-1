@@ -26,6 +26,7 @@ export default function PlanlananOdemeler() {
   const [kategoriId, setKategoriId] = useState('')
   const [siklik, setSiklik] = useState('bir_kez')
   const [notMetni, setNotMetni] = useState('')
+  const [aramaMetni, setAramaMetni] = useState('')
   
   const [odenenKisi, setOdenenKisi] = useState('')
   const [secilenCariId, setSecilenCariId] = useState(null)
@@ -339,7 +340,18 @@ export default function PlanlananOdemeler() {
     odemeleriYukle()
   }
 
-  let gorunenler = odemeler.filter(o => o.durum === filtreDurum)
+  let gorunenler = odemeler.filter(o => {
+    if (o.durum !== filtreDurum) return false
+    if (!aramaMetni.trim()) return true
+    const aranan = aramaMetni.toLowerCase().trim()
+    const baslik = (o.baslik || '').toLowerCase()
+    const kisi = (o.taseronlar?.ad || '').toLowerCase()
+    const kategori = (o.masraf_kategorileri?.ad || '').toLowerCase()
+    const notu = (o.not_metni || '').toLowerCase()
+    const santiye = (santiyeler.find(s => s.id === o.santiye_id)?.ad || '').toLowerCase()
+    const tutarStr = String(o.tutar || '')
+    return baslik.includes(aranan) || kisi.includes(aranan) || kategori.includes(aranan) || notu.includes(aranan) || santiye.includes(aranan) || tutarStr.includes(aranan)
+  })
 
   const seciliOdeYontemi = odemeYontemleri.find(o => o.id === odeYontemiId)
   const isOdeKrediKarti = seciliOdeYontemi && seciliOdeYontemi.ad.toLowerCase().includes('kart')
@@ -455,6 +467,53 @@ export default function PlanlananOdemeler() {
         <button className="ekle-buton-genis" onClick={planliOdemeEkle} disabled={yukleniyor} style={{ marginTop: 8 }}>
           {yukleniyor ? 'Planlanıyor...' : 'Takvime Ekle'}
         </button>
+      </div>
+
+      {/* CANLI ARAMA ÇUBUĞU */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        background: '#FFFFFF',
+        borderRadius: 12,
+        border: '1.5px solid #CBD5E1',
+        padding: '2px 14px',
+        marginBottom: 12,
+        boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+      }}>
+        <span style={{ fontSize: 15, marginRight: 8, color: '#64748B' }}>🔍</span>
+        <input
+          type="text"
+          placeholder="Düzenli ödemelerde ara (Başlık, kişi, kategori, not, tutar)..."
+          value={aramaMetni}
+          onChange={(e) => setAramaMetni(e.target.value)}
+          style={{
+            flex: 1,
+            border: 'none',
+            outline: 'none',
+            padding: '9px 0',
+            fontSize: 13.5,
+            background: 'transparent',
+            color: '#1E293B'
+          }}
+        />
+        {aramaMetni && (
+          <button
+            type="button"
+            onClick={() => setAramaMetni('')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#94A3B8',
+              fontSize: 14,
+              cursor: 'pointer',
+              padding: '4px 6px',
+              fontWeight: 'bold'
+            }}
+            title="Aramayı Temizle"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       <div className="gorunum-secici" style={{ marginBottom: 14 }}>

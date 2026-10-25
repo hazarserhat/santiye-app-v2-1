@@ -29,6 +29,7 @@ export default function Cekler({ yon = 'verilen' }) {
   const [duzenlenenId, setDuzenlenenId] = useState(null)
 
   // Filtre ve Sıralama State'leri
+  const [aramaMetni, setAramaMetni] = useState('')
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreBanka, setFiltreBanka] = useState('hepsi')
   const [filtreCari, setFiltreCari] = useState('hepsi')
@@ -518,6 +519,21 @@ export default function Cekler({ yon = 'verilen' }) {
       if (filtreBitis && c.verilis_tarihi > filtreBitis) return false
       return true
     })
+    .filter(c => {
+      if (!aramaMetni.trim()) return true
+      const aranan = aramaMetni.toLowerCase().trim()
+      const konu = (c.odeme_konusu || '').toLowerCase()
+      const odenen = (c.odenen || '').toLowerCase()
+      const odeyen = (c.odeyen || '').toLowerCase()
+      const seriNo = (c.cek_seri_no || '').toLowerCase()
+      const banka = (c.banka || '').toLowerCase()
+      const aciklama = (c.aciklama || '').toLowerCase()
+      const santiye = (c.santiyeler?.ad || '').toLowerCase()
+      const tutarStr = String(c.tutar || '')
+      return konu.includes(aranan) || odenen.includes(aranan) || odeyen.includes(aranan) ||
+             seriNo.includes(aranan) || banka.includes(aranan) || aciklama.includes(aranan) ||
+             santiye.includes(aranan) || tutarStr.includes(aranan)
+    })
 
   const siraliCekler = [...filtrelenmisCekler].sort((a, b) => {
     if (siralamaYonu === 'eklenme_yeni') {
@@ -772,6 +788,53 @@ export default function Cekler({ yon = 'verilen' }) {
         <button className="ekle-buton-genis" onClick={cekKaydetVeyaGuncelle} disabled={yukleniyor} style={{ background: duzenlenenId ? '#0F6E56' : undefined }}>
           {yukleniyor ? 'Kaydediliyor...' : (duzenlenenId ? 'Çek Güncellemesini Kaydet' : 'Çek kaydını kaydet')}
         </button>
+      </div>
+
+      {/* CANLI ARAMA ÇUBUĞU */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        background: '#FFFFFF',
+        borderRadius: 12,
+        border: '1.5px solid #CBD5E1',
+        padding: '2px 14px',
+        marginBottom: 12,
+        boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+      }}>
+        <span style={{ fontSize: 15, marginRight: 8, color: '#64748B' }}>🔍</span>
+        <input
+          type="text"
+          placeholder="Çeklerde ara (Ödenen kişi, konu, banka, çek no, şantiye, tutar)..."
+          value={aramaMetni}
+          onChange={(e) => setAramaMetni(e.target.value)}
+          style={{
+            flex: 1,
+            border: 'none',
+            outline: 'none',
+            padding: '9px 0',
+            fontSize: 13.5,
+            background: 'transparent',
+            color: '#1E293B'
+          }}
+        />
+        {aramaMetni && (
+          <button
+            type="button"
+            onClick={() => setAramaMetni('')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#94A3B8',
+              fontSize: 14,
+              cursor: 'pointer',
+              padding: '4px 6px',
+              fontWeight: 'bold'
+            }}
+            title="Aramayı Temizle"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       {/* FİLTRE VE SIRALAMA ALANI */}

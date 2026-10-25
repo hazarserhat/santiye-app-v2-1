@@ -5,9 +5,23 @@ import { useSite } from '../../context/SiteContext'
 import { paraFormatla } from '../../lib/format'
 import { generateAndSharePDF } from '../../lib/pdfGenerator'
 
+const ayFormatla = (yilAy) => {
+  if (!yilAy || typeof yilAy !== 'string') return ''
+  const parcalar = yilAy.split('-')
+  if (parcalar.length !== 2) return yilAy
+  const [yil, ay] = parcalar
+  const aylarTr = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık']
+  const idx = parseInt(ay, 10) - 1
+  if (idx >= 0 && idx < 12) {
+    return `${aylarTr[idx]} - ${yil}`
+  }
+  return yilAy
+}
+
 export default function CekTakip() {
   const { santiyeler } = useSite()
   const [cekler, setCekler] = useState([])
+  const [aramaMetni, setAramaMetni] = useState('')
   const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
   const [filtreBanka, setFiltreBanka] = useState('hepsi')
   const [filtreAy, setFiltreAy] = useState('hepsi')
@@ -20,18 +34,51 @@ export default function CekTakip() {
       if (error) { alert('Çekler yüklenemedi: ' + error.message); return }
 
       const tumCekler = data || []
-      const ciroCekleri = tumCekler.filter(c => c.yon === 'verilen' && c.aciklama && c.aciklama.includes('(Ciro Edildi)'))
+
+      // Verilen çeklerin seri numaraları
+      const verilenSeriNolari = new Set(
+        tumCekler
+          .filter(c => (c.yon === 'verilen' || !c.yon) && c.cek_seri_no)
+          .map(c => String(c.cek_seri_no).trim().toLowerCase())
+      )
+
+      // Ciro çekleri
+      const ciroCekleri = tumCekler.filter(c => c.yon === 'verilen' && c.aciklama && c.aciklama.toLowerCase().includes('ciro'))
 
       const tekillestirilmis = []
+      const gorulenAnahtarlar = new Set()
+
       tumCekler.forEach(c => {
-        if (c.yon === 'verilen' && c.aciklama && c.aciklama.includes('(Ciro Edildi)')) return // Ciro kopyasını gizle
+        const seriNoTemiz = c.cek_seri_no ? String(c.cek_seri_no).trim().toLowerCase() : ''
+
+        // Eğer bu bir 'alinan' çek ise ve aynı seri numaralı 'verilen' çek zaten varsa:
+        // 'verilen' çek asıl harcama/ödeme kaydı olduğu için alinan kopyayı atla (mükerrerliği önle)
+        if (c.yon === 'alinan' && seriNoTemiz && verilenSeriNolari.has(seriNoTemiz)) {
+          return
+        }
+
+        // Eğer 'verilen' ciro kopyası ise ve aynı seri numaralı alinan çek listede tutuluyorsa atla
+        if (c.yon === 'verilen' && c.aciklama && c.aciklama.toLowerCase().includes('(ciro edildi)')) {
+          const alinanVar = tumCekler.some(a => a.yon === 'alinan' && String(a.cek_seri_no).trim().toLowerCase() === seriNoTemiz)
+          if (alinanVar) return
+        }
+
+        // Aynı seri_no + tutar + vade + kişi mükerrerliğini önle
+        const benzersizAnahtar = seriNoTemiz 
+          ? `${seriNoTemiz}_${c.tutar}_${c.cek_vadesi || ''}_${(c.odenen || c.odeyen || '').trim().toLowerCase()}`
+          : c.id
+
+        if (gorulenAnahtarlar.has(benzersizAnahtar)) {
+          return // Mükerrer kaydı atla
+        }
+        gorulenAnahtarlar.add(benzersizAnahtar)
 
         let eklenecek = { ...c }
-        if (c.yon === 'alinan' && c.cek_seri_no) {
-          const ciroKarsiligi = ciroCekleri.find(ciro => ciro.cek_seri_no === c.cek_seri_no)
+        if (c.yon === 'alinan' && seriNoTemiz) {
+          const ciroKarsiligi = ciroCekleri.find(ciro => String(ciro.cek_seri_no).trim().toLowerCase() === seriNoTemiz)
           if (ciroKarsiligi) {
             eklenecek.isCiroEdildi = true
-            eklenecek.odenen = ciroKarsiligi.odenen || ciroKarsiligi.odeyen // Kime verildiğini asıl çeke yaz
+            eklenecek.odenen = ciroKarsiligi.odenen || ciroKarsiligi.odeyen
             eklenecek.aciklama = `(Ciro: ${ciroKarsiligi.odenen || ciroKarsiligi.odeyen}) ` + (c.aciklama || '')
           }
         }
@@ -56,6 +103,20 @@ export default function CekTakip() {
     .filter((c) => filtreSantiye === 'hepsi' || c.santiye_id === filtreSantiye)
     .filter((c) => filtreBanka === 'hepsi' || c.banka === filtreBanka)
     .filter((c) => filtreAy === 'hepsi' || c.cek_vadesi?.slice(0, 7) === filtreAy)
+    .filter((c) => {
+      if (!aramaMetni.trim()) return true
+      const aranan = aramaMetni.toLowerCase().trim()
+      const odenen = (c.odenen || '').toLowerCase()
+      const odeyen = (c.odeyen || '').toLowerCase()
+      const banka = (c.banka || '').toLowerCase()
+      const seriNo = (c.cek_seri_no || '').toLowerCase()
+      const aciklama = (c.aciklama || '').toLowerCase()
+      const santiye = (c.santiyeler?.ad || '').toLowerCase()
+      const tutarStr = String(c.tutar || '')
+      return odenen.includes(aranan) || odeyen.includes(aranan) || banka.includes(aranan) ||
+             seriNo.includes(aranan) || aciklama.includes(aranan) || santiye.includes(aranan) ||
+             tutarStr.includes(aranan)
+    })
 
   liste = [...liste].sort((a, b) => {
     let av = a[siralamaAlani], bv = b[siralamaAlani]
@@ -166,6 +227,53 @@ export default function CekTakip() {
         </div>
       </div>
 
+      {/* ARAMA VE FİLTRELER */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        background: '#FFFFFF',
+        borderRadius: 12,
+        border: '1.5px solid #CBD5E1',
+        padding: '2px 14px',
+        marginBottom: 12,
+        boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+      }}>
+        <span style={{ fontSize: 15, marginRight: 8, color: '#64748B' }}>🔍</span>
+        <input
+          type="text"
+          placeholder="Çek takipte ara (Kişi, banka, çek no, açıklama, şantiye, tutar)..."
+          value={aramaMetni}
+          onChange={(e) => setAramaMetni(e.target.value)}
+          style={{
+            flex: 1,
+            border: 'none',
+            outline: 'none',
+            padding: '9px 0',
+            fontSize: 13.5,
+            background: 'transparent',
+            color: '#1E293B'
+          }}
+        />
+        {aramaMetni && (
+          <button
+            type="button"
+            onClick={() => setAramaMetni('')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#94A3B8',
+              fontSize: 14,
+              cursor: 'pointer',
+              padding: '4px 6px',
+              fontWeight: 'bold'
+            }}
+            title="Aramayı Temizle"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
       <div className="filtre-satiri">
         <button className={`filtre-chip ${filtreSantiye === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreSantiye('hepsi')}>Tüm şantiyeler</button>
         {santiyeler.map((s) => (
@@ -184,7 +292,9 @@ export default function CekTakip() {
         <div className="filtre-satiri">
           <button className={`filtre-chip ${filtreAy === 'hepsi' ? 'secili' : ''}`} onClick={() => setFiltreAy('hepsi')}>Tüm aylar</button>
           {aylar.map((a) => (
-            <button key={a} className={`filtre-chip ${filtreAy === a ? 'secili' : ''}`} onClick={() => setFiltreAy(a)}>{a}</button>
+            <button key={a} className={`filtre-chip ${filtreAy === a ? 'secili' : ''}`} onClick={() => setFiltreAy(a)}>
+              {ayFormatla(a)}
+            </button>
           ))}
         </div>
       )}
@@ -215,8 +325,22 @@ export default function CekTakip() {
                 </td>
                 <td style={hucreStil}>{c.banka || '—'}</td>
                 <td style={hucreStil}>{c.cek_seri_no || '—'}</td>
-                <td style={hucreStil}>{c.verilis_tarihi ? new Date(c.verilis_tarihi).toLocaleDateString('tr-TR') : '—'}</td>
-                <td style={hucreStil}>{c.cek_vadesi ? new Date(c.cek_vadesi).toLocaleDateString('tr-TR') : '—'}</td>
+                <td style={hucreStil}>
+                  {c.verilis_tarihi ? (
+                    <div>
+                      <div>{new Date(c.verilis_tarihi).toLocaleDateString('tr-TR')}</div>
+                      <div style={{ fontSize: 10, color: '#64748B' }}>{ayFormatla(c.verilis_tarihi.slice(0, 7))}</div>
+                    </div>
+                  ) : '—'}
+                </td>
+                <td style={hucreStil}>
+                  {c.cek_vadesi ? (
+                    <div>
+                      <div>{new Date(c.cek_vadesi).toLocaleDateString('tr-TR')}</div>
+                      <div style={{ fontSize: 10, color: '#1D9596', fontWeight: 600 }}>{ayFormatla(c.cek_vadesi.slice(0, 7))}</div>
+                    </div>
+                  ) : '—'}
+                </td>
                 <td style={hucreStil}>{c.odenen || '—'}</td>
                 <td style={hucreStil}>{paraFormatla(c.tutar)} ₺</td>
                 <td style={{ ...hucreStil, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }} title={c.aciklama}>{c.aciklama || '—'}</td>
