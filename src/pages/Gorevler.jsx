@@ -1101,19 +1101,6 @@ export default function Gorevler() {
             onTouchMove={handleTouchMove} 
             onTouchEnd={handleTouchEnd}
           >
-            {/* Sol Şantiye Önizleme Kartı (Tıklanabilir Peek) */}
-            {toplamSantiye > 1 && (
-              <div 
-                className="karusel-yan-kart sol" 
-                onClick={solaCevir} 
-                title={`Önceki: ${oncekiSantiyeObj?.ad}`}
-              >
-                <div className="ok-butonu">‹</div>
-                <div className="yan-baslik">{oncekiSantiyeObj?.ad}</div>
-                <span className="yan-gorev-sayisi">{santiyeGorevSayilari[oncekiSantiyeObj?.id] || 0}</span>
-              </div>
-            )}
-
             {/* Merkez Ana Aktif Şantiye Kartı */}
             <div className="karusel-merkez-kart">
               {/* Şantiye Başlık Banner'ı */}
@@ -1282,19 +1269,6 @@ export default function Gorevler() {
                 )}
               </div>
             </div>
-
-            {/* Sağ Şantiye Önizleme Kartı (Tıklanabilir Peek) */}
-            {toplamSantiye > 1 && (
-              <div 
-                className="karusel-yan-kart sag" 
-                onClick={sagaCevir} 
-                title={`Sonraki: ${sonrakiSantiyeObj?.ad}`}
-              >
-                <div className="ok-butonu">›</div>
-                <div className="yan-baslik">{sonrakiSantiyeObj?.ad}</div>
-                <span className="yan-gorev-sayisi">{santiyeGorevSayilari[sonrakiSantiyeObj?.id] || 0}</span>
-              </div>
-            )}
           </div>
         </div>
       ) : (

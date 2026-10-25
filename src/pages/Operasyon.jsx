@@ -30,7 +30,7 @@ function haritaSorgusuOlustur(santiye) {
 }
 
 export default function Operasyon() {
-  const { santiyeler, aktifSantiye, santiyeSec, setSantiyeler } = useSite()
+  const { santiyeler, aktifSantiye, setSantiyeler } = useSite()
   const { profile } = useAuth()
 
   const [aramaMetni, setAramaMetni] = useState('')
@@ -264,31 +264,6 @@ export default function Operasyon() {
                         </span>
                       )}
                     </div>
-
-                    {/* Aktif Yap Butonu */}
-                    {!aktifSantiyeMi && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          santiyeSec(s)
-                          setToastMesaj(`✓ Aktif şantiye "${s.ad}" olarak seçildi`)
-                        }}
-                        title="Bu şantiyeyi aktif çalışma şantiyesi yap"
-                        style={{
-                          padding: '4px 8px',
-                          borderRadius: 6,
-                          border: '1px solid #CBD5E1',
-                          background: '#F8FAFC',
-                          color: '#475569',
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          flexShrink: 0
-                        }}
-                      >
-                        Aktif Yap
-                      </button>
-                    )}
                   </div>
 
                   {/* SİMETRİK ADRES METNİ KUTUSU */}

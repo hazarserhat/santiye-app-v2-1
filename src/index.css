@@ -1360,28 +1360,45 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
 }
 
 .karusel-noktalar {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 0;
+  justify-content: flex-start;
+  gap: 7px;
+  background: #FFFFFF;
+  padding: 5px 12px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  margin-top: 8px;
+  max-width: 100%;
+  flex-wrap: wrap;
 }
 
 .karusel-nokta {
-  width: 9px;
-  height: 9px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
-  border: none;
-  background: #CBD5E1;
+  border: 1.5px solid #CBD5E1;
+  background: #E2E8F0;
   cursor: pointer;
   padding: 0;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  outline: none;
+  flex-shrink: 0;
+}
+
+.karusel-nokta:hover {
+  background: #94A3B8;
+  border-color: #64748B;
+  transform: scale(1.18);
 }
 
 .karusel-nokta.aktif {
   background: #1D9596;
-  width: 22px;
-  border-radius: 6px;
+  border-color: #137778;
+  box-shadow: 0 0 0 2.5px rgba(29, 149, 150, 0.35);
+  transform: scale(1.15);
+  border-radius: 50%;
+  width: 13px;
 }
 
 .karusel-nav-btn {
@@ -1415,13 +1432,8 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
 /* Karusel Sahnesi (Viewport) */
 .karusel-sahne {
   position: relative;
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  gap: 10px;
   width: 100%;
   margin-bottom: 20px;
-  perspective: 1000px;
 }
 
 /* Yan Şantiye Önizleme Kartları (Sol & Sağ Peek) */
@@ -1524,7 +1536,7 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
 
 /* Merkez Aktif Şantiye Kartı */
 .karusel-merkez-kart {
-  flex: 1;
+  width: 100%;
   min-width: 0;
   background: #ffffff;
   border-radius: 18px;
