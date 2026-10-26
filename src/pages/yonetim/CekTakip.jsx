@@ -62,6 +62,9 @@ export default function CekTakip() {
   // Aşağı doğru genişleyen filtre açılır menü kontrolü ('tur' | 'santiye' | 'banka' | 'ay' | null)
   const [genisleyenFiltre, setGenisleyenFiltre] = useState(null)
 
+  // Emanet bilgilendirme kutusunu aç/kapat (Default: kapalı/gizli)
+  const [emanetBilgiAcik, setEmanetBilgiAcik] = useState(false)
+
   // Görsel İnceleme Modalı & Yükleme State'i
   const [seciliGorsel, setSeciliGorsel] = useState(null)
   const [yukleniyorGorselId, setYukleniyorGorselId] = useState(null)
@@ -558,25 +561,64 @@ export default function CekTakip() {
         </div>
       </div>
 
-      {/* EMANET ÇEK BİLGİLENDİRME VE DURUM PANELİ */}
+      {/* EMANET ÇEK BİLGİLENDİRME VE DURUM PANELİ (DEFAULT: GİZLİ / TIKLANDIĞINDA AŞAĞI GENİŞLER) */}
       <div style={{
         background: '#FFFBEB',
         border: '1.5px solid #F59E0B',
         borderRadius: 12,
-        padding: '12px 16px',
+        padding: emanetBilgiAcik ? '12px 16px' : '8px 14px',
         marginBottom: 12,
-        boxShadow: '0 2px 6px rgba(245, 158, 11, 0.08)'
+        boxShadow: '0 2px 6px rgba(245, 158, 11, 0.06)',
+        transition: 'all 0.2s ease'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#92400E', fontWeight: 700, fontSize: 13.5 }}>
-            <span style={{ fontSize: 18 }}>🤝</span>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 8
+        }}>
+          {/* Başlık ve Açılır/Kapanır Tetikleyici */}
+          <div
+            onClick={() => setEmanetBilgiAcik(!emanetBilgiAcik)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              color: '#92400E',
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}
+            title="Emanet çalışma mantığını göster / gizle"
+          >
+            <span style={{ fontSize: 16 }}>🤝</span>
             <span>Emanet Verilen Çekler Sistemi</span>
             {emanetCekler.length > 0 && (
               <span style={{ background: '#FDE68A', color: '#78350F', fontSize: 11, padding: '2px 8px', borderRadius: 999, fontWeight: 700 }}>
                 {emanetCekler.length} Adet Aktif ({paraFormatla(emanetToplam)} ₺)
               </span>
             )}
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3,
+              fontSize: 11,
+              color: '#B45309',
+              background: '#FEF3C7',
+              border: '1px solid #FDE68A',
+              padding: '2px 7px',
+              borderRadius: 6,
+              fontWeight: 600,
+              marginLeft: 4
+            }}>
+              <span>ℹ️ Bilgi</span>
+              <span style={{ fontSize: 9 }}>{emanetBilgiAcik ? '▲' : '▼'}</span>
+            </span>
           </div>
+
+          {/* Sadece Emanetleri Göster Butonu */}
           {emanetCekler.length > 0 && (
             <button
               type="button"
@@ -589,8 +631,8 @@ export default function CekTakip() {
                 color: filtreTur === 'emanet' ? '#FFFFFF' : '#92400E',
                 border: '1px solid #B45309',
                 borderRadius: 6,
-                padding: '4px 12px',
-                fontSize: 12,
+                padding: '3px 10px',
+                fontSize: 11.5,
                 fontWeight: 700,
                 cursor: 'pointer'
               }}
@@ -600,19 +642,29 @@ export default function CekTakip() {
           )}
         </div>
 
-        <div style={{ fontSize: 12, color: '#78350F', lineHeight: 1.6 }}>
-          <div style={{ fontWeight: 700, marginBottom: 3 }}>
-            💡 Sistem bir çekin "Emanet" olduğunu 2 farklı şekilde belirler:
-          </div>
-          <div style={{ paddingLeft: 8 }}>
-            <div>
-              • <strong>Açıklama Kontrolü:</strong> Çek kaydedilirken veya düzenlenirken açıklama (not) kısmında <em>"Emanet"</em> kelimesi veya <em>"[EMANET]"</em> ibaresi geçiyorsa, sistem bunu otomatik olarak algılar ve emanet listesine dahil eder.
+        {/* AŞAĞI DOĞRU GENİŞLEYEN AÇIKLAMA METNİ (DEFAULT OLARAK GİZLİ) */}
+        {emanetBilgiAcik && (
+          <div style={{
+            fontSize: 12,
+            color: '#78350F',
+            lineHeight: 1.6,
+            marginTop: 10,
+            paddingTop: 10,
+            borderTop: '1px dashed #FCD34D'
+          }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>
+              💡 Sistem bir çekin "Emanet" olduğunu 2 farklı şekilde belirler:
             </div>
-            <div style={{ marginTop: 2 }}>
-              • <strong>Manuel İşaretleme:</strong> Aşağıdaki tabloda her çekin yanında yer alan <strong>"+ Emanet"</strong> butonuna tıklayarak herhangi bir çeki emanet yapabilir; emanet olan çekin üzerindeki <strong>"🤝 Emanet"</strong> rozetine tıklayarak bu işareti dilediğiniz an kaldırabilirsiniz.
+            <div style={{ paddingLeft: 8 }}>
+              <div>
+                • <strong>Açıklama Kontrolü:</strong> Çek kaydedilirken veya düzenlenirken açıklama (not) kısmında <em>"Emanet"</em> kelimesi veya <em>"[EMANET]"</em> ibaresi geçiyorsa, sistem bunu otomatik olarak algılar ve emanet listesine dahil eder.
+              </div>
+              <div style={{ marginTop: 3 }}>
+                • <strong>Manuel İşaretleme:</strong> Aşağıdaki tabloda her çekin yanında yer alan <strong>"+ Emanet"</strong> butonuna tıklayarak herhangi bir çeki emanet yapabilir; emanet olan çekin üzerindeki <strong>"🤝 Emanet"</strong> rozetine tıklayarak bu işareti dilediğiniz an kaldırabilirsiniz.
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* ARAMA ÇUBUĞU */}
