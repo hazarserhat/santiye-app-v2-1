@@ -58,45 +58,73 @@ export default function Puantaj() {
         </div>
       </div>      
 
-      {/* Sadece Yönetici Serhat Hazar için Sekmeler Görünür */}
+      {/* Sadece Yönetici Serhat Hazar için 3 Ana Sekme Görünür */}
       {isYonetici && (
-        <div className="gorunum-secici" style={{ marginBottom: 20, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button 
-            onClick={() => setSayfa('kayit')} 
-            className={sayfa === 'kayit' ? 'secili-tab' : ''} 
-            style={{ flex: '1 1 calc(33.33% - 8px)', minWidth: '130px', padding: '10px 12px', borderRadius: 12, fontWeight: 700, fontSize: 12.5, border: sayfa === 'kayit' ? 'none' : '1px solid rgba(0,0,0,0.06)', background: sayfa === 'kayit' ? 'linear-gradient(135deg, #1D9596, #117575)' : '#fff', color: sayfa === 'kayit' ? '#fff' : '#555', boxShadow: sayfa === 'kayit' ? '0 4px 12px rgba(29, 149, 150, 0.3)' : '0 2px 6px rgba(0,0,0,0.02)', cursor: 'pointer', textAlign: 'center' }}
-          >
-            1- Yoklama / Kayıt
-          </button>
-          <button 
-            onClick={() => setSayfa('takvim')} 
-            className={sayfa === 'takvim' ? 'secili-tab' : ''} 
-            style={{ flex: '1 1 calc(33.33% - 8px)', minWidth: '130px', padding: '10px 12px', borderRadius: 12, fontWeight: 700, fontSize: 12.5, border: sayfa === 'takvim' ? 'none' : '1px solid rgba(0,0,0,0.06)', background: sayfa === 'takvim' ? 'linear-gradient(135deg, #1D9596, #117575)' : '#fff', color: sayfa === 'takvim' ? '#fff' : '#555', boxShadow: sayfa === 'takvim' ? '0 4px 12px rgba(29, 149, 150, 0.3)' : '0 2px 6px rgba(0,0,0,0.02)', cursor: 'pointer', textAlign: 'center' }}
-          >
-            2- Takvim Matrisi
-          </button>
-          <button 
-            onClick={() => setSayfa('toplam')} 
-            className={sayfa === 'toplam' ? 'secili-tab' : ''} 
-            style={{ flex: '1 1 calc(33.33% - 8px)', minWidth: '130px', padding: '10px 12px', borderRadius: 12, fontWeight: 700, fontSize: 12.5, border: sayfa === 'toplam' ? 'none' : '1px solid rgba(0,0,0,0.06)', background: sayfa === 'toplam' ? 'linear-gradient(135deg, #1D9596, #117575)' : '#fff', color: sayfa === 'toplam' ? '#fff' : '#555', boxShadow: sayfa === 'toplam' ? '0 4px 12px rgba(29, 149, 150, 0.3)' : '0 2px 6px rgba(0,0,0,0.02)', cursor: 'pointer', textAlign: 'center' }}
-          >
-            3- Dönem Raporu
-          </button>
-          <button 
-            onClick={() => setSayfa('calisan_rapor')} 
-            className={sayfa === 'calisan_rapor' ? 'secili-tab' : ''} 
-            style={{ flex: '1 1 calc(50% - 8px)', minWidth: '130px', padding: '10px 12px', borderRadius: 12, fontWeight: 700, fontSize: 12.5, border: sayfa === 'calisan_rapor' ? 'none' : '1px solid rgba(0,0,0,0.06)', background: sayfa === 'calisan_rapor' ? 'linear-gradient(135deg, #1D9596, #117575)' : '#fff', color: sayfa === 'calisan_rapor' ? '#fff' : '#555', boxShadow: sayfa === 'calisan_rapor' ? '0 4px 12px rgba(29, 149, 150, 0.3)' : '0 2px 6px rgba(0,0,0,0.02)', cursor: 'pointer', textAlign: 'center' }}
-          >
-            4- Çalışan Raporu
-          </button>
-          <button 
-            onClick={() => setSayfa('isci_yonetim')} 
-            className={sayfa === 'isci_yonetim' ? 'secili-tab' : ''} 
-            style={{ flex: '1 1 calc(50% - 8px)', minWidth: '130px', padding: '10px 12px', borderRadius: 12, fontWeight: 700, fontSize: 12.5, border: sayfa === 'isci_yonetim' ? 'none' : '1px solid rgba(0,0,0,0.06)', background: sayfa === 'isci_yonetim' ? 'linear-gradient(135deg, #1D9596, #117575)' : '#fff', color: sayfa === 'isci_yonetim' ? '#fff' : '#555', boxShadow: sayfa === 'isci_yonetim' ? '0 4px 12px rgba(29, 149, 150, 0.3)' : '0 2px 6px rgba(0,0,0,0.02)', cursor: 'pointer', textAlign: 'center' }}
-          >
-            5- İşçi Yönetimi
-          </button>
-        </div>
+        <>
+          <div className="tema-segment-bar uclu" style={{ marginBottom: 12 }}>
+            <button
+              type="button"
+              onClick={() => setSayfa('kayit')}
+              className={`tema-segment-btn ${(sayfa === 'kayit' || sayfa === 'takvim') ? 'aktif' : ''}`}
+            >
+              📋 Yoklama & Takvim
+            </button>
+            <button
+              type="button"
+              onClick={() => setSayfa(sayfa === 'calisan_rapor' ? 'calisan_rapor' : 'toplam')}
+              className={`tema-segment-btn ${(sayfa === 'toplam' || sayfa === 'calisan_rapor') ? 'aktif' : ''}`}
+            >
+              📊 Raporlar
+            </button>
+            <button
+              type="button"
+              onClick={() => setSayfa('isci_yonetim')}
+              className={`tema-segment-btn ${sayfa === 'isci_yonetim' ? 'aktif' : ''}`}
+            >
+              👷 İşçi Yönetimi
+            </button>
+          </div>
+
+          {/* Yoklama & Takvim Alt Geçiş Çubuğu */}
+          {(sayfa === 'kayit' || sayfa === 'takvim') && (
+            <div className="tema-segment-bar" style={{ marginBottom: 14 }}>
+              <button
+                type="button"
+                onClick={() => setSayfa('kayit')}
+                className={`tema-segment-btn ${sayfa === 'kayit' ? 'aktif' : ''}`}
+              >
+                ✓ Günlük Yoklama Girişi
+              </button>
+              <button
+                type="button"
+                onClick={() => setSayfa('takvim')}
+                className={`tema-segment-btn ${sayfa === 'takvim' ? 'aktif' : ''}`}
+              >
+                📅 Aylık Takvim Matrisi
+              </button>
+            </div>
+          )}
+
+          {/* Raporlar Alt Geçiş Çubuğu */}
+          {(sayfa === 'toplam' || sayfa === 'calisan_rapor') && (
+            <div className="tema-segment-bar" style={{ marginBottom: 14 }}>
+              <button
+                type="button"
+                onClick={() => setSayfa('toplam')}
+                className={`tema-segment-btn ${sayfa === 'toplam' ? 'aktif' : ''}`}
+              >
+                🏢 Dönem & Taşeron Raporu
+              </button>
+              <button
+                type="button"
+                onClick={() => setSayfa('calisan_rapor')}
+                className={`tema-segment-btn ${sayfa === 'calisan_rapor' ? 'aktif' : ''}`}
+              >
+                👷 Çalışan Yevmiye Raporu
+              </button>
+            </div>
+          )}
+        </>
       )}
       
       {sayfa === 'kayit' && <PuantajKayitEkleme isSantiyeSefi={isSantiyeSefi} isYonetici={isYonetici} />}

@@ -328,8 +328,8 @@ export default function SahaCepCetveli() {
 
   return (
     <div className="sayfa saha-cetvel-sayfasi">
-      {/* 1. ÜST BAŞLIK */}
-      <div className="cetvel-ust-baslik">
+      {/* 1. KOMPAKT ÜST BAŞLIK & UYARI ROZETİ */}
+      <div className="cetvel-ust-baslik" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
         <div className="cetvel-baslik-satiri">
           <span className="cetvel-baslik-ikon">🧮</span>
           <div>
@@ -337,17 +337,9 @@ export default function SahaCepCetveli() {
             <p className="cetvel-alt-baslik">Şantiyede anlık yaklaşık metraj ve malzeme hesaplayıcıları</p>
           </div>
         </div>
-      </div>
-
-      {/* 2. ZORUNLU MÜHENDİSLİK VE YASAL UYARI BANNERI */}
-      <div className="cetvel-uyari-banner">
-        <span className="uyari-kalkan-ikon">⚠️</span>
-        <div className="uyari-icerik">
-          <strong>Hızlı Şantiye Tahmini (Ön Hesaplama):</strong>
-          <p>
-            Bu sayfadaki hesaplayıcılar sahada anlık pratik öngörü ve sipariş ön kontrolü içindir. Statik projeler, resmi metrajlar ve mühendislik hesapları yerine geçmez.
-          </p>
-        </div>
+        <span style={{ fontSize: 11, background: '#FFFBEB', color: '#B45309', border: '1px solid #FDE68A', padding: '4px 10px', borderRadius: 8, fontWeight: 700 }}>
+          ⚠️ Pratik Saha Ön Hesaplama Aracıdır
+        </span>
       </div>
 
       {/* 3. HESAPLAYICILAR MATRİKS IZGARASI (3x3 NİZAMLI GÖRÜNÜM) */}
@@ -404,45 +396,46 @@ export default function SahaCepCetveli() {
             </div>
           </div>
 
-          {/* Giriş Şekli Segmented Control */}
-          <div className="cetvel-blok">
-            <label className="cetvel-blok-etiket">Hesaplama Türü:</label>
-            <div className="duzenli-segmented-bar">
-              <button
-                type="button"
-                className={`segmented-secenek ${demirGirisTuru === 'boy' ? 'aktif' : ''}`}
-                onClick={() => setDemirGirisTuru('boy')}
-              >
-                12 Metrelik Boy (Çubuk) Adedi
-              </button>
-              <button
-                type="button"
-                className={`segmented-secenek ${demirGirisTuru === 'metre' ? 'aktif' : ''}`}
-                onClick={() => setDemirGirisTuru('metre')}
-              >
-                Toplam Metre Cinsinden
-              </button>
+          {/* Giriş Şekli & Miktar Yan Yana */}
+          <div className="cetvel-iki-sutun-grid">
+            <div className="cetvel-blok">
+              <label className="cetvel-blok-etiket">Hesaplama Türü:</label>
+              <div className="duzenli-segmented-bar">
+                <button
+                  type="button"
+                  className={`segmented-secenek ${demirGirisTuru === 'boy' ? 'aktif' : ''}`}
+                  onClick={() => setDemirGirisTuru('boy')}
+                >
+                  12m Boy Adedi
+                </button>
+                <button
+                  type="button"
+                  className={`segmented-secenek ${demirGirisTuru === 'metre' ? 'aktif' : ''}`}
+                  onClick={() => setDemirGirisTuru('metre')}
+                >
+                  Toplam Metre
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* Miktar Girişi */}
-          <div className="cetvel-blok">
-            <label className="cetvel-blok-etiket">
-              {demirGirisTuru === 'boy' ? '12 Metre Çubuk Adedi:' : 'Toplam Metraj:'}
-            </label>
-            <div className="entegre-input-grubu">
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={demirMiktar}
-                onChange={(e) => setDemirMiktar(e.target.value)}
-                className="entegre-input"
-                placeholder="Miktar giriniz"
-              />
-              <span className="entegre-birim-etiket">
-                {demirGirisTuru === 'boy' ? 'Boy (12m)' : 'Metre'}
-              </span>
+            <div className="cetvel-blok">
+              <label className="cetvel-blok-etiket">
+                {demirGirisTuru === 'boy' ? '12 Metre Çubuk Adedi:' : 'Toplam Metraj:'}
+              </label>
+              <div className="entegre-input-grubu">
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={demirMiktar}
+                  onChange={(e) => setDemirMiktar(e.target.value)}
+                  className="entegre-input"
+                  placeholder="Miktar giriniz"
+                />
+                <span className="entegre-birim-etiket">
+                  {demirGirisTuru === 'boy' ? 'Boy (12m)' : 'Metre'}
+                </span>
+              </div>
             </div>
           </div>
 

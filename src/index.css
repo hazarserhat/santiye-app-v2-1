@@ -5707,4 +5707,2638 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   gap: 10px;
 }
 
-
+
+/* BETON DÖKÜMÜ TAKVİM MATRİSİ NOKTALARI & GENİŞLEYEN DETAY ALANI */
+.matris-hucre.beton-dokum-gunu {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+}
+
+.matris-hucre.beton-dokum-gunu:hover {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+}
+
+.matris-santiye-noktalari {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+  max-width: 90%;
+}
+
+.santiye-renk-noktasi {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85);
+}
+
+.santiye-renk-noktasi.buyuk {
+  width: 10px;
+  height: 10px;
+}
+
+.santiye-lejant-oge {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+}
+
+.santiye-lejant-oge:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.santiye-lejant-oge.aktif-lejant {
+  background: #eff6ff;
+  border-color: #0284c7;
+  color: #0f172a;
+}
+
+.secili-gun-etiketi {
+  font-size: 13px;
+  color: #334155;
+}
+
+.dokum-santiye-renk-rozet {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  color: #0f172a;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.dokum-alt-aksiyon-satiri {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.mikser-detay-genislet-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.mikser-detay-genislet-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.mikser-detay-genislet-btn.acik {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+  color: #0369a1;
+}
+
+.dokum-genisleyen-detay-alani {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.mikser-ekleyen-bilgi {
+  font-size: 10.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.mikser-ekleyen-bilgi strong {
+  color: #334155;
+}
+/* YANYANA TAKVİM MATRİSİ VE ŞANTİYE SEÇİMİ KARTLARI */
+.beton-ust-ikili-kart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 720px) {
+  .beton-ust-ikili-kart-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+.santiye-secim-kart-izgara {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.santiye-secim-oge-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  text-align: left;
+  transition: all 0.15s;
+}
+
+.santiye-secim-oge-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.santiye-secim-oge-btn.aktif {
+  background: #eff6ff;
+  border-color: #0284c7;
+  color: #0f172a;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.12);
+}
+
+.santiye-secim-sol {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.santiye-dokum-sayac {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+/* SİMETRİK YANYANA TAKVİM MATRİSİ VE ŞANTİYE SEÇİMİ KARTLARI */
+.beton-ust-ikili-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: stretch;
+  margin-bottom: 12px;
+}
+
+.simetrik-ust-kart {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+  min-width: 0;
+  height: 100%;
+  user-select: none;
+}
+
+.simetrik-ust-kart:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.simetrik-ust-kart.aktif {
+  background: #f0f9ff;
+  border-color: #0284c7;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
+}
+
+.simetrik-kart-ikon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.simetrik-kart-metin {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.simetrik-kart-metin h3 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.simetrik-kart-metin p {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+}
+
+.simetrik-kart-sag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.simetrik-ok-rozet {
+  font-size: 11px;
+  font-weight: 800;
+  color: #0284c7;
+  background: #e0f2fe;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.simetrik-ust-kart.aktif .simetrik-ok-rozet {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.simetrik-temizle-btn {
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+/* YENİ BETON DÖKÜMÜ TEK SATIRLIK KOMPAKT FORM */
+.beton-kompakt-form .form-tek-satir {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.beton-kompakt-form .form-tek-satir .alan-baslik {
+  margin: 0;
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+
+.beton-kompakt-form .form-tek-satir .makine-input,
+.beton-kompakt-form .form-tek-satir .makine-select {
+  height: 36px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.tek-satir-hap-grid {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+}
+
+.tek-satir-hap-grid.besli {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.tek-satir-hap-grid.dortlu {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.tek-satir-chip {
+  padding: 7px 4px !important;
+  font-size: 11.5px !important;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  justify-content: center;
+}
+
+
+/* ========================================================= */
+/* SEVKİYAT PLANLAMA & KABUL TEMA UYUMLU BUTON VE BARLAR     */
+/* ========================================================= */
+
+.sevkiyat-ust-aksiyon-ikili {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.tema-ana-aksiyon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  border: 1.5px solid #1D9596;
+  background: linear-gradient(135deg, #24b8b9 0%, #1D9596 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(29, 149, 150, 0.22);
+}
+
+.tema-ana-aksiyon-btn:hover {
+  background: linear-gradient(135deg, #1D9596 0%, #147576 100%);
+  border-color: #147576;
+  transform: translateY(-1px);
+}
+
+.tema-ana-aksiyon-btn.ikincil {
+  background: #e6f4f1;
+  color: #117575;
+  border: 1.5px solid #1D9596;
+  box-shadow: 0 2px 8px rgba(29, 149, 150, 0.1);
+}
+
+.tema-ana-aksiyon-btn.ikincil:hover {
+  background: #d1ece6;
+  color: #0d5c5d;
+}
+
+/* Kenarlıkla arasında boşluk olmayan tam yapışık (flush) segment bar */
+.tema-segment-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1.5px solid #1D9596;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8fafc;
+  padding: 0;
+  gap: 0;
+  margin-bottom: 12px;
+  width: 100%;
+}
+
+.tema-segment-bar.uclu {
+  grid-template-columns: repeat(3, 1fr);
+  border-color: #cbd5e1;
+  background: #ffffff;
+}
+
+.tema-segment-btn {
+  border: none;
+  border-right: 1px solid rgba(29, 149, 150, 0.25);
+  background: transparent;
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 9px 8px;
+  margin: 0;
+  border-radius: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.tema-segment-bar.uclu .tema-segment-btn {
+  border-right: 1px solid #e2e8f0;
+  font-size: 12px;
+}
+
+.tema-segment-btn:last-child {
+  border-right: none;
+}
+
+.tema-segment-btn:hover:not(.aktif) {
+  background: #e6f4f1;
+  color: #117575;
+}
+
+.tema-segment-btn.aktif {
+  background: #1D9596;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+/* Tema uyumlu kart içi butonlar */
+.tema-teslim-al-btn {
+  background: linear-gradient(135deg, #24b8b9 0%, #1D9596 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(29, 149, 150, 0.25);
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tema-teslim-al-btn:hover {
+  background: #147576;
+}
+
+.tema-duzenle-btn {
+  background: #e6f4f1;
+  border: 1px solid #a7dbd8;
+  color: #117575;
+  border-radius: 7px;
+  padding: 5px 9px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.tema-duzenle-btn:hover {
+  background: #1D9596;
+  border-color: #1D9596;
+  color: #ffffff;
+}
+
+.tema-foto-yukle-label {
+  background: #e6f4f1;
+  border: 1px solid #1D9596;
+  color: #117575;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tema-foto-yukle-label:hover {
+  background: #1D9596;
+  color: #ffffff;
+}
+
+.tema-dosya-sec-kutu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  background: #f4f9f8;
+  border: 1.5px dashed #1D9596;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: #117575;
+  transition: all 0.15s ease;
+}
+
+.tema-dosya-sec-kutu:hover {
+  background: #e6f4f1;
+}
+
+.simetrik-ust-kart.aktif {
+  background: #f0fdfa;
+  border-color: #1D9596;
+  box-shadow: 0 4px 12px rgba(29, 149, 150, 0.15);
+}
+
+.simetrik-ok-rozet {
+  color: #117575;
+  background: #e6f4f1;
+}
+
+.simetrik-ust-kart.aktif .simetrik-ok-rozet {
+  background: #1D9596;
+  color: #ffffff;
+}
+
+.mikser-detay-genislet-btn.acik {
+  background: #e6f4f1;
+  border-color: #99d5d4;
+  color: #117575;
+}
+
+
+/* ========================================================= */
+/* SAHA CEP CETVELİ KOMPAKT DÜZENLEME (SCROLL AZALTICI)      */
+/* ========================================================= */
+
+.saha-cetvel-sayfasi .cetvel-matris-konteynir {
+  margin-bottom: 10px;
+}
+
+.saha-cetvel-sayfasi .cetvel-matris-izgarasi {
+  gap: 6px;
+}
+
+.saha-cetvel-sayfasi .matris-hesap-karti {
+  padding: 6px 8px;
+  min-height: 38px;
+  flex-direction: row;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 10px;
+}
+
+.saha-cetvel-sayfasi .matris-hesap-ikon {
+  font-size: 16px;
+}
+
+.saha-cetvel-sayfasi .matris-hesap-baslik {
+  font-size: 11px;
+  line-height: 1.15;
+}
+
+.saha-cetvel-sayfasi .hesaplayici-karti {
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+
+.saha-cetvel-sayfasi .hesap-karti-ust-bar {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  align-items: center;
+}
+
+.saha-cetvel-sayfasi .hesap-karti-ust-bar h3 {
+  font-size: 14.5px;
+  margin: 0;
+}
+
+.saha-cetvel-sayfasi .hesap-karti-aciklama {
+  font-size: 11px;
+}
+
+.saha-cetvel-sayfasi .cetvel-blok {
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.saha-cetvel-sayfasi .cetvel-blok-etiket {
+  font-size: 11.5px;
+}
+
+.saha-cetvel-sayfasi .entegre-input {
+  padding: 7px 10px;
+  font-size: 14px;
+}
+
+.saha-cetvel-sayfasi .entegre-birim-etiket {
+  padding: 7px 10px;
+  font-size: 11px;
+}
+
+.saha-cetvel-sayfasi .duzenli-segmented-bar {
+  padding: 2px;
+  gap: 3px;
+}
+
+.saha-cetvel-sayfasi .segmented-secenek {
+  padding: 6px 8px;
+  font-size: 11.5px;
+}
+
+.saha-cetvel-sayfasi .demir-cap-izgara-duzenli {
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 5px;
+}
+
+.saha-cetvel-sayfasi .duzenli-cap-btn {
+  padding: 6px 4px;
+  font-size: 12px;
+}
+
+.saha-cetvel-sayfasi .secenek-hap-izgarasi {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  gap: 5px;
+}
+
+.saha-cetvel-sayfasi .secenek-hap {
+  padding: 6px 8px;
+  font-size: 11px;
+}
+
+.saha-cetvel-sayfasi .cetvel-iki-sutun-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.saha-cetvel-sayfasi .cetvel-uc-sutun-grid {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 420px) {
+  .saha-cetvel-sayfasi .cetvel-uc-sutun-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.saha-cetvel-sayfasi .duzenli-select {
+  padding: 7px 10px;
+  font-size: 12.5px;
+}
+
+.saha-cetvel-sayfasi .cetvel-premium-sonuc-karti {
+  padding: 12px 14px;
+  margin-top: 10px;
+  gap: 8px;
+  border-radius: 12px;
+}
+
+.saha-cetvel-sayfasi .sonuc-ana-gosterge-satiri {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.saha-cetvel-sayfasi .sonuc-rakam-vurgu-buyuk strong {
+  font-size: 25px;
+}
+
+.saha-cetvel-sayfasi .sonuc-alt-metrikler-grid {
+  gap: 6px;
+  padding-top: 8px;
+}
+
+.saha-cetvel-sayfasi .metrik-kutu {
+  padding: 6px 10px;
+}
+
+
+/* ========================================================= */
+/* İŞ MAKİNESİ & HAFRİYAT KURUMSAL TEMA (#1D9596) & BORÇ BARI */
+/* ========================================================= */
+
+.yonetici-borc-ozet-bari {
+  background: linear-gradient(135deg, #1D9596 0%, #117575 100%);
+  color: #ffffff;
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  box-shadow: 0 4px 14px rgba(29, 149, 150, 0.25);
+}
+
+.borc-ozet-sol {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.borc-ozet-ikon {
+  font-size: 24px;
+  background: rgba(255, 255, 255, 0.18);
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.borc-ozet-ust-etiket {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #d1fae5;
+  margin-bottom: 2px;
+}
+
+.borc-ozet-ana-tutar {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.borc-ozet-ana-tutar strong {
+  font-size: 22px;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1.1;
+}
+
+.borc-alt-dagilim {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #e6f4f1;
+}
+
+.gorulen-borc-rozet {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 6px 12px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.makine-borc-etiket {
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 7px;
+  white-space: nowrap;
+}
+
+.makine-borc-etiket.acik {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.makine-borc-etiket.odendi {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  text-decoration: line-through;
+}
+
+/* Kurumsal Tema Uyumlamaları (#1D9596) */
+.makine-hafriyat-sayfasi .tur-rozet {
+  background: #e6f4f1;
+  color: #117575;
+  border: 1px solid #99d5d4;
+}
+
+.makine-hafriyat-sayfasi .makine-chip:hover {
+  border-color: #1D9596;
+  background: #f0fdfa;
+  color: #117575;
+}
+
+.makine-hafriyat-sayfasi .makine-chip.aktif {
+  background: linear-gradient(135deg, #1D9596 0%, #117575 100%);
+  border-color: #117575;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(29, 149, 150, 0.28);
+}
+
+.makine-hafriyat-sayfasi .durum-hap.secili {
+  background: #1D9596;
+  border-color: #117575;
+  color: #ffffff;
+}
+
+.makine-hafriyat-sayfasi .makine-checkbox {
+  accent-color: #1D9596;
+}
+
+.makine-hafriyat-sayfasi .makine-kart.kart-secili,
+.makine-hafriyat-sayfasi .sefer-log-satir.satir-secili {
+  border-color: #1D9596;
+  background: #f0fdfa;
+}
+
+.makine-hafriyat-sayfasi .tumunu-sec-link {
+  color: #1D9596;
+}
+
+.makine-hafriyat-sayfasi .sefer-sayi {
+  color: #1D9596;
+}
+
+.makine-hafriyat-sayfasi .arti-sefer-buton {
+  background: linear-gradient(135deg, #1D9596 0%, #117575 100%);
+  box-shadow: 0 4px 10px rgba(29, 149, 150, 0.28);
+}
+
+.makine-hafriyat-sayfasi .arti-sefer-buton:hover {
+  background: linear-gradient(135deg, #178283 0%, #0e6060 100%);
+}
+
+.makine-hafriyat-sayfasi .mutabakat-buton.acik {
+  background: #f0fdfa;
+  color: #117575;
+  border: 1px solid #99d5d4;
+}
+
+.makine-hafriyat-sayfasi .mutabakat-buton.acik:hover {
+  background: #1D9596;
+  color: #ffffff;
+}
+
+.makine-hafriyat-sayfasi .mutabakat-hap.acik {
+  background: #f0fdfa;
+  color: #117575;
+  border: 1px solid #99d5d4;
+}
+
+/* ==========================================================================
+   SAHA OPERASYON TAKİBİ & İŞ MAKİNESİ EKLE MODALI NİZAM VE SİMETRİ STİLLERİ
+   ========================================================================== */
+
+/* 1. Üst Başlık ve Sağ Aksiyon Butonu Simetrisi */
+.makine-ust-baslik-alani {
+  margin-bottom: 14px;
+}
+
+.makine-baslik-satiri {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.makine-baslik-metin h1 {
+  margin: 0 0 2px 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.makine-alt-bilgi {
+  margin: 0;
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.makine-ust-aksiyon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #24b8b9 0%, #1d9596 100%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(29, 149, 150, 0.25);
+  transition: all 0.15s ease;
+}
+
+.makine-ust-aksiyon-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(29, 149, 150, 0.32);
+}
+
+.makine-ust-aksiyon-btn.tam-yukseklik {
+  height: 42px;
+}
+
+/* 2. Yönetici 3 Sütunlu Simetrik Açık Borç Paneli */
+.yonetici-borc-simetrik-panel {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.borc-simetrik-hucre {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.borc-simetrik-hucre.ana-hucre {
+  background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 100%);
+  border-color: rgba(29, 149, 150, 0.35);
+}
+
+.borc-simetrik-hucre.gorulen-hucre {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+  border-color: #bbf7d0;
+}
+
+.borc-simetrik-hucre.dagilim-hucre {
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  gap: 4px;
+  background: #f8fafc;
+}
+
+.borc-hucre-ikon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #e6f4f1;
+  color: #117575;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.borc-hucre-ikon.yesil {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.borc-hucre-icerik {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.borc-hucre-etiket {
+  font-size: 10px;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.borc-hucre-deger {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.borc-hucre-deger.yesil-deger {
+  color: #15803d;
+}
+
+.borc-dagilim-satir {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+}
+
+.dagilim-sol {
+  color: #475569;
+  font-weight: 600;
+}
+
+.dagilim-sag {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+/* 3. Sekme Sayaç Etiketi */
+.sekme-sayac-etiket {
+  font-size: 11.5px;
+  font-weight: 600;
+  opacity: 0.85;
+  margin-left: 4px;
+}
+
+/* 4. Nizami ve Eşit Yükseklikli Filtre & Arama Çubuğu */
+.makine-nizami-filtre-bari {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px 10px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+}
+
+.makine-nizami-filtre-bari .durum-haplari {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 9px;
+  gap: 3px;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.makine-nizami-filtre-bari .durum-hap {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.nizami-arama-kutusu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 36px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.nizami-arama-kutusu:focus-within {
+  background: #ffffff;
+  border-color: #1d9596;
+  box-shadow: 0 0 0 3px rgba(29, 149, 150, 0.12);
+}
+
+.nizami-arama-ikon {
+  font-size: 13px;
+  margin-right: 8px;
+  opacity: 0.65;
+  flex-shrink: 0;
+}
+
+.nizami-arama-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #0f172a;
+  outline: none;
+  padding-right: 22px;
+}
+
+/* 5. İş Makinesi Kart İçi Simetri & Hizalama */
+.kart-ust-sag-grup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.makine-kart .kart-cari-satiri {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.kart-cari-sol,
+.kart-cari-sag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.birim-fiyat-etiket {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+/* 6. Hafriyat Tek Satır Nizami Hızlı Sefer Başlatma Barı */
+.hizli-sefer-nizami-form {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.hizli-sefer-nizami-form .hizli-input-grubu {
+  height: 42px;
+  box-sizing: border-box;
+}
+
+/* 7. İŞ MAKİNESİ EKLE MODALI (NİZAMİ & SİMETRİK TASARIM) */
+.makine-nizami-modal {
+  max-width: 500px;
+  width: 100%;
+  padding: 20px;
+  border-radius: 16px;
+  box-sizing: border-box;
+}
+
+.makine-modal-ust-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.makine-modal-baslik-sol {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.makine-modal-ikon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #e6f4f1 0%, #ccfbf1 100%);
+  color: #117575;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  flex-shrink: 0;
+}
+
+.makine-modal-baslik-sol h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.makine-modal-baslik-sol p {
+  margin: 2px 0 0 0;
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.makine-nizami-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nizami-iki-sutun-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.nizami-alan-kutu {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.nizami-etiket-satiri {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nizami-ust-etiket {
+  font-size: 11px;
+  font-weight: 800;
+  color: #475569;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.nizami-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.nizami-input.kucuk {
+  height: 36px;
+  font-size: 12.5px;
+}
+
+.nizami-input:focus {
+  background: #ffffff;
+  border-color: #1d9596;
+  box-shadow: 0 0 0 3px rgba(29, 149, 150, 0.14);
+}
+
+/* 5 Eşit Sütunlu İş Makinesi Türü Seçimi */
+.nizami-besli-hap-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.nizami-secim-hap {
+  height: 38px;
+  border-radius: 9px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0 4px;
+}
+
+.nizami-secim-hap:hover {
+  border-color: #1d9596;
+  color: #117575;
+}
+
+.nizami-secim-hap.aktif {
+  background: linear-gradient(135deg, #24b8b9 0%, #1d9596 100%);
+  border-color: #1d9596;
+  color: #ffffff;
+  box-shadow: 0 3px 8px rgba(29, 149, 150, 0.25);
+}
+
+/* 8 Eşit Sütunlu Hızlı Saat Seçimi + Özel Saat Girişi */
+.ozel-saat-inline-kutu {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f0fdfa;
+  border: 1px solid rgba(29, 149, 150, 0.35);
+  border-radius: 8px;
+  padding: 2px 8px;
+}
+
+.ozel-saat-etiket {
+  font-size: 11px;
+  font-weight: 700;
+  color: #117575;
+}
+
+.ozel-saat-input {
+  width: 46px;
+  height: 24px;
+  border: 1px solid #99f6e4;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 12.5px;
+  font-weight: 800;
+  text-align: center;
+  outline: none;
+  padding: 0 2px;
+}
+
+.ozel-saat-birim {
+  font-size: 11px;
+  font-weight: 800;
+  color: #117575;
+}
+
+.nizami-sekizli-saat-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+}
+
+.nizami-saat-hap {
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.nizami-saat-hap:hover {
+  border-color: #1d9596;
+  color: #117575;
+}
+
+.nizami-saat-hap.aktif {
+  background: #1d9596;
+  border-color: #1d9596;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(29, 149, 150, 0.25);
+}
+
+/* Birim Etiketli Kompakt Metin Alanları (İlk Saat / Sonraki Saatler / Sefer Fiyatı) */
+.nizami-birim-input-kutu {
+  display: flex;
+  align-items: stretch;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  overflow: hidden;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.hizli-sefer-nizami-form .nizami-birim-input-kutu {
+  height: 42px;
+}
+
+.nizami-birim-input-kutu:focus-within {
+  background: #ffffff;
+  border-color: #1d9596;
+  box-shadow: 0 0 0 3px rgba(29, 149, 150, 0.14);
+}
+
+.nizami-birim-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0f172a;
+  outline: none;
+}
+
+.nizami-birim-etiket {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 9px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  border-left: 1px solid #cbd5e1;
+  flex-shrink: 0;
+}
+
+.canli-tutar-rozet {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #117575;
+  background: #e6f4f1;
+  border: 1px solid rgba(29, 149, 150, 0.3);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+/* Tam Genişlikte Simetrik Dosya Yükleme Alanı */
+.nizami-dosya-sec-kutu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 40px;
+  border-radius: 10px;
+  border: 1.5px dashed #1d9596;
+  background: #f0fdfa;
+  color: #117575;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.nizami-dosya-sec-kutu:hover {
+  background: #ccfbf1;
+}
+
+/* Simetrik Modal Alt Butonları */
+.makine-modal-alt-butonlar {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 10px;
+  padding-top: 8px;
+  margin-top: 2px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.makine-modal-alt-butonlar .modal-iptal-buton,
+.makine-modal-alt-butonlar .modal-onay-buton {
+  height: 42px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13.5px;
+  font-weight: 700;
+  border-radius: 10px;
+}
+
+/* Mobil Uyumluluk */
+@media (max-width: 720px) {
+  .yonetici-borc-simetrik-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .makine-nizami-filtre-bari {
+    grid-template-columns: 1fr;
+  }
+
+  .makine-nizami-filtre-bari .durum-haplari {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .makine-nizami-filtre-bari .durum-hap {
+    flex: 1;
+    padding: 0 6px;
+    font-size: 11px;
+  }
+
+  .hizli-sefer-nizami-form {
+    grid-template-columns: 1fr;
+  }
+
+  .nizami-iki-sutun-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nizami-sekizli-saat-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ==========================================================================
+   ULTRA KOMPAKT SAHA OPERASYON TAKİBİ & İŞ MAKİNESİ GİRİŞ PANELİ (V2)
+   ========================================================================== */
+
+/* 1. Tek Satır Kompakt Üst Bar (Başlık + Takvim + Şantiye + Makine Ekle) */
+.makine-kompakt-ust-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.makine-kompakt-baslik h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.makine-kompakt-aksiyonlar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.kompakt-ust-filtre-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 11px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.kompakt-ust-filtre-btn:hover {
+  border-color: #1d9596;
+}
+
+.kompakt-ust-filtre-btn.aktif {
+  background: #f0fdfa;
+  border-color: #1d9596;
+  color: #0f766e;
+}
+
+.kompakt-santiye-ad {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kompakt-ok {
+  font-size: 9px;
+  opacity: 0.65;
+}
+
+.kompakt-temizle-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.makine-ust-aksiyon-btn.kompakt {
+  height: 34px;
+  padding: 0 13px;
+  font-size: 12.5px;
+  border-radius: 8px;
+}
+
+/* 2. Yöneticiye Özel Tek Satır Kompakt Açık Borç Şeridi */
+.yonetici-kompakt-borc-seridi {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 100%);
+  border: 1px solid rgba(29, 149, 150, 0.35);
+  border-radius: 10px;
+  padding: 7px 12px;
+  margin-bottom: 8px;
+}
+
+.kompakt-borc-sol {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.kompakt-borc-etiket {
+  font-size: 11px;
+  font-weight: 800;
+  color: #0f766e;
+  letter-spacing: 0.02em;
+}
+
+.kompakt-borc-ana {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.kompakt-borc-dagilim {
+  font-size: 11.5px;
+  color: #475569;
+}
+
+.kompakt-borc-dagilim b {
+  color: #0f172a;
+}
+
+.kompakt-gorulen-rozet {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #15803d;
+  background: #dcfce7;
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px solid #bbf7d0;
+}
+
+/* 3. Birleştirilmiş Kompakt Kontrol Barı (Sekmeler + Durum + Arama Tek Satırda) */
+.makine-birlesik-kontrol-bari {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 6px 8px;
+  margin-bottom: 10px;
+}
+
+.kompakt-sekme-grubu {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 3px;
+}
+
+.kompakt-sekme-btn {
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.kompakt-sekme-btn.aktif {
+  background: #1d9596;
+  color: #ffffff;
+  box-shadow: 0 2px 5px rgba(29, 149, 150, 0.25);
+}
+
+.kompakt-durum-grubu {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 2px;
+  border-radius: 8px;
+  gap: 2px;
+}
+
+.kompakt-durum-hap {
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.kompakt-durum-hap.secili {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.kompakt-arama-grubu {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 190px;
+}
+
+.nizami-arama-kutusu.kompakt {
+  height: 32px;
+  flex: 1;
+}
+
+.kompakt-tumunu-sec-btn {
+  height: 32px;
+  padding: 0 9px;
+  border-radius: 7px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #117575;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* 4. Kompakt İş Makinesi Kartları */
+.makine-kart-grid.kompakt {
+  gap: 8px;
+}
+
+.makine-kart.kompakt {
+  padding: 9px 12px;
+  border-radius: 10px;
+  gap: 10px;
+}
+
+.makine-kart.kompakt .kart-ana-icerik {
+  gap: 5px;
+}
+
+.kart-saat-kutusu.kompakt {
+  padding: 3px 9px;
+  border-radius: 7px;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.kart-saat-kutusu.kompakt .saat-rakam {
+  font-size: 14px;
+}
+
+.kart-saat-kutusu.kompakt .saat-yazi {
+  font-size: 10px;
+}
+
+.kart-orta-kompakt-satir {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.kompakt-not-rozet {
+  font-size: 11.5px;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 2px 7px;
+  border-radius: 6px;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kart-eylem-sag {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.kompakt-fis-rozet {
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid #99f6e4;
+  background: #f0fdfa;
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mutabakat-buton.kompakt {
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 6px;
+}
+
+.kart-icon-buton.kompakt {
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.bos-kayit-paneli.kompakt {
+  padding: 22px 16px;
+}
+
+/* ==========================================================================
+   5. ULTRA KOMPAKT İŞ MAKİNESİ EKLEME MODALI (.modal-kutu input OVERRIDE!)
+   ========================================================================== */
+.modal-kutu.makine-nizami-modal {
+  max-width: 460px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  box-sizing: border-box;
+}
+
+/* KRİTİK: Global .modal-kutu input kuralının margin-bottom:12px ve iç kenarlığını sıfırla! */
+.modal-kutu.makine-nizami-modal input,
+.modal-kutu.makine-nizami-modal select {
+  margin-bottom: 0 !important;
+}
+
+.makine-modal-kompakt-baslik {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 9px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.makine-modal-kompakt-baslik h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.makine-nizami-modal .makine-nizami-form {
+  gap: 9px;
+}
+
+.makine-nizami-modal .nizami-iki-sutun-grid {
+  gap: 8px;
+}
+
+.makine-nizami-modal .nizami-alan-kutu {
+  gap: 4px;
+}
+
+.makine-nizami-modal .nizami-ust-etiket {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #475569;
+}
+
+.modal-kutu.makine-nizami-modal .nizami-input {
+  width: 100%;
+  height: 35px;
+  padding: 0 10px !important;
+  border-radius: 8px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #f8fafc !important;
+  color: #0f172a;
+  font-size: 12.5px !important;
+  font-weight: 600;
+  box-sizing: border-box;
+}
+
+.modal-kutu.makine-nizami-modal .nizami-input:focus {
+  background: #ffffff !important;
+  border-color: #1d9596 !important;
+  box-shadow: 0 0 0 2px rgba(29, 149, 150, 0.15);
+}
+
+/* İş Makinesi Türü (5 Eşit Kompakt Buton) */
+.makine-nizami-modal .nizami-besli-hap-grid {
+  gap: 5px;
+}
+
+.makine-nizami-modal .nizami-secim-hap {
+  height: 33px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+/* Çalışma Süresi: Tek Satırda 8 Hızlı Saat + Sağda Özel Saat Kutusu */
+.nizami-dokuzlu-saat-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr) 74px;
+  gap: 4px;
+  align-items: center;
+}
+
+.makine-nizami-modal .nizami-saat-hap {
+  height: 33px;
+  font-size: 12px;
+  border-radius: 7px;
+}
+
+/* Birim Etiketli Kompakt Kutular (Çift Çerçeve Olmadan Tek Nizam Kutu) */
+.kompakt-birim-kutu {
+  display: flex;
+  align-items: stretch;
+  height: 35px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  overflow: hidden;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.kompakt-birim-kutu.saat-ozel-kutu {
+  height: 33px;
+  border-color: #1d9596;
+  background: #ffffff;
+}
+
+.kompakt-birim-kutu:focus-within {
+  background: #ffffff;
+  border-color: #1d9596;
+  box-shadow: 0 0 0 2px rgba(29, 149, 150, 0.15);
+}
+
+.modal-kutu.makine-nizami-modal .kompakt-birim-input,
+.kompakt-birim-input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 8px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  font-size: 12px !important;
+  font-weight: 700;
+  color: #0f172a;
+  outline: none;
+}
+
+.modal-kutu.makine-nizami-modal .kompakt-birim-input.merkez {
+  text-align: center;
+  padding: 0 2px !important;
+  font-size: 12.5px !important;
+  font-weight: 800;
+  color: #0f766e;
+}
+
+.kompakt-birim-etiket {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 7px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  border-left: 1px solid #cbd5e1;
+  flex-shrink: 0;
+}
+
+/* Alt 3'lü Bar: Fiş Ekle + Vazgeç + Kaydı Ekle Tek Satırda! */
+.makine-modal-uclu-alt-bar {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr 1.3fr;
+  gap: 7px;
+  padding-top: 8px;
+  margin-top: 2px;
+  border-top: 1px solid #e2e8f0;
+  align-items: center;
+}
+
+.kompakt-fis-ekle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1.5px dashed #1d9596;
+  background: #f0fdfa;
+  color: #0f766e;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.kompakt-fis-ekle-btn:hover {
+  background: #ccfbf1;
+}
+
+.makine-modal-uclu-alt-bar .modal-iptal-buton,
+.makine-modal-uclu-alt-bar .modal-onay-buton {
+  height: 36px;
+  margin: 0;
+  padding: 0 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 520px) {
+  .nizami-dokuzlu-saat-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .kompakt-birim-kutu.saat-ozel-kutu {
+    grid-column: span 4;
+  }
+  .makine-modal-uclu-alt-bar {
+    grid-template-columns: 1fr 1fr;
+  }
+  .kompakt-fis-ekle-btn {
+    grid-column: span 2;
+  }
+}
+
+/* ==========================================================================
+   SAHA OPERASYON TAKİBİ — KURUMSAL TEMA, METİN HİZALAMA & SİMETRİ (V3)
+   ========================================================================== */
+
+/* 1. Satır: Başlık ve Sağ Aksiyon Butonu */
+.saha-ust-baslik-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.saha-ust-baslik-sol h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1A202C;
+  line-height: 1.25;
+}
+
+.saha-ana-ekle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #24b8b9 0%, #1D9596 100%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(29, 149, 150, 0.25);
+  transition: all 0.15s ease;
+}
+
+.saha-ana-ekle-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(29, 149, 150, 0.32);
+}
+
+.saha-ana-ekle-btn.tam-genislik {
+  width: 100%;
+  height: 38px;
+}
+
+.saha-ana-ekle-btn .arti-ikon {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* 2. Satır: Takvim Matrisi & Şantiye Seçimi (1fr | 1fr Tam Simetrik İkili Kart) */
+.saha-simetrik-ikili-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.saha-secici-kart {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid #D3D1C7;
+  background: #ffffff;
+  color: #212124;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.saha-secici-kart:hover {
+  border-color: #1D9596;
+}
+
+.saha-secici-kart.aktif {
+  background: #f0fdfa;
+  border-color: #1D9596;
+}
+
+.saha-secici-sol {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.saha-secici-ikon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.saha-secici-metin {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.saha-secici-etiket {
+  font-size: 10.5px;
+  color: #5F5E5A;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.saha-secici-deger {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #212124;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saha-secici-ok {
+  font-size: 10px;
+  color: #5F5E5A;
+  flex-shrink: 0;
+}
+
+.saha-secici-temizle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 10px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 3. Satır: Yönetici Borç Özeti (Uygulamanın .ozet-satiri Temasında 1fr | 1fr İkili Kart) */
+.saha-borc-ozet-ikili {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.saha-ozet-kart {
+  background: #ffffff;
+  border: 1px solid #D3D1C7;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 3px;
+  box-sizing: border-box;
+}
+
+.saha-ozet-kart.acik-borc {
+  border-color: rgba(29, 149, 150, 0.45);
+  background: linear-gradient(to bottom, #ffffff, #f0fdfa);
+}
+
+.saha-ozet-etiket {
+  font-size: 11px;
+  font-weight: 600;
+  color: #5F5E5A;
+}
+
+.saha-ozet-tutar {
+  font-size: 17px;
+  font-weight: 800;
+  color: #1A202C;
+  line-height: 1.2;
+}
+
+.saha-ozet-tutar.yesil {
+  color: #0B6B41;
+}
+
+.saha-ozet-alt {
+  font-size: 10.5px;
+  color: #5F5E5A;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 4. Satır: Tam Genişlik Simetrik Sekme Seçici (1fr | 1fr) */
+.saha-sekme-secici {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.saha-sekme-buton {
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid #D3D1C7;
+  background: #ffffff;
+  color: #5F5E5A;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.saha-sekme-buton.aktif {
+  background: #1D9596;
+  border-color: #1D9596;
+  color: #ffffff;
+  box-shadow: 0 3px 8px rgba(29, 149, 150, 0.25);
+}
+
+/* 5. Satır: Kurumsal Filtre ve Arama Paneli */
+.saha-filtre-kapsayici {
+  background: #ffffff;
+  border: 1px solid #D3D1C7;
+  border-radius: 12px;
+  padding: 8px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.saha-durum-uclu {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.saha-durum-btn {
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+  background: #F8F7F2;
+  color: #5F5E5A;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.saha-durum-btn.aktif {
+  background: #1D9596;
+  border-color: #1D9596;
+  color: #ffffff;
+}
+
+.saha-arama-satiri {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.saha-arama-input-kutu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #D3D1C7;
+  background: #F8F7F2;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+.saha-arama-input-kutu:focus-within {
+  background: #ffffff;
+  border-color: #1D9596;
+}
+
+.saha-arama-ikon {
+  font-size: 13px;
+  margin-right: 6px;
+  opacity: 0.65;
+  flex-shrink: 0;
+}
+
+.saha-arama-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 12.5px;
+  color: #212124;
+  outline: none;
+  padding-right: 18px;
+}
+
+.saha-arama-temizle {
+  position: absolute;
+  right: 8px;
+  border: none;
+  background: transparent;
+  color: #5F5E5A;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.saha-tumunu-sec-btn {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid #D3D1C7;
+  background: #ffffff;
+  color: #1D9596;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* 6. Satır: Simetrik ve Temaya Uygun İş Makinesi Kayıt Kartları */
+.saha-kart-listesi {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.saha-kayit-karti {
+  background: #ffffff;
+  border: 1px solid #D3D1C7;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+.saha-kayit-karti.secili {
+  border-color: #1D9596;
+  background: #f0fdfa;
+}
+
+.saha-kayit-karti.goruldu {
+  border-color: #bbf7d0;
+  background: #fcfdfc;
+}
+
+.saha-kart-ust,
+.saha-kart-orta,
+.saha-kart-alt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.saha-kart-ust-sol,
+.saha-kart-ust-sag,
+.saha-kart-orta-sol,
+.saha-kart-orta-sag,
+.saha-kart-alt-sol,
+.saha-kart-alt-sag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.saha-makine-rozet {
+  font-size: 12px;
+  font-weight: 800;
+  color: #117575;
+  background: #e6f4f1;
+  border: 1px solid rgba(29, 149, 150, 0.3);
+  padding: 2px 9px;
+  border-radius: 6px;
+}
+
+.saha-santiye-etiket {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #212124;
+}
+
+.saha-tutar-etiket {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.saha-tutar-etiket.acik {
+  background: #FCEFD1;
+  color: #8A5A00;
+}
+
+.saha-tutar-etiket.odendi {
+  background: #DCF3E7;
+  color: #0B6B41;
+}
+
+.saha-saat-rozet {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  background: #F8F7F2;
+  border: 1px solid #D3D1C7;
+  color: #212124;
+  padding: 3px 9px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.saha-saat-rozet strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1D9596;
+}
+
+.saha-firma-etiket {
+  font-size: 12px;
+  font-weight: 600;
+  color: #212124;
+  background: #F8F7F2;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.saha-firma-ata-btn {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #8A5A00;
+  background: #FCEFD1;
+  border: none;
+  padding: 3px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.saha-birim-bilgi {
+  font-size: 11px;
+  color: #5F5E5A;
+  font-weight: 600;
+}
+
+.saha-tarih-etiket {
+  font-size: 11.5px;
+  color: #888780;
+  font-weight: 600;
+}
+
+.saha-kart-aciklama {
+  font-size: 12.5px;
+  color: #212124;
+  background: #F8F7F2;
+  padding: 6px 10px;
+  border-radius: 8px;
+  line-height: 1.35;
+}
+
+.saha-kart-alt {
+  padding-top: 8px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.saha-hesap-btn {
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.saha-hesap-btn.kucuk {
+  height: 26px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.saha-hesap-btn.bekliyor {
+  background: #f0fdfa;
+  border: 1px solid #1D9596;
+  color: #117575;
+}
+
+.saha-hesap-btn.bekliyor:hover {
+  background: #1D9596;
+  color: #ffffff;
+}
+
+.saha-hesap-btn.goruldu {
+  background: #DCF3E7;
+  border: 1px solid #86efac;
+  color: #0B6B41;
+}
+
+.saha-ikon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid #D3D1C7;
+  background: #ffffff;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.saha-ikon-btn:hover {
+  border-color: #1D9596;
+  background: #f0fdfa;
+}
+
+.saha-ikon-btn.sil:hover {
+  border-color: #dc2626;
+  background: #fee2e2;
+}
+
+/* 7. Hafriyat Sefer Başlatma Kartı */
+.saha-sefer-baslat-kart {
+  background: #ffffff;
+  border: 1px solid #D3D1C7;
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.saha-sefer-ust-satir {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.saha-kamyon-sayac-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #F8F7F2;
+  border-radius: 10px;
+  padding: 8px 12px;
+}

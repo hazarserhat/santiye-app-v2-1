@@ -217,14 +217,32 @@ export default function AnlasmaPlanlama() {
     }
   }
 
+  const tekilDosyaSil = async (dosyaObj) => {
+    if (!window.confirm('Bu sözleşme/anlaşma belgesini silmek istediğinize emin misiniz?')) return
+    setYukleniyor(true)
+    try {
+      const kalemAdi = kalemler.find(k => k.id === seciliHems?.kalemId)?.ad || 'Genel'
+      if (dosyaObj.url && isGoogleDriveUrl(dosyaObj.url)) {
+        await moveToSilinenler(dosyaObj.url, `Planlama/${kalemAdi}`)
+      }
+      await supabase.from('planlama_dosyalari').delete().eq('id', dosyaObj.id)
+      verileriGetir()
+    } catch (err) {
+      alert('Belge silinemedi: ' + err.message)
+    } finally {
+      setYukleniyor(false)
+    }
+  }
+
   const anlasmaSil = async () => {
     if (!window.confirm('Bu anlaşmayı tamamen silmek istediğinize emin misiniz?')) return
     setYukleniyor(true)
     try {
+      const kalemAdi = kalemler.find(k => k.id === seciliHems?.kalemId)?.ad || 'Genel'
       const anlasmaDosyalari = dosyalar.filter(d => d.anlasma_id === aktifAnlasma.id)
       for (const d of anlasmaDosyalari) {
         if (d.url && isGoogleDriveUrl(d.url)) {
-          await moveToSilinenler(d.url, 'Planlama')
+          await moveToSilinenler(d.url, `Planlama/${kalemAdi}`)
         }
       }
       
@@ -594,12 +612,20 @@ export default function AnlasmaPlanlama() {
                     <div style={{ fontSize: 12, color: '#666', fontWeight: 600, marginBottom: 8 }}>Yüklenmiş Dosyalar:</div>
                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                       {dosyalar.filter(d => d.anlasma_id === aktifAnlasma.id).map(f => (
-                        <a key={f.id} href={getGoogleDriveViewUrl(f.url)} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
-                          <div style={{ padding: '8px 12px', background: '#f0f7f7', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6, color: '#1D9596', fontSize: 12, fontWeight: 600, border: '1px solid rgba(29, 149, 150, 0.2)' }}>
+                        <div key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f0f7f7', borderRadius: 8, padding: '6px 10px', border: '1px solid rgba(29, 149, 150, 0.2)' }}>
+                          <a href={getGoogleDriveViewUrl(f.url)} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, color: '#1D9596', fontSize: 12, fontWeight: 600 }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                             Belge Gör
-                          </div>
-                        </a>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => tekilDosyaSil(f)}
+                            title="Belgeyi Sil"
+                            style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 4, width: 18, height: 18, fontSize: 10, fontWeight: 700, cursor: 'pointer', marginLeft: 4 }}
+                          >
+                            ✕
+                          </button>
+                        </div>
                       ))}
                     </div>
                   </div>

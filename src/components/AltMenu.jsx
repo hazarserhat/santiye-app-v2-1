@@ -9,7 +9,7 @@ export default function AltMenu() {
   const location = useLocation()
   const navigate = useNavigate()
   
-  // Aktif açılır menü: 'finans' | 'imalat' | 'operasyon' | 'depolama' | null
+  // Aktif açılır menü: 'finans' | 'imalat' | 'operasyon' | 'depolama' | 'portfoy' | null
   const [acikMenu, setAcikMenu] = useState(null)
 
   // Sayfa değiştiğinde açılır menüyü kapat
@@ -27,6 +27,12 @@ export default function AltMenu() {
       return () => window.removeEventListener('keydown', handleKeyDown)
     }
   }, [acikMenu])
+
+  // Sadece "Serhat Hazar" yönetici kontrolü
+  const isSerhatHazar = Boolean(
+    profile?.ad_soyad?.toLocaleLowerCase('tr-TR').includes('serhat') ||
+    profile?.email?.toLowerCase().includes('serhat')
+  )
 
   // 1. Finans alt öğeleri ve yetki kontrolü
   const finansAltOgeleri = [
@@ -87,16 +93,7 @@ export default function AltMenu() {
     },
   ]
 
-  const isYoneticiSerhat = Boolean(
-    profile?.sistem_yoneticisi ||
-    profile?.ad_soyad?.toLowerCase().includes('serhat') ||
-    profile?.email?.toLowerCase().includes('serhat') ||
-    profile?.rol === 'yonetici' ||
-    profile?.rol === 'koordinator' ||
-    profile?.rol !== 'santiye_sefi'
-  )
-
-  // 3. Saha Operasyonları alt öğeleri (Şantiye Konumları, Beton Dökümü, Sevkiyat Planlama, Sevkiyat Kabul, Saha Cep Cetveli)
+  // 3. Saha Operasyonları alt öğeleri
   const operasyonAltOgeleri = [
     { 
       yol: '/operasyon', 
@@ -118,18 +115,9 @@ export default function AltMenu() {
     },
     { 
       yol: '/sevkiyat-planlama', 
-      etiket: 'Sevkiyat Planlama', 
-      aciklama: 'Sahaya gelecek malzeme & teslimat takvimi', 
+      etiket: 'Sevkiyat Planlama & Kabul', 
+      aciklama: 'Planlanan sevkiyatlar ve gelen malzeme kabulleri', 
       simge: '🚚', 
-      renk: '#1D9596',
-      bg: '#e6f4f1',
-      izinli: isYoneticiSerhat
-    },
-    { 
-      yol: '/sevkiyat-kabul', 
-      etiket: 'Sevkiyat Kabul', 
-      aciklama: 'Gelen malzeme ve irsaliye/fatura kabulü', 
-      simge: '📦', 
       renk: '#059669',
       bg: '#d1fae5',
       izinli: true
@@ -165,10 +153,47 @@ export default function AltMenu() {
     },
   ]
 
+  // 5. Sadece "Serhat Hazar" Yöneticiye Özel: Portföy & Planlama Alt Öğeleri
+  const portfoyAltOgeleri = [
+    {
+      yol: '/yonetim/proje-gelirleri',
+      etiket: 'Proje Gelirleri',
+      aciklama: 'Malik bazlı alacak ve tahsilat takibi',
+      simge: '💰',
+      renk: '#16a34a',
+      bg: '#dcfce7'
+    },
+    {
+      yol: '/yonetim/yarisi-bizden',
+      etiket: 'Yarısı Bizden Ödemeleri',
+      aciklama: 'Devlet desteği ve hibe ödeme takibi',
+      simge: '🤝',
+      renk: '#0284c7',
+      bg: '#e0f2fe'
+    },
+    {
+      yol: '/yonetim/cek-takip',
+      etiket: 'Çek Takip Sayfası',
+      aciklama: 'Alınan, verilen ve ciro edilen çekler',
+      simge: '🏦',
+      renk: '#2563eb',
+      bg: '#dbeafe'
+    },
+    {
+      yol: '/yonetim/anlasma-planlama',
+      etiket: 'Anlaşma & Planlama',
+      aciklama: 'Tüm şantiyelerin taşeron anlaşmaları ve ödeme planı',
+      simge: '📊',
+      renk: '#7c3aed',
+      bg: '#ede9fe'
+    },
+  ]
+
   const isFinansAktif = finansAltOgeleri.some(item => location.pathname === item.yol)
   const isImalatAktif = imalatAltOgeleri.some(item => location.pathname === item.yol)
   const isOperasyonAktif = operasyonAltOgeleri.some(item => location.pathname === item.yol)
   const isDepolamaAktif = depolamaAltOgeleri.some(item => location.pathname === item.yol)
+  const isPortfoyAktif = portfoyAltOgeleri.some(item => location.pathname === item.yol)
 
   const toggleMenu = (menuKey) => {
     setAcikMenu(prev => prev === menuKey ? null : menuKey)
@@ -200,6 +225,11 @@ export default function AltMenu() {
       ikon: '🗄️',
       ogeler: depolamaAltOgeleri,
     },
+    portfoy: {
+      baslik: 'Proje Portföy & Planlama',
+      ikon: '📊',
+      ogeler: portfoyAltOgeleri,
+    },
   }
 
   const aktifPopup = acikMenu ? popupVerileri[acikMenu] : null
@@ -214,7 +244,7 @@ export default function AltMenu() {
         />
       )}
 
-      {/* Dinamik Açılır Menü (Finans, İmalat, Operasyon veya Depolama) */}
+      {/* Dinamik Açılır Menü */}
       {aktifPopup && (
         <div className="altmenu-popup-kapsayici">
           <div className="altmenu-popup-baslik">
@@ -283,7 +313,7 @@ export default function AltMenu() {
           <span className="alt-menu-etiket">Rehber</span>
         </NavLink>
 
-        {/* 3. Finans Sekmesi (Yukarı doğru genişleyen buton) */}
+        {/* 3. Finans Sekmesi */}
         {finansAltOgeleri.length > 0 && (
           <button
             type="button"
@@ -304,7 +334,7 @@ export default function AltMenu() {
           </button>
         )}
 
-        {/* 4. İmalat Sekmesi (Puantaj, Günlük Rapor, Hafriyat & Makineler) */}
+        {/* 4. İmalat Sekmesi */}
         <button
           type="button"
           onClick={() => toggleMenu('imalat')}
@@ -323,7 +353,7 @@ export default function AltMenu() {
           </span>
         </button>
 
-        {/* 5. Operasyon Sekmesi (Beton & Mikser, Sevkiyat Kabul, Saha Cep Cetveli) */}
+        {/* 5. Operasyon Sekmesi */}
         <button
           type="button"
           onClick={() => toggleMenu('operasyon')}
@@ -342,7 +372,7 @@ export default function AltMenu() {
           </span>
         </button>
 
-        {/* 6. Depolama Sekmesi (Drive & Notlarım) */}
+        {/* 6. Depolama Sekmesi */}
         <button
           type="button"
           onClick={() => toggleMenu('depolama')}
@@ -361,7 +391,28 @@ export default function AltMenu() {
           </span>
         </button>
 
-        {/* 7. Yönetim (Sadece Sistem Yöneticisi) */}
+        {/* 7. SADECE SERHAT HAZAR YÖNETİCİ İÇİN: Portföy Sekmesi */}
+        {isSerhatHazar && (
+          <button
+            type="button"
+            onClick={() => toggleMenu('portfoy')}
+            className={`alt-menu-oge ${isPortfoyAktif ? 'aktif' : ''}`}
+            title="Proje Portföy & Planlama (Proje Gelirleri, Yarısı Bizden, Çek Takip, Anlaşma & Planlama)"
+          >
+            <span className="alt-menu-simge">📊</span>
+            <span className="alt-menu-etiket" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+              Portföy
+              <span style={{ 
+                fontSize: 7, 
+                opacity: 0.6,
+                transition: 'transform 0.2s', 
+                transform: acikMenu === 'portfoy' ? 'rotate(180deg)' : 'none' 
+              }}>▲</span>
+            </span>
+          </button>
+        )}
+
+        {/* 8. Yönetim (Sadece Sistem Yöneticisi) */}
         {profile?.sistem_yoneticisi && (
           <NavLink 
             to="/yonetim" 

@@ -100,7 +100,7 @@ export default function ProjeDosyalari() {
 
     try {
       const santiyeAdi = santiyeler.find(s => s.id === dosya.santiye_id)?.ad || 'Santiye'
-      await moveToSilinenler(dosya.dosya_url, `Silinenler/ProjeDosyalari/${santiyeAdi}`)
+      await moveToSilinenler(dosya.dosya_url, `ProjeDosyalari/${santiyeAdi}`)
       const { error } = await supabase.from('drive_dosyalar').delete().eq('id', dosya.id)
       if (error) throw error
       dosyalariYukle()

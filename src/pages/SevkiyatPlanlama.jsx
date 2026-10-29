@@ -1,9 +1,8 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { useState, useEffect, useMemo } from 'react'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
-import CariAramaSecici from '../components/CariAramaSecici'
+import { uploadToGoogleDrive, moveToSilinenler, getGoogleDriveInlineImageUrl } from '../lib/googleDrive'
+import { operasyonVerisiYukle, operasyonVerisiKaydet } from '../lib/operasyonKayit'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -12,91 +11,91 @@ const tarihFormatlaTR = (tarihStr) => {
   const parts = tarihStr.split('-')
   if (parts.length === 3) {
     const d = new Date(parts[0], parts[1] - 1, parts[2])
-    return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'short' })
+    return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' })
   }
   return tarihStr
 }
 
+const tarihSaatFormatlaTR = (isoStr, yedekTarih) => {
+  if (isoStr) {
+    const d = new Date(isoStr)
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleString('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+  }
+  if (yedekTarih) {
+    const parts = yedekTarih.split('-')
+    return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : yedekTarih
+  }
+  return '—'
+}
+
+const AY_ISIMLERI = [
+  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+]
+
+const SANTIYE_RENKLERI = [
+  '#1D9596', // Kurumsal Teal
+  '#0284c7', // Mavi
+  '#e11d48', // Kırmızı / Gül
+  '#16a34a', // Yeşil
+  '#d97706', // Turuncu
+  '#7c3aed', // Mor
+  '#db2777', // Pembe
+  '#2563eb', // Koyu Mavi
+  '#ca8a04', // Altın Sarısı
+  '#4f46e5', // İndigo
+]
+
 export const LOCAL_STORAGE_SEVKIYAT_PLAN = 'santiye_sevkiyat_planlari_v1'
 export const LOCAL_STORAGE_SEVKIYAT = 'santiye_sevkiyat_kayitlari_v1'
-
-const HAZIR_MALZEME_SABLONLARI = [
-  '🔩 26 Ton Nervürlü Demir (Ø16 - Ø20)',
-  '🧱 14 Palet 13.5\'luk Yatay Delikli Tuğla',
-  '🧪 C30/37 Hazır Beton Dökümü',
-  '🪵 Kalıp Kerestesi & 21mm Plywood',
-  '⚡ Elektrik Kablo & Boru Tesisatı',
-  '🚿 Sıhhi Tesisat Boru & Ek Parçaları',
-  '🎨 Alçı Sıva & Kalekim Yapıştırma Harcı',
-  '🪟 PVC Doğrama & Cam Üniteleri'
-]
-
-const HAZIR_TALIMATLAR = [
-  '🏗️ Kule vinç hazır beklesin, tabliyeye alınacak',
-  '🚜 Forklift / Kepçe sahada hazır bulunsun',
-  '🚧 Giriş güzergahı ve tır yanaşma yeri açık tutulsun',
-  '📦 Kapalı malzeme deposuna indirilecek',
-  '⚠️ Kantar fişi ve fabrika analiz raporu kontrol edilsin'
-]
 
 export default function SevkiyatPlanlama() {
   const { aktifSantiye, santiyeler } = useSite()
   const { profile } = useAuth()
-  const navigate = useNavigate()
-
-  // Serhat Hazar (Yönetici) Yetki Kontrolü - Sayfa Serhat Hazar'a aittir
-  const isYoneticiSerhat = Boolean(
-    !profile ||
-    profile?.sistem_yoneticisi ||
-    profile?.rol !== 'santiye_sefi' ||
-    profile?.ad_soyad?.toLowerCase().includes('serhat') ||
-    profile?.email?.toLowerCase().includes('serhat') ||
-    profile?.rol === 'yonetici' ||
-    profile?.rol === 'koordinator'
-  )
-
-  useEffect(() => {
-    // Şantiye şefleri sevkiyatları Sevkiyat Kabul sayfasındaki ayrı sekmeden takip eder
-    if (profile?.rol === 'santiye_sefi' && !profile?.ad_soyad?.toLowerCase().includes('serhat')) {
-      navigate('/sevkiyat-kabul', { replace: true })
-    }
-  }, [profile, navigate])
 
   const [planListesi, setPlanListesi] = useState([])
-  const [sekme, setSekme] = useState('tumu') // 'tumu' | 'bekliyor' | 'bugun' | 'teslim'
-  const [eklemeFormuAcik, setEklemeFormuAcik] = useState(false)
-  const [filtreAcik, setFiltreAcik] = useState(false)
+  const [seciliTarih, setSeciliTarih] = useState('')
+  const [seciliSantiyeId, setSeciliSantiyeId] = useState('')
+  const [durumFiltresi, setDurumFiltresi] = useState('tumu') // 'tumu' | 'bekliyor' | 'teslim_alindi'
 
-  // Filtreler
-  const [filtreSantiye, setFiltreSantiye] = useState('hepsi')
-  const [filtreZaman, setFiltreZaman] = useState('hepsi')
-  const [aramaMetni, setAramaMetni] = useState('')
+  // Takvim Matrisi & Şantiye Seçim Kartı State'leri (Default kapalı)
+  const [matrisAcik, setMatrisAcik] = useState(false)
+  const [santiyeKartAcik, setSantiyeKartAcik] = useState(false)
+  const [matrisYil, setMatrisYil] = useState(() => new Date().getFullYear())
+  const [matrisAy, setMatrisAy] = useState(() => new Date().getMonth())
 
-  // Ekleme Formu State'leri
+  // Kartların Açılır/Kapanır Detay State'i
+  const [acikDetayKartlari, setAcikDetayKartlari] = useState({})
+  const [buyukFotoUrl, setBuyukFotoUrl] = useState(null)
+
+  // Yeni Sevkiyat Planla / Doğrudan Kabul / Düzenle Modalı State'leri
+  const [yeniPlanModalAcik, setYeniPlanModalAcik] = useState(false)
+  const [duzenlenenPlanId, setDuzenlenenPlanId] = useState(null)
+  const [modalIslemTipi, setModalIslemTipi] = useState('planla') // 'planla' | 'dogrudan_kabul'
   const [formSantiyeId, setFormSantiyeId] = useState('')
   const [formMalzeme, setFormMalzeme] = useState('')
   const [formTedarikci, setFormTedarikci] = useState('')
   const [formTarih, setFormTarih] = useState(bugun())
-  const [formTahminiSaat, setFormTahminiSaat] = useState('10:00 - 12:00')
-  const [formSoforIletisim, setFormSoforIletisim] = useState('')
   const [formSahaNotu, setFormSahaNotu] = useState('')
+  const [formKabulNotu, setFormKabulNotu] = useState('')
+  const [formFotograflar, setFormFotograflar] = useState([])
+  const [formEksikVar, setFormEksikVar] = useState(false)
+  const [formEksikDetay, setFormEksikDetay] = useState('')
 
-  // Kart İçi Düzenleme (In-place edit) State'leri
-  const [duzenlenenId, setDuzenlenenId] = useState(null)
-  const [duzSantiyeId, setDuzSantiyeId] = useState('')
-  const [duzMalzeme, setDuzMalzeme] = useState('')
-  const [duzTedarikci, setDuzTedarikci] = useState('')
-  const [duzTarih, setDuzTarih] = useState('')
-  const [duzTahminiSaat, setDuzTahminiSaat] = useState('')
-  const [duzSoforIletisim, setDuzSoforIletisim] = useState('')
-  const [duzSahaNotu, setDuzSahaNotu] = useState('')
-
-  // Hızlı Kabul Modal State'leri
+  // Planlanan Sevkiyatı Hızlı Teslim Alma Modalı State'leri
   const [kabulModalAcik, setKabulModalAcik] = useState(false)
   const [kabulHedefPlan, setKabulHedefPlan] = useState(null)
-  const [kabulDurum, setKabulDurum] = useState('tam')
-  const [kabulIrsaliyeFoto, setKabulIrsaliyeFoto] = useState('')
-  const [kabulFaturaFoto, setKabulFaturaFoto] = useState('')
+  const [kabulFotograflar, setKabulFotograflar] = useState([])
+  const [kabulEksikVar, setKabulEksikVar] = useState(false)
+  const [kabulEksikDetay, setKabulEksikDetay] = useState('')
   const [kabulNotu, setKabulNotu] = useState('')
 
   useEffect(() => {
@@ -105,953 +104,976 @@ export default function SevkiyatPlanlama() {
     }
   }, [aktifSantiye])
 
-  // LocalStorage'dan planları çek
+  // Supabase + LocalStorage'dan planları ve doğrudan kabulleri birleştirerek çek
   useEffect(() => {
-    try {
-      const kayitli = localStorage.getItem(LOCAL_STORAGE_SEVKIYAT_PLAN)
-      if (kayitli) {
-        setPlanListesi(JSON.parse(kayitli))
-      } else {
-        const ornekPlanlar = [
-          {
-            id: 'plan-1',
-            tarih: bugun(),
-            tahminiSaat: '11:00 - 12:30',
-            santiyeId: aktifSantiye?.id || (santiyeler[0]?.id || 'santiye-1'),
-            santiyeAdi: aktifSantiye?.ad || (santiyeler[0]?.ad || 'Merkez Şantiye'),
-            malzeme: 'Ø16 ve Ø20 B420C Nervürlü İnşaat Demiri (26 Ton 1 Tır)',
-            tedarikci: 'Kardemir / Özçelik Demir Çelik',
-            soforIletisim: '34 DM 8812 - Şoför Mehmet Bey (0532 555 44 33)',
-            sahaNotu: 'Kule vinç hazır bekletilsin, malzeme doğrudan 2. kat tabliyesine alınacak.',
-            durum: 'bekliyor',
-            planlayan: 'Serhat Hazar (Yönetici)',
-            olusturulduAt: new Date().toISOString()
-          },
-          {
-            id: 'plan-2',
-            tarih: bugun(),
-            tahminiSaat: '14:30',
-            santiyeId: aktifSantiye?.id || (santiyeler[0]?.id || 'santiye-1'),
-            santiyeAdi: aktifSantiye?.ad || (santiyeler[0]?.ad || 'Merkez Şantiye'),
-            malzeme: "13.5'luk Yatay Delikli İzolasyon Tuğlası (14 Palet)",
-            tedarikci: 'Işıklar Tuğla Fabrikası',
-            soforIletisim: '41 AB 456 - Şoför Ali Usta (0542 111 22 33)',
-            sahaNotu: 'Forklift veya kepçe ile yan bahçe sahasına istiflenecek.',
-            durum: 'bekliyor',
-            planlayan: 'Serhat Hazar (Yönetici)',
-            olusturulduAt: new Date().toISOString()
+    let iptal = false
+    const yukle = async () => {
+      try {
+        let planlar = await operasyonVerisiYukle(LOCAL_STORAGE_SEVKIYAT_PLAN, [])
+        const kayitliKabulStr = localStorage.getItem(LOCAL_STORAGE_SEVKIYAT)
+
+        if (kayitliKabulStr) {
+          const kabuller = JSON.parse(kayitliKabulStr)
+          const mevcutPlanIdleri = new Set(planlar.map(p => p.id))
+          const bagimsizKabuller = kabuller
+            .filter(k => !k.bagliPlanId || !mevcutPlanIdleri.has(k.bagliPlanId))
+            .filter(k => !mevcutPlanIdleri.has(k.id))
+            .map(k => ({
+              id: k.id || ('sevkiyat-' + Date.now() + Math.random()),
+              tarih: k.tarih || bugun(),
+              santiyeId: k.santiyeId || aktifSantiye?.id || (santiyeler[0]?.id || 'santiye-1'),
+              santiyeAdi: k.santiyeAdi || aktifSantiye?.ad || 'Şantiye',
+              malzeme: k.miktar ? `${k.malzemeAdi} (${k.miktar} ${k.birim || ''})`.trim() : (k.malzemeAdi || 'Malzeme'),
+              tedarikci: k.tedarikci || 'Belirtilmedi',
+              sahaNotu: '',
+              durum: 'teslim_alindi',
+              dogrudanKabul: true,
+              planlayan: k.teslimAlan || 'Saha Kabul',
+              olusturulduAt: k.olusturulduAt || new Date().toISOString(),
+              teslimAlan: k.teslimAlan || 'Kullanıcı',
+              teslimTarihiIso: k.olusturulduAt || new Date().toISOString(),
+              teslimTarihi: `${k.tarih || bugun()} ${k.saat || ''}`.trim(),
+              teslimNotu: k.notlar || '',
+              teslimEksikVar: k.durum === 'eksik',
+              teslimEksikDetay: k.eksikDetay || '',
+              fotograflar: k.fotograflar || (k.fotoUrl ? [k.fotoUrl] : [])
+            }))
+
+          if (bagimsizKabuller.length > 0) {
+            planlar = [...bagimsizKabuller, ...planlar]
+            await operasyonVerisiKaydet(LOCAL_STORAGE_SEVKIYAT_PLAN, planlar)
           }
-        ]
-        setPlanListesi(ornekPlanlar)
-        localStorage.setItem(LOCAL_STORAGE_SEVKIYAT_PLAN, JSON.stringify(ornekPlanlar))
+        }
+
+        if (!iptal) {
+          setPlanListesi(planlar)
+        }
+      } catch (err) {
+        console.error('Sevkiyat verisi yükleme hatası:', err)
       }
-    } catch (err) {
-      console.error('Plan yükleme hatası:', err)
     }
+    yukle()
+    return () => { iptal = true }
   }, [aktifSantiye, santiyeler])
 
   const planlariKaydet = (yeniListe) => {
     setPlanListesi(yeniListe)
+    operasyonVerisiKaydet(LOCAL_STORAGE_SEVKIYAT_PLAN, yeniListe)
+  }
+
+  // Şantiye Renk Haritası (Her şantiyeye farklı bir renk)
+  const santiyeRenkBilgisi = useMemo(() => {
+    const renkHaritasi = {}
+    const santiyeListesi = []
+
+    santiyeler.forEach((s, idx) => {
+      const renk = SANTIYE_RENKLERI[idx % SANTIYE_RENKLERI.length]
+      renkHaritasi[s.id] = renk
+      santiyeListesi.push({ id: s.id, ad: s.ad, renk })
+    })
+
+    planListesi.forEach((p) => {
+      const key = p.santiyeId || p.santiyeAdi || 'varsayilan'
+      if (!renkHaritasi[key]) {
+        const renk = SANTIYE_RENKLERI[santiyeListesi.length % SANTIYE_RENKLERI.length]
+        renkHaritasi[key] = renk
+        santiyeListesi.push({ id: key, ad: p.santiyeAdi || 'Şantiye', renk })
+      }
+    })
+
+    return { renkHaritasi, santiyeListesi }
+  }, [santiyeler, planListesi])
+
+  // Takvim Matrisi Gün Hesaplamaları
+  const matrisGunleri = useMemo(() => {
+    const gunler = []
+    const ayinIlkGunu = new Date(matrisYil, matrisAy, 1)
+    const ayinSonGunu = new Date(matrisYil, matrisAy + 1, 0)
+    const toplamGun = ayinSonGunu.getDate()
+
+    let ilkGunHaftaIndeksi = ayinIlkGunu.getDay() - 1
+    if (ilkGunHaftaIndeksi === -1) ilkGunHaftaIndeksi = 6
+
+    for (let i = 0; i < ilkGunHaftaIndeksi; i++) {
+      gunler.push({ bosluk: true, id: `bos-${i}` })
+    }
+
+    for (let g = 1; g <= toplamGun; g++) {
+      const gStr = g < 10 ? `0${g}` : `${g}`
+      const aStr = (matrisAy + 1) < 10 ? `0${matrisAy + 1}` : `${matrisAy + 1}`
+      const tarihKey = `${matrisYil}-${aStr}-${gStr}`
+
+      const gununPlanlari = planListesi.filter(p => {
+        if (p.tarih !== tarihKey) return false
+        if (seciliSantiyeId && p.santiyeId && p.santiyeId !== seciliSantiyeId) return false
+        return true
+      })
+
+      const gununSantiyeleriMap = new Map()
+      gununPlanlari.forEach(p => {
+        const sKey = p.santiyeId || p.santiyeAdi || 'varsayilan'
+        if (!gununSantiyeleriMap.has(sKey)) {
+          gununSantiyeleriMap.set(sKey, {
+            id: sKey,
+            ad: p.santiyeAdi || 'Şantiye',
+            renk: santiyeRenkBilgisi.renkHaritasi[sKey] || '#1D9596'
+          })
+        }
+      })
+
+      gunler.push({
+        bosluk: false,
+        gunNo: g,
+        tarihKey,
+        planSayisi: gununPlanlari.length,
+        santiyeler: Array.from(gununSantiyeleriMap.values())
+      })
+    }
+
+    return gunler
+  }, [matrisYil, matrisAy, planListesi, seciliSantiyeId, santiyeRenkBilgisi])
+
+  const matrisAyDegistir = (fark) => {
+    let yeniAy = matrisAy + fark
+    let yeniYil = matrisYil
+    if (yeniAy < 0) {
+      yeniAy = 11
+      yeniYil -= 1
+    } else if (yeniAy > 11) {
+      yeniAy = 0
+      yeniYil += 1
+    }
+    setMatrisAy(yeniAy)
+    setMatrisYil(yeniYil)
+  }
+
+  const toggleDetayKart = (planId) => {
+    setAcikDetayKartlari(prev => ({
+      ...prev,
+      [planId]: !prev[planId]
+    }))
+  }
+
+  const [fotoYukleniyorId, setFotoYukleniyorId] = useState(null)
+  const [modalFotoYukleniyor, setModalFotoYukleniyor] = useState(false)
+
+  // Çoklu dosyayı Google Drive'a yükleme yardımcısı
+  const dosyalariDriveaYukle = async (files, santiyeAdi = 'Genel', malzemeBilgi = 'Malzeme', tarihBilgi = null) => {
+    const dosyaListesi = Array.from(files || [])
+    if (dosyaListesi.length === 0) return []
+
+    const folderName = `Sevkiyatlar/${santiyeAdi || 'Genel'}`
+    const kisaMalzeme = (malzemeBilgi || 'Malzeme').substring(0, 25).trim()
+    const adSoyad = `Sevkiyat-${kisaMalzeme}`
+    const yuklenenUrls = []
+
+    for (const file of dosyaListesi) {
+      const driveSonuc = await uploadToGoogleDrive({
+        file,
+        folderName,
+        adSoyad,
+        date: tarihBilgi || bugun()
+      })
+      if (driveSonuc?.url) {
+        yuklenenUrls.push(driveSonuc.url)
+      }
+    }
+
+    return yuklenenUrls
+  }
+
+  // Kart içine doğrudan toplu görsel yükle (Google Drive Entegrasyonlu)
+  const handleKartGorselYukle = async (planId, e) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const hedefPlan = planListesi.find(p => p.id === planId)
+    const santiyeAdi = hedefPlan?.santiyeAdi || aktifSantiye?.ad || 'Genel'
+    setFotoYukleniyorId(planId)
+
     try {
-      localStorage.setItem(LOCAL_STORAGE_SEVKIYAT_PLAN, JSON.stringify(yeniListe))
+      const yeniUrls = await dosyalariDriveaYukle(
+        files,
+        santiyeAdi,
+        hedefPlan?.malzeme || 'Sevkiyat',
+        hedefPlan?.tarih || bugun()
+      )
+      if (yeniUrls.length > 0) {
+        const guncel = planListesi.map(p => {
+          if (p.id === planId) {
+            const mevcutlar = p.fotograflar || (p.irsaliyeFoto ? [p.irsaliyeFoto] : [])
+            return {
+              ...p,
+              fotograflar: [...mevcutlar, ...yeniUrls]
+            }
+          }
+          return p
+        })
+        planlariKaydet(guncel)
+      }
     } catch (err) {
-      console.error('Plan kaydetme hatası:', err)
+      alert('Görsel Google Drive\'a yüklenemedi: ' + err.message)
+    } finally {
+      setFotoYukleniyorId(null)
+      if (e.target) e.target.value = ''
     }
   }
 
-  // Yeni Plan Ekle
-  const handlePlanEkle = (e) => {
-    e.preventDefault()
-    if (!formMalzeme.trim()) {
-      alert('Lütfen gelecek malzemenin cinsini ve miktarını yazın.')
-      return
+  // Modal içinde görsel seçildiğinde doğrudan Google Drive'a yükle
+  const handleModalGorselSec = async (e, hedefTip = 'plan') => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setModalFotoYukleniyor(true)
+    try {
+      if (hedefTip === 'kabul' && kabulHedefPlan) {
+        const yeniUrls = await dosyalariDriveaYukle(
+          files,
+          kabulHedefPlan.santiyeAdi || aktifSantiye?.ad || 'Genel',
+          kabulHedefPlan.malzeme || 'Kabul',
+          bugun()
+        )
+        setKabulFotograflar(prev => [...prev, ...yeniUrls])
+      } else {
+        const seciliS = santiyeler.find(s => s.id === formSantiyeId) || aktifSantiye
+        const yeniUrls = await dosyalariDriveaYukle(
+          files,
+          seciliS?.ad || 'Genel',
+          formMalzeme || 'Sevkiyat',
+          formTarih || bugun()
+        )
+        setFormFotograflar(prev => [...prev, ...yeniUrls])
+      }
+    } catch (err) {
+      alert('Görsel Google Drive\'a yüklenemedi: ' + err.message)
+    } finally {
+      setModalFotoYukleniyor(false)
+      if (e.target) e.target.value = ''
     }
-
-    const hedefSantiyeId = formSantiyeId || aktifSantiye?.id || (santiyeler[0]?.id || '')
-    const seciliS = santiyeler.find(s => s.id === hedefSantiyeId) || aktifSantiye
-
-    const yeniPlan = {
-      id: 'plan-' + Date.now(),
-      tarih: formTarih || bugun(),
-      tahminiSaat: formTahminiSaat.trim() || 'Gün İçi',
-      santiyeId: hedefSantiyeId,
-      santiyeAdi: seciliS?.ad || 'Genel Şantiye',
-      malzeme: formMalzeme.trim(),
-      tedarikci: formTedarikci.trim() || 'Tedarikçi Belirtilmedi',
-      soforIletisim: formSoforIletisim.trim(),
-      sahaNotu: formSahaNotu.trim(),
-      durum: 'bekliyor',
-      planlayan: profile?.ad_soyad || 'Serhat Hazar (Yönetici)',
-      olusturulduAt: new Date().toISOString()
-    }
-
-    planlariKaydet([yeniPlan, ...planListesi])
-
-    setFormMalzeme('')
-    setFormTedarikci('')
-    setFormSoforIletisim('')
-    setFormSahaNotu('')
-    setEklemeFormuAcik(false)
   }
 
-  // Kart İçi Düzenleme Kaydet
-  const handleDuzenlemeKaydet = (id) => {
-    if (!duzMalzeme.trim()) {
-      alert('Malzeme adı boş bırakılamaz.')
-      return
-    }
+  // Kart içinden tekil görsel sil (Google Drive Silinenler Klasörüne Taşır)
+  const handleKartGorselSil = async (planId, fotoIndex) => {
+    if (!window.confirm('Bu görseli silmek istediğinize emin misiniz?')) return
 
-    const seciliS = santiyeler.find(s => s.id === duzSantiyeId)
+    const hedefPlan = planListesi.find(p => p.id === planId)
+    const mevcutlar = hedefPlan?.fotograflar || (hedefPlan?.irsaliyeFoto ? [hedefPlan.irsaliyeFoto] : [])
+    const silinecekUrl = mevcutlar[fotoIndex]
+    const santiyeAdi = hedefPlan?.santiyeAdi || aktifSantiye?.ad || 'Genel'
 
-    const guncelListe = planListesi.map(p => {
-      if (p.id === id) {
+    const guncel = planListesi.map(p => {
+      if (p.id === planId) {
+        const m = p.fotograflar || (p.irsaliyeFoto ? [p.irsaliyeFoto] : [])
         return {
           ...p,
-          santiyeId: duzSantiyeId || p.santiyeId,
-          santiyeAdi: seciliS?.ad || p.santiyeAdi,
-          malzeme: duzMalzeme.trim(),
-          tedarikci: duzTedarikci.trim(),
-          tarih: duzTarih,
-          tahminiSaat: duzTahminiSaat.trim(),
-          soforIletisim: duzSoforIletisim.trim(),
-          sahaNotu: duzSahaNotu.trim(),
+          irsaliyeFoto: '',
+          fotograflar: m.filter((_, i) => i !== fotoIndex)
         }
       }
       return p
     })
+    planlariKaydet(guncel)
 
-    planlariKaydet(guncelListe)
-    setDuzenlenenId(null)
+    if (silinecekUrl) {
+      try {
+        await moveToSilinenler(silinecekUrl, `Sevkiyatlar/${santiyeAdi}`)
+      } catch (err) {
+        console.warn('Silinenlere taşıma hatası:', err)
+      }
+    }
   }
 
-  // Planı Sil
-  const handlePlanSil = (id) => {
-    if (window.confirm('Bu sevkiyat planını silmek istediğinize emin misiniz?')) {
-      planlariKaydet(planListesi.filter(p => p.id !== id))
+  // Yeni Kayıt Modalı Aç
+  const modalAc = (tip) => {
+    setDuzenlenenPlanId(null)
+    if (seciliSantiyeId) {
+      setFormSantiyeId(seciliSantiyeId)
+    } else if (aktifSantiye?.id) {
+      setFormSantiyeId(aktifSantiye.id)
+    }
+    setFormMalzeme('')
+    setFormTedarikci('')
+    setFormTarih(seciliTarih || bugun())
+    setFormSahaNotu('')
+    setFormKabulNotu('')
+    setFormFotograflar([])
+    setFormEksikVar(false)
+    setFormEksikDetay('')
+    setModalIslemTipi(tip)
+    setYeniPlanModalAcik(true)
+  }
+
+  // Mevcut Kaydı Düzenleme Modalı Aç
+  const handlePlanDuzenleAc = (plan) => {
+    setDuzenlenenPlanId(plan.id)
+    setModalIslemTipi(plan.durum === 'teslim_alindi' ? 'dogrudan_kabul' : 'planla')
+    setFormSantiyeId(plan.santiyeId || aktifSantiye?.id || (santiyeler[0]?.id || ''))
+    setFormMalzeme(plan.malzeme || '')
+    setFormTedarikci(plan.tedarikci === 'Belirtilmedi' ? '' : (plan.tedarikci || ''))
+    setFormTarih(plan.tarih || bugun())
+    setFormSahaNotu(plan.sahaNotu || '')
+    setFormKabulNotu(plan.teslimNotu || '')
+    setFormFotograflar(plan.fotograflar || (plan.irsaliyeFoto ? [plan.irsaliyeFoto] : []))
+    setFormEksikVar(!!plan.teslimEksikVar)
+    setFormEksikDetay(plan.teslimEksikDetay || '')
+    setYeniPlanModalAcik(true)
+  }
+
+  // Yeni Plan / Doğrudan Kabul / Düzenleme Kaydet
+  const handlePlanVeyaKabulKaydet = (e) => {
+    e.preventDefault()
+    if (!formMalzeme.trim()) return
+
+    const hedefSantiyeId = formSantiyeId || seciliSantiyeId || aktifSantiye?.id || (santiyeler[0]?.id || '')
+    const seciliS = santiyeler.find(s => s.id === hedefSantiyeId) || aktifSantiye
+    const suAn = new Date()
+    const saatFormat = suAn.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+    const simdiIso = suAn.toISOString()
+    const kabulMu = modalIslemTipi === 'dogrudan_kabul'
+
+    if (duzenlenenPlanId) {
+      // DÜZENLEME MODU
+      const guncelListe = planListesi.map(p => {
+        if (p.id === duzenlenenPlanId) {
+          return {
+            ...p,
+            tarih: formTarih || p.tarih || bugun(),
+            santiyeId: hedefSantiyeId,
+            santiyeAdi: seciliS?.ad || p.santiyeAdi || 'Şantiye',
+            malzeme: formMalzeme.trim(),
+            tedarikci: formTedarikci.trim() || 'Belirtilmedi',
+            sahaNotu: formSahaNotu.trim(),
+            fotograflar: formFotograflar,
+            irsaliyeFoto: '',
+            durum: kabulMu ? 'teslim_alindi' : 'bekliyor',
+            ...(kabulMu ? {
+              teslimAlan: p.teslimAlan || profile?.ad_soyad || 'Kullanıcı',
+              teslimTarihiIso: p.teslimTarihiIso || simdiIso,
+              teslimTarihi: p.teslimTarihi || `${formTarih || bugun()} ${saatFormat}`,
+              teslimNotu: formKabulNotu.trim(),
+              teslimEksikVar: formEksikVar,
+              teslimEksikDetay: formEksikVar ? formEksikDetay.trim() : ''
+            } : {
+              teslimEksikVar: false,
+              teslimEksikDetay: ''
+            })
+          }
+        }
+        return p
+      })
+      planlariKaydet(guncelListe)
+    } else {
+      // YENİ KAYIT MODU
+      const yeniKayit = {
+        id: (kabulMu ? 'kabul-' : 'plan-') + Date.now(),
+        tarih: formTarih || seciliTarih || bugun(),
+        santiyeId: hedefSantiyeId,
+        santiyeAdi: seciliS?.ad || 'Şantiye',
+        malzeme: formMalzeme.trim(),
+        tedarikci: formTedarikci.trim() || 'Belirtilmedi',
+        sahaNotu: formSahaNotu.trim(),
+        fotograflar: formFotograflar,
+        durum: kabulMu ? 'teslim_alindi' : 'bekliyor',
+        dogrudanKabul: kabulMu,
+        planlayanId: profile?.id || null,
+        planlayan: profile?.ad_soyad || 'Kullanıcı',
+        olusturulduAt: simdiIso,
+        ...(kabulMu ? {
+          teslimAlan: profile?.ad_soyad || 'Kullanıcı',
+          teslimTarihiIso: simdiIso,
+          teslimTarihi: `${formTarih || bugun()} ${saatFormat}`,
+          teslimNotu: formKabulNotu.trim(),
+          teslimEksikVar: formEksikVar,
+          teslimEksikDetay: formEksikVar ? formEksikDetay.trim() : ''
+        } : {})
+      }
+      planlariKaydet([yeniKayit, ...planListesi])
+    }
+
+    setDuzenlenenPlanId(null)
+    setFormMalzeme('')
+    setFormTedarikci('')
+    setFormSahaNotu('')
+    setFormKabulNotu('')
+    setFormFotograflar([])
+    setFormEksikVar(false)
+    setFormEksikDetay('')
+    setYeniPlanModalAcik(false)
+  }
+
+  // Kaydı Sil (Varsa Görselleri Google Drive Silinenler Klasörüne Taşır)
+  const handlePlanSil = async (id) => {
+    if (!window.confirm('Bu sevkiyat kaydını silmek istediğinize emin misiniz?')) return
+
+    const silinecek = planListesi.find(p => p.id === id)
+    planlariKaydet(planListesi.filter(p => p.id !== id))
+
+    const fotolar = silinecek?.fotograflar || (silinecek?.irsaliyeFoto ? [silinecek.irsaliyeFoto] : [])
+    if (fotolar.length > 0) {
+      const santiyeAdi = silinecek?.santiyeAdi || aktifSantiye?.ad || 'Genel'
+      for (const url of fotolar) {
+        try {
+          await moveToSilinenler(url, `Sevkiyatlar/${santiyeAdi}`)
+        } catch (err) {
+          console.warn('Silinenlere taşıma hatası:', err)
+        }
+      }
     }
   }
 
   // Hızlı Kabul Modalı Aç
   const handleKabulModaliAc = (plan) => {
     setKabulHedefPlan(plan)
-    setKabulDurum('tam')
-    setKabulIrsaliyeFoto('')
-    setKabulFaturaFoto('')
-    setKabulNotu(plan.sahaNotu ? `[Plan Hazırlık]: ${plan.sahaNotu}` : '')
+    setKabulEksikVar(!!plan.teslimEksikVar)
+    setKabulEksikDetay(plan.teslimEksikDetay || '')
+    setKabulFotograflar([])
+    setKabulNotu(plan.teslimNotu || '')
     setKabulModalAcik(true)
   }
 
-  // Fotoğraf Yükleme Yardımcısı
-  const handleFotoYukle = (setter, e) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setter(reader.result)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  // Kabulü Tamamla ve Sevkiyat Kabul Sayfasına Aktar
+  // Planlanan Sevkiyatın Kabulünü Tamamla
   const handleKabulTamamla = (e) => {
     e.preventDefault()
     if (!kabulHedefPlan) return
 
     const suAn = new Date()
     const saatFormat = suAn.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+    const simdiIso = suAn.toISOString()
 
-    // 1. Sevkiyat Kabul Listesine Kaydet
-    let mevcutKabuller = []
-    try {
-      const kayitli = localStorage.getItem(LOCAL_STORAGE_SEVKIYAT)
-      if (kayitli) mevcutKabuller = JSON.parse(kayitli)
-    } catch (err) {
-      console.error(err)
-    }
-
-    const yeniKabulKaydi = {
-      id: 'sevkiyat-' + Date.now(),
-      tarih: bugun(),
-      saat: saatFormat,
-      santiyeId: kabulHedefPlan.santiyeId,
-      santiyeAdi: kabulHedefPlan.santiyeAdi,
-      malzemeAdi: kabulHedefPlan.malzeme,
-      tedarikci: kabulHedefPlan.tedarikci,
-      teslimAlan: profile?.ad_soyad || 'Şantiye Yetkilisi',
-      durum: kabulDurum,
-      notlar: kabulNotu.trim(),
-      fotoUrl: kabulIrsaliyeFoto || kabulFaturaFoto || '',
-      faturaUrl: kabulFaturaFoto || '',
-      olusturulduAt: new Date().toISOString(),
-      bagliPlanId: kabulHedefPlan.id
-    }
-
-    try {
-      localStorage.setItem(LOCAL_STORAGE_SEVKIYAT, JSON.stringify([yeniKabulKaydi, ...mevcutKabuller]))
-    } catch (err) {
-      console.error(err)
-    }
-
-    // 2. Plan Durumunu 'teslim_alindi' yap
     const guncelPlanlar = planListesi.map(p => {
       if (p.id === kabulHedefPlan.id) {
+        const mevcutFotolar = p.fotograflar || (p.irsaliyeFoto ? [p.irsaliyeFoto] : [])
         return {
           ...p,
           durum: 'teslim_alindi',
-          teslimAlan: profile?.ad_soyad || 'Şantiye Yetkilisi',
-          teslimTarihi: bugun() + ' ' + saatFormat
+          teslimAlan: profile?.ad_soyad || 'Kullanıcı',
+          teslimTarihiIso: simdiIso,
+          teslimTarihi: `${bugun()} ${saatFormat}`,
+          teslimNotu: kabulNotu.trim(),
+          teslimEksikVar: kabulEksikVar,
+          teslimEksikDetay: kabulEksikVar ? kabulEksikDetay.trim() : '',
+          fotograflar: [...mevcutFotolar, ...kabulFotograflar]
         }
       }
       return p
     })
-    planlariKaydet(guncelPlanlar)
 
+    planlariKaydet(guncelPlanlar)
+    setAcikDetayKartlari(prev => ({ ...prev, [kabulHedefPlan.id]: true }))
     setKabulModalAcik(false)
     setKabulHedefPlan(null)
   }
 
-  // WhatsApp Paylaşımı
-  const handleWhatsAppKopyala = () => {
-    const bugunTarih = bugun()
-    const hedefPlanlar = planListesi.filter(p => p.durum === 'bekliyor')
-
-    if (hedefPlanlar.length === 0) {
-      alert('Şu anda yolda bekleyen sevkiyat bulunmuyor.')
-      return
-    }
-
-    let metin = `🚚 *ŞANTİYE SEVKİYAT PLANI* (${new Date().toLocaleDateString('tr-TR')})\n`
-    metin += `Planlayan: ${profile?.ad_soyad || 'Serhat Hazar'}\n`
-    metin += `------------------------------------\n\n`
-
-    hedefPlanlar.forEach((p, i) => {
-      metin += `${i + 1}) *${p.santiyeAdi}*\n`
-      metin += `📦 *Malzeme:* ${p.malzeme}\n`
-      metin += `📅 *Zaman:* ${p.tarih === bugunTarih ? 'BUGÜN' : p.tarih} (${p.tahminiSaat})\n`
-      metin += `🏢 *Tedarikçi:* ${p.tedarikci}\n`
-      if (p.soforIletisim) metin += `📞 *Nakliye/Şoför:* ${p.soforIletisim}\n`
-      if (p.sahaNotu) metin += `⚠️ *Hazırlık Notu:* ${p.sahaNotu}\n`
-      metin += `\n`
+  // Durumu Geri Aç (Bekliyor Yap)
+  const handlePlanGeriAc = (planId) => {
+    const guncel = planListesi.map(p => {
+      if (p.id === planId) {
+        return { ...p, durum: 'bekliyor' }
+      }
+      return p
     })
-
-    metin += `_Not: Malzeme sahaya ulaştığında Sevkiyat Kabul menüsünden irsaliye yükleyerek teslim alınız._`
-
-    navigator.clipboard.writeText(metin)
-    alert('📋 Sevkiyat planı panoya kopyalandı! WhatsApp grubuna yapıştırabilirsiniz.')
+    planlariKaydet(guncel)
   }
 
-  // İstatistikler
-  const bugunTarih = bugun()
-  const istatistikler = useMemo(() => {
-    const bekleyen = planListesi.filter(p => p.durum === 'bekliyor').length
-    const bugunGelecek = planListesi.filter(p => p.durum === 'bekliyor' && p.tarih === bugunTarih).length
-    const teslimAlinan = planListesi.filter(p => p.durum === 'teslim_alindi').length
-    const toplam = planListesi.length
-    return { bekleyen, bugunGelecek, teslimAlinan, toplam }
-  }, [planListesi, bugunTarih])
-
-  // Filtreleme
-  const gorunenPlanlar = useMemo(() => {
+  // Şantiye ve Tarih Bazlı Temel Liste
+  const santiyeVeTarihFiltreli = useMemo(() => {
     return planListesi.filter(p => {
-      // Sekme Filtresi
-      if (sekme === 'bekliyor' && p.durum !== 'bekliyor') return false
-      if (sekme === 'bugun' && (p.durum !== 'bekliyor' || p.tarih !== bugunTarih)) return false
-      if (sekme === 'teslim' && p.durum !== 'teslim_alindi') return false
-
-      // Şantiye Filtresi
-      if (filtreSantiye !== 'hepsi' && p.santiyeId !== filtreSantiye) return false
-
-      // Zaman Filtresi
-      if (filtreZaman === 'bugun' && p.tarih !== bugunTarih) return false
-      if (filtreZaman === 'gelecek' && p.tarih <= bugunTarih) return false
-      if (filtreZaman === 'gecmis' && p.tarih >= bugunTarih) return false
-
-      // Arama Metni
-      if (aramaMetni.trim()) {
-        const aranan = aramaMetni.toLocaleLowerCase('tr-TR')
-        return (
-          p.malzeme?.toLocaleLowerCase('tr-TR').includes(aranan) ||
-          p.tedarikci?.toLocaleLowerCase('tr-TR').includes(aranan) ||
-          p.santiyeAdi?.toLocaleLowerCase('tr-TR').includes(aranan) ||
-          p.soforIletisim?.toLocaleLowerCase('tr-TR').includes(aranan) ||
-          p.sahaNotu?.toLocaleLowerCase('tr-TR').includes(aranan)
-        )
-      }
-
+      if (seciliSantiyeId && p.santiyeId && p.santiyeId !== seciliSantiyeId) return false
+      if (seciliTarih && p.tarih !== seciliTarih) return false
       return true
     })
-  }, [planListesi, sekme, filtreSantiye, filtreZaman, aramaMetni, bugunTarih])
+  }, [planListesi, seciliSantiyeId, seciliTarih])
+
+  const bekleyenSayisi = useMemo(
+    () => santiyeVeTarihFiltreli.filter(p => p.durum !== 'teslim_alindi').length,
+    [santiyeVeTarihFiltreli]
+  )
+  const teslimAlinanSayisi = useMemo(
+    () => santiyeVeTarihFiltreli.filter(p => p.durum === 'teslim_alindi').length,
+    [santiyeVeTarihFiltreli]
+  )
+
+  // Durum Sekmesine Göre Filtrelenmiş Liste
+  const filtrelenmisPlanlar = useMemo(() => {
+    if (durumFiltresi === 'bekliyor') {
+      return santiyeVeTarihFiltreli.filter(p => p.durum !== 'teslim_alindi')
+    }
+    if (durumFiltresi === 'teslim_alindi') {
+      return santiyeVeTarihFiltreli.filter(p => p.durum === 'teslim_alindi')
+    }
+    return santiyeVeTarihFiltreli
+  }, [santiyeVeTarihFiltreli, durumFiltresi])
 
   return (
-    <div className="sayfa">
-      {/* 1. SAYFA BAŞLIĞI */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
-        <div>
-          <h2 style={{ margin: 0 }}>SEVKİYAT PLANLAMA</h2>
-          <span style={{ fontSize: 12, color: '#64748B' }}>
-            Sahaya gelecek malzeme akışı, sevkiyat takvimi ve ekip hazırlığı
-          </span>
+    <div className="sayfa beton-dokum-sayfasi">
+      {/* 1. ÜST BAŞLIK */}
+      <div className="makine-ust-baslik-alani" style={{ marginBottom: 10 }}>
+        <div className="makine-baslik-satiri" style={{ marginBottom: 10 }}>
+          <div className="makine-baslik-metin">
+            <h1>🚚 Sevkiyat Planlama & Kabul</h1>
+            <p className="makine-alt-bilgi">Planlanan sevkiyatlar ve sahaya gelen malzeme kabulleri</p>
+          </div>
         </div>
 
-        <button 
-          type="button" 
-          onClick={() => navigate('/sevkiyat-kabul')}
-          style={{
-            background: '#FFFFFF',
-            color: '#1D9596',
-            border: '1.5px solid #1D9596',
-            padding: '7px 14px',
-            borderRadius: 8,
-            fontSize: 12.5,
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-          }}
-        >
-          📦 Sevkiyat Kabul & İrsaliye →
-        </button>
-      </div>
-
-      {/* 2. DURUM FİLTRESİ MATRİSİ (Ekrana tam sığar, asla yana kaymaz) */}
-      <div className="plan-durum-matrisi">
-        <button 
-          type="button"
-          className={`plan-durum-kapsul ${sekme === 'tumu' ? 'aktif' : ''}`}
-          onClick={() => setSekme('tumu')}
-        >
-          <span>Tümü</span>
-          <strong>({istatistikler.toplam})</strong>
-        </button>
-        <button 
-          type="button"
-          className={`plan-durum-kapsul ${sekme === 'bekliyor' ? 'aktif' : ''}`}
-          onClick={() => setSekme('bekliyor')}
-        >
-          <span>⏳ Yolda</span>
-          <strong>({istatistikler.bekleyen})</strong>
-        </button>
-        <button 
-          type="button"
-          className={`plan-durum-kapsul ${sekme === 'bugun' ? 'aktif' : ''}`}
-          onClick={() => setSekme('bugun')}
-        >
-          <span>🚨 Bugün</span>
-          <strong>({istatistikler.bugunGelecek})</strong>
-        </button>
-        <button 
-          type="button"
-          className={`plan-durum-kapsul ${sekme === 'teslim' ? 'aktif' : ''}`}
-          onClick={() => setSekme('teslim')}
-        >
-          <span>✅ Teslim</span>
-          <strong>({istatistikler.teslimAlinan})</strong>
-        </button>
-      </div>
-
-      {/* 3. ÖZET İSTATİSTİK KARTLARI (Tıklanabilir Hızlı Filtre) */}
-      <div className="ozet-satiri" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 16 }}>
-        <div 
-          className="ozet-kart" 
-          onClick={() => setSekme('bekliyor')}
-          style={{ 
-            borderLeft: '4px solid #F59E0B', 
-            cursor: 'pointer',
-            background: sekme === 'bekliyor' ? '#FEF3C7' : '#FFFFFF',
-            transition: 'all 0.15s ease'
-          }}
-          title="Yoldaki sevkiyatları listele"
-        >
-          <p className="ozet-etiket">⏳ Yoldaki / Bekleyen</p>
-          <p className="ozet-tutar" style={{ color: '#D97706', fontSize: 20, fontWeight: 800 }}>
-            {istatistikler.bekleyen} <small style={{ fontSize: 12, fontWeight: 500, color: '#64748B' }}>Sevkiyat</small>
-          </p>
-        </div>
-
-        <div 
-          className="ozet-kart" 
-          onClick={() => setSekme('bugun')}
-          style={{ 
-            borderLeft: '4px solid #EA580C', 
-            cursor: 'pointer',
-            background: sekme === 'bugun' ? '#FFEDD5' : (istatistikler.bugunGelecek > 0 ? '#FFF7ED' : '#FFFFFF'),
-            transition: 'all 0.15s ease'
-          }}
-          title="Bugün sahaya gelecekleri listele"
-        >
-          <p className="ozet-etiket">🚨 Bugün Sahaya Gelecek</p>
-          <p className="ozet-tutar" style={{ color: '#EA580C', fontSize: 20, fontWeight: 800 }}>
-            {istatistikler.bugunGelecek} <small style={{ fontSize: 12, fontWeight: 500, color: '#64748B' }}>Teslimat</small>
-          </p>
-        </div>
-
-        <div 
-          className="ozet-kart" 
-          onClick={() => setSekme('teslim')}
-          style={{ 
-            borderLeft: '4px solid #10B981', 
-            cursor: 'pointer',
-            background: sekme === 'teslim' ? '#DCFCE7' : '#FFFFFF',
-            transition: 'all 0.15s ease'
-          }}
-          title="Teslim alınanları listele"
-        >
-          <p className="ozet-etiket">✅ Kabul Edilen / Arşiv</p>
-          <p className="ozet-tutar" style={{ color: '#059669', fontSize: 20, fontWeight: 800 }}>
-            {istatistikler.teslimAlinan} <small style={{ fontSize: 12, fontWeight: 500, color: '#64748B' }}>Teslim</small>
-          </p>
+        {/* TAM GENİŞLİK SİMETRİK AKSİYON BUTONLARI (Kenarlıkla hizalı, boşluksuz) */}
+        <div className="sevkiyat-ust-aksiyon-ikili">
+          <button
+            type="button"
+            className="tema-ana-aksiyon-btn"
+            onClick={() => modalAc('planla')}
+          >
+            ➕ Sevkiyat Planla
+          </button>
+          <button
+            type="button"
+            className="tema-ana-aksiyon-btn"
+            onClick={() => modalAc('dogrudan_kabul')}
+          >
+            ✓ Doğrudan Kabul
+          </button>
         </div>
       </div>
 
-      {/* 4. YENİ SEVKİYAT PLANI EKLEME ALANI (EN ÜSTTE, UYGULAMANIN STANDART .ekleme-kutusu YAPISI) */}
-      {isYoneticiSerhat && (
-        <div style={{ marginBottom: 16 }}>
-          {!eklemeFormuAcik ? (
-            <button 
-              className="ekle-buton-genis" 
-              onClick={() => setEklemeFormuAcik(true)}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-            >
-              ➕ Yeni Sevkiyat Planla
-            </button>
-          ) : (
-            <div className="ekleme-kutusu" style={{ border: '2px solid #1D9596', marginTop: 0, marginBottom: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <span style={{ fontSize: 13, fontWeight: 800, color: '#117575', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  🚚 YENİ SEVKİYAT PLANI OLUŞTUR
-                </span>
-                <button 
-                  type="button" 
-                  onClick={() => setEklemeFormuAcik(false)}
-                  style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer', color: '#64748B' }}
-                >
-                  ✕
-                </button>
-              </div>
+      {/* 2. TAKVİM MATRİSİ VE ŞANTİYE SEÇİMİ YANYANA SİMETRİK KARTLAR */}
+      <div className="beton-ust-ikili-bar">
+        {/* KART 1: TAKVİM MATRİSİ BAŞLIK KARTI */}
+        <div
+          className={`simetrik-ust-kart ${matrisAcik ? 'aktif' : ''}`}
+          onClick={() => {
+            setMatrisAcik(prev => !prev)
+            setSantiyeKartAcik(false)
+          }}
+        >
+          <span className="simetrik-kart-ikon">📅</span>
+          <div className="simetrik-kart-metin">
+            <h3>Takvim Matrisi</h3>
+            <p>
+              {seciliTarih ? tarihFormatlaTR(seciliTarih) : 'Sevkiyat takvimi'}
+            </p>
+          </div>
+          <div className="simetrik-kart-sag">
+            {seciliTarih && (
+              <button
+                type="button"
+                className="simetrik-temizle-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setSeciliTarih('')
+                }}
+                title="Seçili günü temizle"
+              >
+                ✕
+              </button>
+            )}
+            <span className="simetrik-ok-rozet">{matrisAcik ? '▲' : '▼'}</span>
+          </div>
+        </div>
 
-              {/* Şantiye Seçici */}
-              <div>
-                <label style={{ fontSize: 12, color: '#5F5E5A', fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                  Gideceği Şantiye:
-                </label>
-                <select 
-                  value={formSantiyeId} 
-                  onChange={(e) => setFormSantiyeId(e.target.value)} 
-                  className="santiye-secici-form"
-                >
-                  {santiyeler.map((s) => (
-                    <option key={s.id} value={s.id}>{s.ad}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Malzeme Cinsi ve Miktarı */}
-              <div>
-                <label style={{ fontSize: 12, color: '#5F5E5A', fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                  Malzeme Cinsi & Miktarı:
-                </label>
-                <input 
-                  type="text" 
-                  placeholder="Örn: Ø16 - Ø20 Demir 26 Ton (1 Tır), 14 Palet Tuğla..." 
-                  value={formMalzeme} 
-                  onChange={(e) => setFormMalzeme(e.target.value)} 
-                />
-
-                {/* Hızlı Şablon Hapları */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
-                  {HAZIR_MALZEME_SABLONLARI.map((sablon, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setFormMalzeme(sablon)}
-                      style={{
-                        fontSize: 11,
-                        padding: '3px 8px',
-                        borderRadius: 14,
-                        border: '1px solid #E2E8F0',
-                        background: formMalzeme === sablon ? '#E6F4F1' : '#FFFFFF',
-                        color: formMalzeme === sablon ? '#117575' : '#475569',
-                        fontWeight: formMalzeme === sablon ? 700 : 500,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {sablon}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tedarikçi Firma Seçici (CariAramaSecici ile Entegre) */}
-              <div>
-                <label style={{ fontSize: 12, color: '#5F5E5A', fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                  Tedarikçi / Satıcı Firma:
-                </label>
-                <CariAramaSecici
-                  deger={formTedarikci}
-                  onDegisti={(isim) => setFormTedarikci(isim)}
-                  placeholder="Tedarikçi veya firma adı ara/yaz (Kardemir, Işıklar, Akçansa...)"
-                />
-              </div>
-
-              {/* Tarih & Tahmini Saat Aralığı */}
-              <div className="ekleme-satiri-2">
-                <div>
-                  <label style={{ fontSize: 12, color: '#5F5E5A', fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                    Planlanan Varış Tarihi:
-                  </label>
-                  <input 
-                    type="date" 
-                    value={formTarih} 
-                    onChange={(e) => setFormTarih(e.target.value)} 
+        {/* KART 2: ŞANTİYE SEÇİMİ BAŞLIK KARTI */}
+        <div
+          className={`simetrik-ust-kart ${santiyeKartAcik ? 'aktif' : ''}`}
+          onClick={() => {
+            setSantiyeKartAcik(prev => !prev)
+            setMatrisAcik(false)
+          }}
+        >
+          <span className="simetrik-kart-ikon">🏗️</span>
+          <div className="simetrik-kart-metin">
+            <h3>Şantiye Seçimi</h3>
+            <p>
+              {seciliSantiyeId ? (
+                <>
+                  <span
+                    className="santiye-renk-noktasi"
+                    style={{ backgroundColor: santiyeRenkBilgisi.renkHaritasi[seciliSantiyeId] || '#1D9596', marginRight: 5 }}
                   />
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, color: '#5F5E5A', fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                    Tahmini Saat:
-                  </label>
-                  <input 
-                    type="text" 
-                    placeholder="Örn: 10:00 - 12:00" 
-                    value={formTahminiSaat} 
-                    onChange={(e) => setFormTahminiSaat(e.target.value)} 
-                  />
-                </div>
-              </div>
+                  {santiyeler.find(s => s.id === seciliSantiyeId)?.ad || 'Seçili Şantiye'}
+                </>
+              ) : (
+                'Tüm Şantiyeler'
+              )}
+            </p>
+          </div>
+          <div className="simetrik-kart-sag">
+            {seciliSantiyeId && (
+              <button
+                type="button"
+                className="simetrik-temizle-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setSeciliSantiyeId('')
+                }}
+                title="Şantiye filtresini temizle"
+              >
+                ✕
+              </button>
+            )}
+            <span className="simetrik-ok-rozet">{santiyeKartAcik ? '▲' : '▼'}</span>
+          </div>
+        </div>
+      </div>
 
-              {/* Nakliye Araç Plakası & Şoför Telefonu */}
-              <div>
-                <label style={{ fontSize: 12, color: '#5F5E5A', fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                  Nakliye Araç Plakası & Şoför İletişimi:
-                </label>
-                <input 
-                  type="text" 
-                  placeholder="Örn: 34 DM 8812 - Şoför Mehmet Bey (0532 555 44 33)" 
-                  value={formSoforIletisim} 
-                  onChange={(e) => setFormSoforIletisim(e.target.value)} 
-                />
-              </div>
-
-              {/* Şantiye Şefine Saha Hazırlık Notu */}
-              <div>
-                <label style={{ fontSize: 12, color: '#5F5E5A', fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                  Şantiye Şefine Talimat / Hazırlık Notu:
-                </label>
-                <textarea 
-                  placeholder="Örn: Kule vinç 11:00'de hazır olsun, 2. kat tabliyesine doğrudan alınacak..." 
-                  value={formSahaNotu} 
-                  onChange={(e) => setFormSahaNotu(e.target.value)} 
-                  rows={2}
-                  style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit', resize: 'vertical' }}
-                />
-
-                {/* Hızlı Talimat Şablonları */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
-                  {HAZIR_TALIMATLAR.map((talimat, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setFormSahaNotu(prev => prev ? `${prev} • ${talimat}` : talimat)}
-                      style={{
-                        fontSize: 10.5,
-                        padding: '3px 8px',
-                        borderRadius: 14,
-                        border: '1px dashed #CBD5E1',
-                        background: '#F8FAFC',
-                        color: '#475569',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      + {talimat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                <button 
-                  type="button" 
-                  onClick={() => setEklemeFormuAcik(false)}
-                  style={{ flex: 1, padding: 12, background: '#F1F5F9', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, color: '#475569' }}
-                >
-                  Vazgeç
-                </button>
-                <button 
-                  type="button" 
-                  className="ekle-buton-genis" 
-                  onClick={handlePlanEkle}
-                  style={{ flex: 2, margin: 0 }}
-                >
-                  🚚 Planı Kaydet & Şeflere Yayınla
-                </button>
-              </div>
+      {/* AÇILIR PANEL 1: TAKVİM MATRİSİ GÖVDESİ */}
+      {matrisAcik && (
+        <div className="matris-kapsayici-kart animasyonlu-acilis">
+          <div className="matris-govde">
+            <div className="matris-ay-secici">
+              <button type="button" className="matris-ay-ok" onClick={() => matrisAyDegistir(-1)}>‹ Önceki Ay</button>
+              <span className="matris-secili-ay-metin">{AY_ISIMLERI[matrisAy]} {matrisYil}</span>
+              <button type="button" className="matris-ay-ok" onClick={() => matrisAyDegistir(1)}>Sonraki Ay ›</button>
             </div>
-          )}
-        </div>
-      )}
 
-      {/* 5. FİLTRE VE SIRALAMA ALANI (Masraflar ve Gelirler ile aynı formatta) */}
-      <div style={{ marginBottom: 14 }}>
-        <button 
-          className="ekle-buton-genis" 
-          onClick={() => setFiltreAcik(!filtreAcik)}
-          style={{ background: '#FFFFFF', color: '#1D9596', border: '1.5px solid #1D9596', boxShadow: 'none' }}
-        >
-          {filtreAcik ? '▲ Filtre ve Arama Seçeneklerini Gizle' : (
-            (filtreSantiye !== 'hepsi' || filtreZaman !== 'hepsi' || aramaMetni)
-              ? '▼ Filtre ve Arama Seçenekleri (Aktif Filtre Var)'
-              : '▼ Filtre ve Arama Seçeneklerini Göster'
-          )}
-        </button>
-      </div>
+            <div className="matris-haftanin-gunleri">
+              <span>Pzt</span>
+              <span>Sal</span>
+              <span>Çar</span>
+              <span>Per</span>
+              <span>Cum</span>
+              <span>Cmt</span>
+              <span>Paz</span>
+            </div>
 
-      {filtreAcik && (
-        <div className="ekleme-kutusu" style={{ marginBottom: 15, background: '#FDFDFD', marginTop: 0 }}>
-          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Şantiye Filtresi</p>
-          <select 
-            value={filtreSantiye} 
-            onChange={(e) => setFiltreSantiye(e.target.value)}
-            style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}
-          >
-            <option value="hepsi">Tüm Şantiyeler</option>
-            {santiyeler.map((s) => (
-              <option key={s.id} value={s.id}>{s.ad}</option>
-            ))}
-          </select>
+            <div className="matris-izgara">
+              {matrisGunleri.map((item) => {
+                if (item.bosluk) {
+                  return <div key={item.id} className="matris-hucre bosluk" />
+                }
 
-          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Tarih / Zaman Filtresi</p>
-          <select 
-            value={filtreZaman} 
-            onChange={(e) => setFiltreZaman(e.target.value)}
-            style={{ width: '100%', padding: 8, marginBottom: 10, borderRadius: 6 }}
-          >
-            <option value="hepsi">Tüm Tarihler</option>
-            <option value="bugun">📅 Sadece Bugün Gelecekler</option>
-            <option value="gelecek">🔮 İleri Tarihliler</option>
-            <option value="gecmis">⏮️ Geçmiştekiler</option>
-          </select>
+                const seciliMi = item.tarihKey === seciliTarih
+                const bugunMu = item.tarihKey === bugun()
+                const planVarMi = item.santiyeler.length > 0
 
-          <p style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 5 }}>Metin Arama (Malzeme, Tedarikçi, Şoför)</p>
-          <input 
-            type="text" 
-            placeholder="Arama yapın..." 
-            value={aramaMetni} 
-            onChange={(e) => setAramaMetni(e.target.value)}
-            style={{ marginBottom: 10 }}
-          />
+                return (
+                  <div
+                    key={item.tarihKey}
+                    className={`matris-hucre durum-yok ${planVarMi ? 'beton-dokum-gunu' : ''} ${seciliMi ? 'aktif-gun' : ''} ${bugunMu ? 'bugun-cerceve' : ''}`}
+                    onClick={() => setSeciliTarih(prev => prev === item.tarihKey ? '' : item.tarihKey)}
+                    title={
+                      planVarMi
+                        ? `${item.tarihKey}: ${item.santiyeler.map(s => s.ad).join(', ')} (${item.planSayisi} sevkiyat)`
+                        : `${item.tarihKey}`
+                    }
+                  >
+                    <span className="matris-gun-no">{item.gunNo}</span>
+                    {planVarMi && (
+                      <div className="matris-santiye-noktalari">
+                        {item.santiyeler.map(s => (
+                          <span
+                            key={s.id}
+                            className="santiye-renk-noktasi"
+                            style={{ backgroundColor: s.renk }}
+                            title={s.ad}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
 
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button 
-              type="button" 
-              onClick={() => {
-                setFiltreSantiye('hepsi')
-                setFiltreZaman('hepsi')
-                setAramaMetni('')
-              }}
-              style={{ flex: 1, padding: '8px 12px', background: '#F1F5F9', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontWeight: 600, color: '#475569' }}
-            >
-              Filtreleri Temizle
-            </button>
-            <button 
-              type="button" 
-              onClick={handleWhatsAppKopyala}
-              style={{ flex: 1, padding: '8px 12px', background: '#DCFCE7', color: '#166534', border: '1px solid #BBF7D0', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
-            >
-              📱 WhatsApp Raporunu Kopyala
-            </button>
+            {santiyeRenkBilgisi.santiyeListesi.length > 0 && (
+              <div className="matris-lejant">
+                {santiyeRenkBilgisi.santiyeListesi.map(s => (
+                  <div
+                    key={s.id}
+                    className={`lejant-oge santiye-lejant-oge ${seciliSantiyeId === s.id ? 'aktif-lejant' : ''}`}
+                    onClick={() => setSeciliSantiyeId(prev => prev === s.id ? '' : s.id)}
+                    title="Şantiyeye göre filtrelemek için tıklayın"
+                  >
+                    <span className="santiye-renk-noktasi buyuk" style={{ backgroundColor: s.renk }} />
+                    <span>{s.ad}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* 6. SEVKİYAT PLANI KARTLARI LİSTESİ (Uygulamanın standart .liste ve .kart mimarisi) */}
-      <div className="liste">
-        {gorunenPlanlar.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '36px 16px', background: '#FFFFFF', borderRadius: 14, border: '1px solid #E2E8F0', color: '#64748B' }}>
-            <span style={{ fontSize: 36, display: 'block', marginBottom: 8 }}>🚚</span>
-            <p style={{ fontWeight: 700, fontSize: 15, color: '#1E293B', margin: '0 0 4px' }}>
-              Seçilen kriterlere uygun sevkiyat planı bulunmuyor
-            </p>
-            <p style={{ fontSize: 12.5, margin: 0 }}>
-              {isYoneticiSerhat 
-                ? 'Yukarıdaki "+ Yeni Sevkiyat Planla" butonuyla yeni bir teslimat planı girebilirsiniz.' 
-                : 'Şu anda şantiyeleriniz için planlanan aktif bir malzeme bulunmamaktadır.'}
-            </p>
-          </div>
-        ) : (
-          gorunenPlanlar.map((plan) => {
-            const isBekliyor = plan.durum === 'bekliyor'
-            const isBugun = plan.tarih === bugunTarih
-
-            return (
-              <div 
-                key={plan.id} 
-                className="kart" 
-                style={{
-                  borderLeft: isBugun && isBekliyor 
-                    ? '5px solid #EA580C' 
-                    : isBekliyor 
-                      ? '5px solid #1D9596' 
-                      : '5px solid #10B981',
-                  background: !isBekliyor ? '#F8FAFC' : '#FFFFFF',
-                  opacity: !isBekliyor ? 0.88 : 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                  marginBottom: 10
+      {/* AÇILIR PANEL 2: ŞANTİYE SEÇİMİ GÖVDESİ */}
+      {santiyeKartAcik && (
+        <div className="matris-kapsayici-kart animasyonlu-acilis">
+          <div className="matris-govde">
+            <div className="santiye-secim-kart-izgara">
+              <button
+                type="button"
+                className={`santiye-secim-oge-btn ${seciliSantiyeId === '' ? 'aktif' : ''}`}
+                onClick={() => {
+                  setSeciliSantiyeId('')
+                  setSantiyeKartAcik(false)
                 }}
               >
-                {/* DÜZENLEME MODU (IN-PLACE DÜZENLEME - UYGULAMA İLE BİREBİR AYNI) */}
-                {duzenlenenId === plan.id && isYoneticiSerhat ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 800, color: '#117575' }}>
-                      ✏️ SEVKİYAT PLANINI DÜZENLE
-                    </p>
+                <span className="santiye-secim-sol">
+                  <span className="santiye-renk-noktasi buyuk" style={{ background: 'linear-gradient(135deg, #1D9596, #16a34a)' }} />
+                  <span>Tüm Şantiyeler</span>
+                </span>
+                <span className="santiye-dokum-sayac">{planListesi.length} Sevkiyat</span>
+              </button>
 
-                    <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: '#64748B' }}>Şantiye:</label>
-                      <select 
-                        value={duzSantiyeId} 
-                        onChange={(e) => setDuzSantiyeId(e.target.value)} 
-                        className="santiye-secici-form"
-                      >
-                        {santiyeler.map((s) => (
-                          <option key={s.id} value={s.id}>{s.ad}</option>
-                        ))}
-                      </select>
-                    </div>
+              {santiyeler.map((s) => {
+                const renk = santiyeRenkBilgisi.renkHaritasi[s.id] || '#1D9596'
+                const santiyePlanSayisi = planListesi.filter(p => p.santiyeId === s.id).length
+                const aktifMi = seciliSantiyeId === s.id
 
-                    <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: '#64748B' }}>Malzeme & Miktar:</label>
-                      <input 
-                        type="text" 
-                        value={duzMalzeme} 
-                        onChange={(e) => setDuzMalzeme(e.target.value)} 
-                        placeholder="Malzeme adı ve miktarı..." 
-                      />
-                    </div>
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className={`santiye-secim-oge-btn ${aktifMi ? 'aktif' : ''}`}
+                    onClick={() => {
+                      setSeciliSantiyeId(prev => prev === s.id ? '' : s.id)
+                      setSantiyeKartAcik(false)
+                    }}
+                  >
+                    <span className="santiye-secim-sol">
+                      <span className="santiye-renk-noktasi buyuk" style={{ backgroundColor: renk }} />
+                      <span>{s.ad}</span>
+                    </span>
+                    <span className="santiye-dokum-sayac">{santiyePlanSayisi} Sevkiyat</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
-                    <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: '#64748B' }}>Tedarikçi Firma:</label>
-                      <CariAramaSecici
-                        deger={duzTedarikci}
-                        onDegisti={(isim) => setDuzTedarikci(isim)}
-                        placeholder="Tedarikçi firma adı..."
-                      />
-                    </div>
+      {/* 2.5. HIZLI DURUM SEKMELERİ (KENARLIKLA ARASINDA BOŞLUK OLMAYAN FLUSH SEGMENT BAR) */}
+      <div className="tema-segment-bar uclu">
+        <button
+          type="button"
+          className={`tema-segment-btn ${durumFiltresi === 'tumu' ? 'aktif' : ''}`}
+          onClick={() => setDurumFiltresi('tumu')}
+        >
+          📋 Tümü ({santiyeVeTarihFiltreli.length})
+        </button>
+        <button
+          type="button"
+          className={`tema-segment-btn ${durumFiltresi === 'bekliyor' ? 'aktif' : ''}`}
+          onClick={() => setDurumFiltresi('bekliyor')}
+        >
+          ⏳ Planlanan ({bekleyenSayisi})
+        </button>
+        <button
+          type="button"
+          className={`tema-segment-btn ${durumFiltresi === 'teslim_alindi' ? 'aktif' : ''}`}
+          onClick={() => setDurumFiltresi('teslim_alindi')}
+        >
+          ✓ Kabul Edilen ({teslimAlinanSayisi})
+        </button>
+      </div>
 
-                    <div className="ekleme-satiri-2">
-                      <div>
-                        <label style={{ fontSize: 11, fontWeight: 600, color: '#64748B' }}>Tarih:</label>
-                        <input 
-                          type="date" 
-                          value={duzTarih} 
-                          onChange={(e) => setDuzTarih(e.target.value)} 
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: 11, fontWeight: 600, color: '#64748B' }}>Saat:</label>
-                        <input 
-                          type="text" 
-                          value={duzTahminiSaat} 
-                          onChange={(e) => setDuzTahminiSaat(e.target.value)} 
-                          placeholder="Tahmini saat..." 
-                        />
-                      </div>
-                    </div>
+      {/* 3. SEVKİYAT PLANLAMA & KABUL KARTLARI LİSTESİ */}
+      <div className="beton-dokum-listesi">
+        {filtrelenmisPlanlar.length === 0 ? (
+          <div className="bos-kayit-paneli">
+            <span className="bos-ikon">🚚</span>
+            <h4>Bu görünümde sevkiyat kaydı bulunmuyor</h4>
+            <p>"➕ Sevkiyat Planla" veya "✓ Doğrudan Kabul" butonlarıyla yeni kayıt oluşturabilirsiniz.</p>
+          </div>
+        ) : (
+          filtrelenmisPlanlar.map((plan) => {
+            const teslimAlindiMi = plan.durum === 'teslim_alindi'
+            const detayAcikMi = !!acikDetayKartlari[plan.id]
+            const sKey = plan.santiyeId || plan.santiyeAdi || 'varsayilan'
+            const santiyeRengi = santiyeRenkBilgisi.renkHaritasi[sKey] || '#1D9596'
 
-                    <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: '#64748B' }}>Nakliye Plakası & Şoför Tel:</label>
-                      <input 
-                        type="text" 
-                        value={duzSoforIletisim} 
-                        onChange={(e) => setDuzSoforIletisim(e.target.value)} 
-                        placeholder="Şoför iletişim..." 
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: '#64748B' }}>Saha Hazırlık Notu:</label>
-                      <textarea 
-                        value={duzSahaNotu} 
-                        onChange={(e) => setDuzSahaNotu(e.target.value)} 
-                        placeholder="Şeflere saha talimatı..." 
-                        rows={2} 
-                        style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit' }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                      <button 
-                        type="button" 
-                        onClick={() => setDuzenlenenId(null)} 
-                        style={{ flex: 1, padding: 8, background: '#F1F5F9', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}
-                      >
-                        Vazgeç
-                      </button>
-                      <button 
-                        type="button" 
-                        onClick={() => handleDuzenlemeKaydet(plan.id)} 
-                        style={{ flex: 1, padding: 8, background: '#1D9596', color: '#FFFFFF', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 700 }}
-                      >
-                        Kaydet
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  /* NORMAL KART GÖRÜNÜMÜ */
-                  <>
-                    <div className="kart-ust" style={{ alignItems: 'flex-start' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
-                        <span className="kart-baslik" style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>
-                          📦 {plan.malzeme}
-                        </span>
-                        <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>
-                          🏢 {plan.tedarikci}
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                        {isBugun && isBekliyor && (
-                          <span className="durum-rozet" style={{ background: '#FFEDD5', color: '#C2410C', fontWeight: 800, border: '1px solid #FDBA74' }}>
-                            🚨 BUGÜN
-                          </span>
-                        )}
-
-                        {isBekliyor ? (
-                          <span className="durum-rozet rozet-sari" style={{ fontWeight: 700 }}>
-                            ⏳ Yolda
-                          </span>
-                        ) : (
-                          <span className="durum-rozet rozet-yesil" style={{ fontWeight: 700 }}>
-                            ✅ Teslim Alındı
-                          </span>
-                        )}
-
-                        {isYoneticiSerhat && (
-                          <>
-                            <button 
-                              className="sil-buton" 
-                              onClick={() => {
-                                setDuzenlenenId(plan.id)
-                                setDuzSantiyeId(plan.santiyeId)
-                                setDuzMalzeme(plan.malzeme)
-                                setDuzTedarikci(plan.tedarikci || '')
-                                setDuzTarih(plan.tarih)
-                                setDuzTahminiSaat(plan.tahminiSaat || '')
-                                setDuzSoforIletisim(plan.soforIletisim || '')
-                                setDuzSahaNotu(plan.sahaNotu || '')
-                              }}
-                              title="Planı Düzenle"
-                              aria-label="Düzenle"
-                            >
-                              ✎
-                            </button>
-                            <button 
-                              className="sil-buton" 
-                              onClick={() => handlePlanSil(plan.id)}
-                              title="Planı Sil"
-                              aria-label="Sil"
-                            >
-                              🗑
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* ETİKET SATIRI */}
-                    <div className="etiket-satiri" style={{ flexWrap: 'wrap', gap: 4 }}>
-                      <span className="etiket etiket-vurgu">
-                        🏗️ {plan.santiyeAdi}
+            return (
+              <div key={plan.id} className={`beton-dokum-karti ${teslimAlindiMi ? 'tamamlandi' : ''}`}>
+                {/* KART ÜST BİLGİLERİ */}
+                <div className="dokum-kart-ust" style={{ marginBottom: 10 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="dokum-rozet-grubu">
+                      <span className="dokum-santiye-renk-rozet" style={{ borderColor: santiyeRengi }}>
+                        <span className="santiye-renk-noktasi" style={{ backgroundColor: santiyeRengi }} />
+                        {plan.santiyeAdi}
                       </span>
-                      <span className="etiket" style={{ background: '#F1F5F9', color: '#334155' }}>
-                        📅 {tarihFormatlaTR(plan.tarih)} ({plan.tahminiSaat})
-                      </span>
-                      {plan.soforIletisim && (
-                        <span className="etiket" style={{ background: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0' }}>
-                          🚚 {plan.soforIletisim}
+                      <span className="dokum-tarih-rozet">📅 {tarihFormatlaTR(plan.tarih)}</span>
+                      {teslimAlindiMi ? (
+                        <span
+                          className="dokum-durum-rozet kapali"
+                          style={plan.teslimEksikVar ? { background: '#fef3c7', color: '#b45309', borderColor: '#fde68a' } : undefined}
+                        >
+                          {plan.teslimEksikVar ? '⚠️ Eksik / Hasarlı Kabul' : '✓ Teslim Alındı'}
                         </span>
+                      ) : (
+                        <span className="dokum-durum-rozet acik">⏳ Planlandı</span>
                       )}
                     </div>
 
-                    {/* SAHA HAZIRLIK NOTU (KULE VİNÇ, EKİP, ALAN UYARISI) */}
-                    {plan.sahaNotu && (
-                      <div style={{ background: '#FEFCE8', border: '1px dashed #FDE047', padding: '8px 10px', borderRadius: 8, marginTop: 2 }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: '#854D0E', display: 'block', marginBottom: 2 }}>
-                          ⚠️ ŞEF SAHA HAZIRLIK NOTU:
+                    <h3 className="dokum-bolge-baslik">📦 {plan.malzeme}</h3>
+
+                    <div className="dokum-santral-bilgi" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+                      {!plan.dogrudanKabul && (
+                        <span>
+                          👤 Planlayan: <strong>{plan.planlayan || 'Belirtilmedi'}</strong> ({tarihSaatFormatlaTR(plan.olusturulduAt, plan.tarih)})
                         </span>
-                        <p style={{ margin: 0, fontSize: 12.5, color: '#713F12', lineHeight: 1.35 }}>
-                          {plan.sahaNotu}
-                        </p>
-                      </div>
-                    )}
+                      )}
+                      {teslimAlindiMi && (
+                        <span style={{ color: plan.teslimEksikVar ? '#b45309' : '#117575' }}>
+                          ✓ Kabul Eden: <strong>{plan.teslimAlan || 'Kullanıcı'}</strong> ({tarihSaatFormatlaTR(plan.teslimTarihiIso, plan.teslimTarihi)})
+                        </span>
+                      )}
+                      {teslimAlindiMi && plan.teslimEksikVar && plan.teslimEksikDetay && (
+                        <span style={{ color: '#b45309', fontWeight: 700 }}>
+                          ⚠️ Eksik / Hasar: {plan.teslimEksikDetay}
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-                    {/* EĞER TESLİM ALINDI İSE ŞEF BİLGİSİ */}
-                    {!isBekliyor && plan.teslimAlan && (
-                      <div style={{ fontSize: 11.5, color: '#166534', background: '#F0FDF4', padding: '6px 10px', borderRadius: 6, border: '1px solid #BBF7D0', marginTop: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>✓ Teslim Alan: <strong>{plan.teslimAlan}</strong> ({plan.teslimTarihi || 'Kabul Edildi'})</span>
-                        <button
-                          type="button"
-                          onClick={() => navigate('/sevkiyat-kabul')}
-                          style={{ background: 'none', border: 'none', color: '#15803D', fontWeight: 700, fontSize: 11, cursor: 'pointer', padding: 0 }}
-                        >
-                          İrsaliye Görselini İncele →
-                        </button>
-                      </div>
+                  <div className="dokum-kart-eylemler">
+                    <button
+                      type="button"
+                      className="tema-duzenle-btn"
+                      onClick={() => handlePlanDuzenleAc(plan)}
+                      title="Düzenle"
+                    >
+                      ✏️ Düzenle
+                    </button>
+                    {teslimAlindiMi && (
+                      <button
+                        type="button"
+                        className="dokum-durum-toggle-btn kapali"
+                        onClick={() => handlePlanGeriAc(plan.id)}
+                        title="Planlanan durumuna geri al"
+                      >
+                        ↩ Geri Aç
+                      </button>
                     )}
+                    <button
+                      type="button"
+                      className="kart-icon-buton sil"
+                      onClick={() => handlePlanSil(plan.id)}
+                      title="Sil"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
 
-                    {/* ALT HIZLI AKSİYONLAR */}
-                    {isBekliyor && (
-                      <div style={{ display: 'flex', gap: 8, marginTop: 4, paddingTop: 6, borderTop: '1px solid #F1F5F9', flexWrap: 'wrap' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleKabulModaliAc(plan)}
+                {/* ALT AKSİYON VE AŞAĞIYA DOĞRU GENİŞLETME BUTONLARI */}
+                <div className="dokum-alt-aksiyon-satiri">
+                  <button
+                    type="button"
+                    className={`mikser-detay-genislet-btn ${detayAcikMi ? 'acik' : ''}`}
+                    onClick={() => toggleDetayKart(plan.id)}
+                  >
+                    <span>{detayAcikMi ? '▲' : '▼'}</span>
+                    <span>
+                      {detayAcikMi ? 'Detaylı Bilgileri Gizle' : 'Detaylı Bilgiler'}
+                    </span>
+                  </button>
+
+                  {!teslimAlindiMi && (
+                    <button
+                      type="button"
+                      className="tema-teslim-al-btn"
+                      onClick={() => handleKabulModaliAc(plan)}
+                    >
+                      ✓ Teslim Al
+                    </button>
+                  )}
+                </div>
+
+                {/* AŞAĞIYA DOĞRU GENİŞLEYEN DETAYLI BİLGİLER ALANI */}
+                {detayAcikMi && (
+                  <div className="dokum-genisleyen-detay-alani animasyonlu-acilis">
+                    <div className="kup-kirim-seridi" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6, marginBottom: 0 }}>
+                      <div className="kirim-tarih-kutu">
+                        <span className="kirim-etiket">🏢 Tedarikçi / Firma:</span>
+                        <strong className="kirim-tarih">{plan.tedarikci || 'Belirtilmedi'}</strong>
+                      </div>
+
+                      {plan.sahaNotu && (
+                        <div className="kirim-tarih-kutu">
+                          <span className="kirim-etiket">📝 Saha Notu:</span>
+                          <strong className="kirim-tarih">{plan.sahaNotu}</strong>
+                        </div>
+                      )}
+
+                      {teslimAlindiMi && (
+                        <div className="kirim-tarih-kutu vurgulu" style={{ marginTop: 2 }}>
+                          <span className="kirim-etiket">✓ Teslim Durumu:</span>
+                          <strong className="kirim-tarih" style={{ color: plan.teslimEksikVar ? '#b45309' : '#117575' }}>
+                            {plan.teslimAlan || 'Kullanıcı'} ({tarihSaatFormatlaTR(plan.teslimTarihiIso, plan.teslimTarihi)})
+                            {plan.teslimEksikVar ? ' — ⚠️ Eksik / Hasarlı Teslimat' : ' — ✓ Eksiksiz Teslim Alındı'}
+                          </strong>
+                        </div>
+                      )}
+
+                      {teslimAlindiMi && plan.teslimEksikVar && plan.teslimEksikDetay && (
+                        <div
+                          className="kirim-tarih-kutu"
                           style={{
-                            flex: 2,
-                            padding: '8px 12px',
-                            background: '#1D9596',
-                            color: '#FFFFFF',
-                            border: 'none',
+                            background: '#fffbeb',
+                            border: '1px solid #fde68a',
                             borderRadius: 8,
-                            fontSize: 12.5,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 6
+                            padding: '6px 10px',
+                            width: '100%'
                           }}
                         >
-                          📸 Sahaya Ulaştı: Teslim Al & Belgeleri Yükle
-                        </button>
+                          <span className="kirim-etiket" style={{ color: '#b45309', fontWeight: 700 }}>⚠️ Eksik / Hasar Detayı:</span>
+                          <strong className="kirim-tarih" style={{ color: '#92400e' }}>{plan.teslimEksikDetay}</strong>
+                        </div>
+                      )}
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const metin = `🚚 *Şantiye Sevkiyat Bildirimi*\nŞantiye: ${plan.santiyeAdi}\nMalzeme: ${plan.malzeme}\nTedarikçi: ${plan.tedarikci}\nVarış: ${plan.tarih} (${plan.tahminiSaat})\nNakliye: ${plan.soforIletisim || 'Belirtilmedi'}\nHazırlık: ${plan.sahaNotu || 'Hazır olunsun.'}`
-                            navigator.clipboard.writeText(metin)
-                            alert('📋 WhatsApp bildirim metni panoya kopyalandı!')
-                          }}
-                          style={{
-                            flex: 1,
-                            padding: '8px 10px',
-                            background: '#F0FDF4',
-                            color: '#166534',
-                            border: '1px solid #BBF7D0',
-                            borderRadius: 8,
-                            fontSize: 11.5,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          📱 WhatsApp
-                        </button>
-                      </div>
-                    )}
-                  </>
+                      {plan.teslimNotu && (
+                        <div className="kirim-tarih-kutu">
+                          <span className="kirim-etiket">📌 Kabul Notu:</span>
+                          <strong className="kirim-tarih">{plan.teslimNotu}</strong>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* GÖRSELLER & İRSALİYE FOTOĞRAFLARI GALERİSİ */}
+                    {(() => {
+                      const tumFotolar = plan.fotograflar || (plan.irsaliyeFoto ? [plan.irsaliyeFoto] : [])
+                      return (
+                        <div className="dokum-irsaliye-galeri-alani" style={{ marginTop: 10 }}>
+                          <div className="galeri-baslik-satiri">
+                            <h4>📸 Görseller ({tumFotolar.length})</h4>
+                            <label className="tema-foto-yukle-label" style={{ opacity: fotoYukleniyorId === plan.id ? 0.6 : 1 }}>
+                              {fotoYukleniyorId === plan.id ? '⏳ Drive\'a Yükleniyor...' : '➕ Görsel Ekle'}
+                              <input
+                                type="file"
+                                accept="image/*,application/pdf"
+                                multiple
+                                disabled={fotoYukleniyorId === plan.id}
+                                style={{ display: 'none' }}
+                                onChange={(e) => handleKartGorselYukle(plan.id, e)}
+                              />
+                            </label>
+                          </div>
+
+                          {tumFotolar.length > 0 ? (
+                            <div className="irsaliye-foto-grid">
+                              {tumFotolar.map((url, fIdx) => (
+                                <div key={fIdx} className="irsaliye-foto-kapsayici">
+                                  <img
+                                    src={getGoogleDriveInlineImageUrl(url)}
+                                    alt={`Görsel ${fIdx + 1}`}
+                                    onClick={() => setBuyukFotoUrl(getGoogleDriveInlineImageUrl(url))}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="foto-sil-mini-btn"
+                                    onClick={() => handleKartGorselSil(plan.id, fIdx)}
+                                    title="Görseli sil"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="galeri-bos-metin">Bu sevkiyata ait malzeme, araç veya irsaliye görsellerini buraya yükleyebilirsiniz (Google Drive'a kaydedilir).</p>
+                          )}
+                        </div>
+                      )
+                    })()}
+                  </div>
                 )}
               </div>
             )
@@ -1059,220 +1081,340 @@ export default function SevkiyatPlanlama() {
         )}
       </div>
 
-      {/* ============================================================ */}
-      {/* MODAL: SEVKİYATI TESLİM AL & İRSALİYE/FATURA YÜKLE           */}
-      {/* ============================================================ */}
-      {kabulModalAcik && kabulHedefPlan && (
-        <div className="modal-arka-plan" onClick={() => setKabulModalAcik(false)}>
-          <div className="modal-kutu" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520, borderRadius: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottom: '1px solid #E2E8F0', paddingBottom: 8 }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0F172A' }}>
-                📸 Malzemeyi Teslim Al & İrsaliye Yükle
+      {/* BÜYÜK FOTOĞRAF MODALI */}
+      {buyukFotoUrl && (
+        <div className="modal-arka-plan" onClick={() => setBuyukFotoUrl(null)}>
+          <div className="modal-kutu buyuk-foto-modal" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="modal-kapat-btn ust-sag" onClick={() => setBuyukFotoUrl(null)}>✕</button>
+            <img src={buyukFotoUrl} alt="Sevkiyat Görseli" className="buyuk-resim-icerik" />
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* MODAL: SEVKİYAT PLANLA / DOĞRUDAN KABUL / DÜZENLE (TEK SATIRLIK FORM) */}
+      {/* ===================================================================== */}
+      {yeniPlanModalAcik && (
+        <div className="modal-arka-plan" onClick={() => setYeniPlanModalAcik(false)}>
+          <div className="modal-kutu makine-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-baslik-satiri">
+              <h3>
+                {duzenlenenPlanId
+                  ? '✏️ Sevkiyat Kaydını Düzenle'
+                  : modalIslemTipi === 'dogrudan_kabul'
+                    ? '✓ Doğrudan Sevkiyat Kabulü'
+                    : '🚚 Yeni Sevkiyat Planla'}
               </h3>
-              <button 
-                type="button" 
-                onClick={() => setKabulModalAcik(false)}
-                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#64748B' }}
+              <button type="button" className="modal-kapat-btn" onClick={() => setYeniPlanModalAcik(false)}>✕</button>
+            </div>
+
+            {/* Kenarlıkla arasında boşluk olmayan tam yapışık (flush) mod seçici */}
+            <div className="tema-segment-bar">
+              <button
+                type="button"
+                className={`tema-segment-btn ${modalIslemTipi === 'planla' ? 'aktif' : ''}`}
+                onClick={() => setModalIslemTipi('planla')}
               >
-                ✕
+                📅 Sevkiyat Planla
+              </button>
+              <button
+                type="button"
+                className={`tema-segment-btn ${modalIslemTipi === 'dogrudan_kabul' ? 'aktif' : ''}`}
+                onClick={() => setModalIslemTipi('dogrudan_kabul')}
+              >
+                ✓ Doğrudan Kabul
               </button>
             </div>
 
-            <form onSubmit={handleKabulTamamla}>
-              {/* Özet Kutusu */}
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: 10, borderRadius: 10, marginBottom: 12, fontSize: 12.5 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ color: '#64748B' }}>🏗️ Şantiye:</span>
-                  <strong>{kabulHedefPlan.santiyeAdi}</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ color: '#64748B' }}>📦 Malzeme:</span>
-                  <strong style={{ color: '#1D9596' }}>{kabulHedefPlan.malzeme}</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748B' }}>🏢 Tedarikçi:</span>
-                  <span>{kabulHedefPlan.tedarikci}</span>
-                </div>
-              </div>
-
-              {/* Teslimat Durumu */}
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 6 }}>
-                  Teslimat Durumu:
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
-                  <button
-                    type="button"
-                    onClick={() => setKabulDurum('tam')}
-                    style={{
-                      padding: 8,
-                      borderRadius: 8,
-                      border: `1.5px solid ${kabulDurum === 'tam' ? '#10B981' : '#E2E8F0'}`,
-                      background: kabulDurum === 'tam' ? '#ECFDF5' : '#FFFFFF',
-                      color: kabulDurum === 'tam' ? '#047857' : '#475569',
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ✓ Eksiksiz
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setKabulDurum('eksik')}
-                    style={{
-                      padding: 8,
-                      borderRadius: 8,
-                      border: `1.5px solid ${kabulDurum === 'eksik' ? '#F59E0B' : '#E2E8F0'}`,
-                      background: kabulDurum === 'eksik' ? '#FFFBEB' : '#FFFFFF',
-                      color: kabulDurum === 'eksik' ? '#B45309' : '#475569',
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ⚠️ Eksik Var
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setKabulDurum('hasarli')}
-                    style={{
-                      padding: 8,
-                      borderRadius: 8,
-                      border: `1.5px solid ${kabulDurum === 'hasarli' ? '#EF4444' : '#E2E8F0'}`,
-                      background: kabulDurum === 'hasarli' ? '#FEF2F2' : '#FFFFFF',
-                      color: kabulDurum === 'hasarli' ? '#B91C1C' : '#475569',
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ❌ Hasarlı / İade
-                  </button>
-                </div>
-              </div>
-
-              {/* İrsaliye Belgesi Fotoğrafı */}
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
-                  📸 İrsaliye / Teslim Fişi Fotoğrafı:
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(e) => handleFotoYukle(setKabulIrsaliyeFoto, e)}
-                  style={{ width: '100%', fontSize: 12 }}
-                />
-                {kabulIrsaliyeFoto && (
-                  <div style={{ marginTop: 6, position: 'relative', display: 'inline-block' }}>
-                    <img 
-                      src={kabulIrsaliyeFoto} 
-                      alt="İrsaliye Önizleme" 
-                      style={{ maxHeight: 110, borderRadius: 8, border: '1px solid #CBD5E1' }} 
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setKabulIrsaliyeFoto('')}
-                      style={{
-                        position: 'absolute',
-                        top: 4,
-                        right: 4,
-                        background: 'rgba(0,0,0,0.6)',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: 22,
-                        height: 22,
-                        cursor: 'pointer',
-                        fontSize: 12
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Fatura / Kantar Fişi Görseli */}
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
-                  🧾 Fatura / Kantar Fişi / Ek Belge (Varsa):
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(e) => handleFotoYukle(setKabulFaturaFoto, e)}
-                  style={{ width: '100%', fontSize: 12 }}
-                />
-                {kabulFaturaFoto && (
-                  <div style={{ marginTop: 6, position: 'relative', display: 'inline-block' }}>
-                    <img 
-                      src={kabulFaturaFoto} 
-                      alt="Fatura Önizleme" 
-                      style={{ maxHeight: 110, borderRadius: 8, border: '1px solid #CBD5E1' }} 
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setKabulFaturaFoto('')}
-                      style={{
-                        position: 'absolute',
-                        top: 4,
-                        right: 4,
-                        background: 'rgba(0,0,0,0.6)',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: 22,
-                        height: 22,
-                        cursor: 'pointer',
-                        fontSize: 12
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Teslim Notu */}
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
-                  Teslim Notu / Açıklama:
-                </label>
-                <textarea
-                  placeholder="İndirilen kat, eksik sayısı veya teslim detayları..."
-                  value={kabulNotu}
-                  onChange={(e) => setKabulNotu(e.target.value)}
-                  rows={2}
-                  style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #D3D1C7', fontSize: 13, fontFamily: 'inherit' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  type="button"
-                  onClick={() => setKabulModalAcik(false)}
-                  style={{ flex: 1, padding: 10, background: '#F1F5F9', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, color: '#475569' }}
+            <form onSubmit={handlePlanVeyaKabulKaydet} className="beton-kompakt-form">
+              {/* 1. Şantiye Adı */}
+              <div className="form-tek-satir">
+                <label className="alan-baslik">Şantiye Adı:</label>
+                <select
+                  value={formSantiyeId}
+                  onChange={(e) => setFormSantiyeId(e.target.value)}
+                  className="makine-select"
+                  required
                 >
+                  {santiyeler.map(s => (
+                    <option key={s.id} value={s.id}>{s.ad}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 2. Malzeme & Miktar */}
+              <div className="form-tek-satir">
+                <label className="alan-baslik">Malzeme & Miktar:</label>
+                <input
+                  type="text"
+                  placeholder="Örn: 26 Ton Demir, 14 Palet Tuğla..."
+                  value={formMalzeme}
+                  onChange={(e) => setFormMalzeme(e.target.value)}
+                  className="makine-input"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              {/* 3. Tedarikçi Firma */}
+              <div className="form-tek-satir">
+                <label className="alan-baslik">Tedarikçi Firma:</label>
+                <input
+                  type="text"
+                  placeholder="Örn: Özçelik Demir, Işıklar..."
+                  value={formTedarikci}
+                  onChange={(e) => setFormTedarikci(e.target.value)}
+                  className="makine-input"
+                />
+              </div>
+
+              {/* 4. Tarih */}
+              <div className="form-tek-satir">
+                <label className="alan-baslik">{modalIslemTipi === 'dogrudan_kabul' ? 'Kabul Tarihi:' : 'Planlanan Tarih:'}</label>
+                <input
+                  type="date"
+                  value={formTarih}
+                  onChange={(e) => setFormTarih(e.target.value)}
+                  className="makine-input"
+                  required
+                />
+              </div>
+
+              {/* 5. Saha Notu */}
+              <div className="form-tek-satir">
+                <label className="alan-baslik">Saha Notu:</label>
+                <input
+                  type="text"
+                  placeholder="İsteğe bağlı hazırlık notu..."
+                  value={formSahaNotu}
+                  onChange={(e) => setFormSahaNotu(e.target.value)}
+                  className="makine-input"
+                />
+              </div>
+
+              {/* Kabul modundaysa Kabul Notu */}
+              {modalIslemTipi === 'dogrudan_kabul' && (
+                <div className="form-tek-satir">
+                  <label className="alan-baslik">Kabul Notu:</label>
+                  <input
+                    type="text"
+                    placeholder="İsteğe bağlı teslim alma notu..."
+                    value={formKabulNotu}
+                    onChange={(e) => setFormKabulNotu(e.target.value)}
+                    className="makine-input"
+                  />
+                </div>
+              )}
+
+              {/* 6. Görseller */}
+              <div className="form-tek-satir">
+                <label className="alan-baslik">Görseller:</label>
+                <label className="tema-dosya-sec-kutu" style={{ opacity: modalFotoYukleniyor ? 0.6 : 1 }}>
+                  <span>
+                    {modalFotoYukleniyor
+                      ? '⏳ Drive\'a Yükleniyor...'
+                      : `📸 ${formFotograflar.length > 0 ? `${formFotograflar.length} Görsel Yüklendi` : 'Görsel Seç / Ekle'}`}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    multiple
+                    disabled={modalFotoYukleniyor}
+                    style={{ display: 'none' }}
+                    onChange={(e) => handleModalGorselSec(e, 'plan')}
+                  />
+                </label>
+              </div>
+
+              {/* Seçili görsellerin küçük önizlemesi ve silme imkanı */}
+              {formFotograflar.length > 0 && (
+                <div className="irsaliye-foto-grid" style={{ marginBottom: 10 }}>
+                  {formFotograflar.map((url, idx) => (
+                    <div key={idx} className="irsaliye-foto-kapsayici">
+                      <img src={getGoogleDriveInlineImageUrl(url)} alt={`Seçili ${idx + 1}`} />
+                      <button
+                        type="button"
+                        className="foto-sil-mini-btn"
+                        onClick={async () => {
+                          const silinecekUrl = formFotograflar[idx]
+                          setFormFotograflar(prev => prev.filter((_, i) => i !== idx))
+                          if (silinecekUrl) {
+                            const seciliS = santiyeler.find(s => s.id === formSantiyeId) || aktifSantiye
+                            await moveToSilinenler(silinecekUrl, `Sevkiyatlar/${seciliS?.ad || 'Genel'}`)
+                          }
+                        }}
+                        title="Görseli kaldır"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Doğrudan Kabul / Teslim Alındı ise Eksik/Hasarlı kutucuğu ve açılır açıklama alanı */}
+              {modalIslemTipi === 'dogrudan_kabul' && (
+                <>
+                  <div className="form-satir" style={{ marginBottom: formEksikVar ? 8 : 6 }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '8px 12px',
+                        background: formEksikVar ? '#fffbeb' : '#f8fafc',
+                        border: `1.5px solid ${formEksikVar ? '#fde68a' : '#cbd5e1'}`,
+                        borderRadius: 10,
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                        fontSize: 12,
+                        color: formEksikVar ? '#b45309' : '#334155',
+                        userSelect: 'none'
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formEksikVar}
+                        onChange={(e) => setFormEksikVar(e.target.checked)}
+                        style={{ width: 16, height: 16, accentColor: '#d97706', cursor: 'pointer' }}
+                      />
+                      <span>⚠️ Eksik veya Hasarlı Teslimat <small style={{ fontWeight: 500, color: '#64748b' }}>(İsteğe bağlı)</small></span>
+                    </label>
+                  </div>
+
+                  {formEksikVar && (
+                    <div className="form-tek-satir animasyonlu-acilis">
+                      <label className="alan-baslik" style={{ color: '#b45309' }}>Eksik / Hasar:</label>
+                      <input
+                        type="text"
+                        placeholder="Eksik miktarı veya hasar durumunu yazınız..."
+                        value={formEksikDetay}
+                        onChange={(e) => setFormEksikDetay(e.target.value)}
+                        className="makine-input"
+                        style={{ borderColor: '#f59e0b', background: '#fffbeb' }}
+                        required
+                        autoFocus
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className="modal-buton-alani">
+                <button type="button" className="modal-iptal-buton" onClick={() => setYeniPlanModalAcik(false)}>
                   Vazgeç
                 </button>
-                <button
-                  type="submit"
+                <button type="submit" className="modal-onay-buton">
+                  {duzenlenenPlanId
+                    ? 'Değişiklikleri Kaydet'
+                    : modalIslemTipi === 'dogrudan_kabul'
+                      ? '✓ Teslim Alındı Kaydet'
+                      : 'Sevkiyatı Planla'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: PLANLANAN SEVKİYATI HIZLI TESLİM AL                   */}
+      {/* ============================================================ */}
+      {kabulModalAcik && kabulHedefPlan && (
+        <div className="modal-arka-plan" onClick={() => setKabulModalAcik(false)}>
+          <div className="modal-kutu makine-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-baslik-satiri">
+              <h3>✓ Sevkiyatı Teslim Al</h3>
+              <button type="button" className="modal-kapat-btn" onClick={() => setKabulModalAcik(false)}>✕</button>
+            </div>
+
+            <form onSubmit={handleKabulTamamla} className="beton-kompakt-form">
+              <div style={{ background: '#f4f9f8', border: '1px solid #a7dbd8', borderRadius: 10, padding: '8px 12px', marginBottom: 10, fontSize: 12.5 }}>
+                <strong style={{ color: '#0f172a' }}>📦 {kabulHedefPlan.malzeme}</strong>
+                <div style={{ color: '#475569', fontSize: 11.5, marginTop: 2 }}>
+                  🏗️ {kabulHedefPlan.santiyeAdi} • 🏢 {kabulHedefPlan.tedarikci || 'Belirtilmedi'}
+                </div>
+              </div>
+
+              <div className="form-tek-satir">
+                <label className="alan-baslik">Görsel / İrsaliye:</label>
+                <label className="tema-dosya-sec-kutu" style={{ opacity: modalFotoYukleniyor ? 0.6 : 1 }}>
+                  <span>
+                    {modalFotoYukleniyor
+                      ? '⏳ Drive\'a Yükleniyor...'
+                      : `📸 ${kabulFotograflar.length > 0 ? `${kabulFotograflar.length} Görsel Yüklendi` : 'Görsel Seç / Ekle'}`}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    multiple
+                    disabled={modalFotoYukleniyor}
+                    style={{ display: 'none' }}
+                    onChange={(e) => handleModalGorselSec(e, 'kabul')}
+                  />
+                </label>
+              </div>
+
+              <div className="form-tek-satir">
+                <label className="alan-baslik">Kabul Notu:</label>
+                <input
+                  type="text"
+                  placeholder="İsteğe bağlı teslim notu..."
+                  value={kabulNotu}
+                  onChange={(e) => setKabulNotu(e.target.value)}
+                  className="makine-input"
+                />
+              </div>
+
+              <div className="form-satir" style={{ marginBottom: kabulEksikVar ? 8 : 10 }}>
+                <label
                   style={{
-                    flex: 2,
-                    padding: 10,
-                    background: '#1D9596',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '9px 12px',
+                    background: kabulEksikVar ? '#fffbeb' : '#f8fafc',
+                    border: `1.5px solid ${kabulEksikVar ? '#fde68a' : '#cbd5e1'}`,
+                    borderRadius: 10,
                     cursor: 'pointer',
                     fontWeight: 700,
-                    fontSize: 13
+                    fontSize: 12.5,
+                    color: kabulEksikVar ? '#b45309' : '#334155',
+                    userSelect: 'none'
                   }}
                 >
-                  ✓ Teslim Al & Arşive Kaydet
+                  <input
+                    type="checkbox"
+                    checked={kabulEksikVar}
+                    onChange={(e) => setKabulEksikVar(e.target.checked)}
+                    style={{ width: 17, height: 17, accentColor: '#d97706', cursor: 'pointer' }}
+                  />
+                  <span>⚠️ Eksik veya Hasarlı Teslimat <small style={{ fontWeight: 500, color: '#64748b' }}>(İsteğe bağlı)</small></span>
+                </label>
+              </div>
+
+              {kabulEksikVar && (
+                <div className="form-tek-satir animasyonlu-acilis">
+                  <label className="alan-baslik" style={{ color: '#b45309' }}>Eksik / Hasar:</label>
+                  <input
+                    type="text"
+                    placeholder="Eksik miktarı veya hasar durumunu yazınız..."
+                    value={kabulEksikDetay}
+                    onChange={(e) => setKabulEksikDetay(e.target.value)}
+                    className="makine-input"
+                    style={{ borderColor: '#f59e0b', background: '#fffbeb' }}
+                    required
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              <div className="modal-buton-alani">
+                <button type="button" className="modal-iptal-buton" onClick={() => setKabulModalAcik(false)}>
+                  Vazgeç
+                </button>
+                <button type="submit" className="modal-onay-buton">
+                  Teslim Alındı Kaydet
                 </button>
               </div>
             </form>

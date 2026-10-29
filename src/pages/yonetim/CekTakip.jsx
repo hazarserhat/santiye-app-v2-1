@@ -7,7 +7,8 @@ import { generateAndSharePDF } from '../../lib/pdfGenerator'
 import {
   getGoogleDriveInlineImageUrl,
   getGoogleDriveViewUrl,
-  uploadToGoogleDrive
+  uploadToGoogleDrive,
+  moveToSilinenler
 } from '../../lib/googleDrive'
 
 const ayFormatla = (yilAy) => {
@@ -310,8 +311,19 @@ export default function CekTakip() {
     setYukleniyorGorselId(c.id)
 
     try {
-      const adSoyad = c.odenen || c.odeyen || 'Cek'
-      const driveSonuc = await uploadToGoogleDrive(file, 'Cekler', adSoyad, c.verilis_tarihi)
+      const santiyeAdi = c.santiyeler?.ad || santiyeler.find(s => s.id === c.santiye_id)?.ad || 'Genel'
+      const islem = c.cek_turu === 'ciro' ? 'Ciro Edilen Çek' : (c.yon === 'alinan' ? 'Alınan Çek' : 'Verilen Çek')
+      const folderName = `Cekler/${santiyeAdi}/${islem}`
+      const kisaKonu = c.odeme_konusu ? c.odeme_konusu.substring(0, 20) : 'Cek'
+      const firmaKisi = c.odenen || c.odeyen || 'Bilinmiyor'
+      const adSoyad = `${kisaKonu}-${firmaKisi}`
+
+      const driveSonuc = await uploadToGoogleDrive({
+        file,
+        folderName,
+        adSoyad,
+        date: c.verilis_tarihi
+      })
       if (!driveSonuc.success || !driveSonuc.url) {
         alert('Görsel yüklenemedi: ' + (driveSonuc.error || 'Bilinmeyen hata'))
         return
@@ -350,6 +362,17 @@ export default function CekTakip() {
       alert('Çek silinemedi: ' + error.message)
       return
     }
+
+    if (c.belge_url) {
+      try {
+        const santiyeAdi = c.santiyeler?.ad || santiyeler.find(s => s.id === c.santiye_id)?.ad || 'Genel'
+        const islem = c.cek_turu === 'ciro' ? 'Ciro Edilen Çek' : (c.yon === 'alinan' ? 'Alınan Çek' : 'Verilen Çek')
+        await moveToSilinenler(c.belge_url, `Cekler/${santiyeAdi}/${islem}`)
+      } catch (err) {
+        console.warn('Silinenlere taşıma hatası:', err)
+      }
+    }
+
     setCekler(prev => prev.filter(item => item.id !== c.id && !idler.includes(item.id)))
     setSeciliCekler(prev => prev.filter(x => !idler.includes(x)))
   }
