@@ -12,7 +12,7 @@ export default function SahaDosyalari() {
   const { santiyeler } = useSite()
   const { profile } = useAuth()
   
-  const [aktifSekme, setAktifSekme] = useState('tum')
+  const [aktifSekme, setAktifSekme] = useState('klasorler')
   const [dosyalar, setDosyalar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(false)
   const [yuklemeDurumu, setYuklemeDurumu] = useState(null)
@@ -343,11 +343,11 @@ export default function SahaDosyalari() {
       </div>
 
       <div className="drv-tabs">
-        <button className={`drv-tab ${aktifSekme === 'tum' ? 'active' : ''}`} onClick={() => { setAktifSekme('tum'); setArama('') }}>
-          Tüm Evraklar
-        </button>
         <button className={`drv-tab ${aktifSekme === 'klasorler' ? 'active' : ''}`} onClick={() => { setAktifSekme('klasorler'); setSeciliSantiyeKlasoru(null); setArama('') }}>
           Şantiye Klasörleri
+        </button>
+        <button className={`drv-tab ${aktifSekme === 'tum' ? 'active' : ''}`} onClick={() => { setAktifSekme('tum'); setArama('') }}>
+          Tüm Evraklar
         </button>
       </div>
       
