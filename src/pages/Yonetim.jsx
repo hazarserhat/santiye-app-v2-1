@@ -8,7 +8,6 @@ import { paraFormatla } from '../lib/format'
 const DEFAULT_SAYFALAR = [
   { yol: '/yonetim/proje-dosyalari', ad: 'Proje & Yönetim Dosyaları', aciklama: 'Sözleşme, vekalet, harita arşivi', ikon: '📁' },
   { yol: '/yonetim/santiyeler', ad: 'Şantiye Yönetimi', aciklama: 'Ekleme / düzenleme / silme', ikon: '🏗️' },
-  { yol: '/yonetim/cek-takip', ad: 'Çek Takip Sayfası', aciklama: 'Sıralanabilir/filtrelenebilir tablo', ikon: '🏦' },
   { yol: '/yonetim/teminatlar/banka', ad: 'Banka Teminat Mektupları', aciklama: '', ikon: '📜' },
   { yol: '/yonetim/teminatlar/belediye', ad: 'Belediye Teminatları', aciklama: '', ikon: '🏛️' },
   { yol: '/yonetim/teminatlar/abonelik', ad: 'Abonelik Bedelleri / Teminatları', aciklama: 'Elektrik / Su / Doğalgaz', ikon: '🔌' },
@@ -16,11 +15,8 @@ const DEFAULT_SAYFALAR = [
   { yol: '/yonetim/proje-detaylari', ad: 'Proje Detaylı Bilgiler', aciklama: 'Şantiye başına teknik detaylar', ikon: '📋' },
   { yol: '/yonetim/fatura-bilgileri', ad: 'Fatura Bilgileri', aciklama: 'Elektrik/su sözleşme no', ikon: '🧾' },
   { yol: '/yonetim/yapi-denetim', ad: 'Yapı Denetim Bilgileri', aciklama: '', ikon: '🔍' },
-  { yol: '/yonetim/yarisi-bizden', ad: 'Yarısı Bizden Ödemeleri', aciklama: 'Devlet desteği takibi', ikon: '🤝' },
-  { yol: '/yonetim/proje-gelirleri', ad: 'Proje Gelirleri', aciklama: 'Malik bazlı alacak/ödeme takibi', ikon: '💰' },
   { yol: '/yonetim/malik-koordinasyon', ad: 'Malik Koordinasyon', aciklama: 'Otopark, vergi, vekalet takibi matrisi', ikon: '✅' },
   { yol: '/yonetim/kredi-kartlari', ad: 'Kredi Kartı Ödeme Tarihleri', aciklama: 'Kesim ve son ödeme tarihi takibi', ikon: '💳' },
-  { yol: '/yonetim/anlasma-planlama', ad: 'Anlaşma & Planlama', aciklama: 'Tüm şantiyelerin taşeron anlaşmaları', ikon: '📊' },
 ]
 
 export default function Yonetim() {

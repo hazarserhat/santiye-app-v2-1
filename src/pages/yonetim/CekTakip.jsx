@@ -82,9 +82,32 @@ export default function CekTakip() {
   useEffect(() => {
     Promise.all([
       supabase.from('cekler').select('*, santiyeler(ad)'),
-      supabase.from('malikler').select('id, ad_soyad')
-    ]).then(([{ data: cekData, error: cekError }, { data: malikData }]) => {
+      supabase.from('malikler').select('id, ad_soyad'),
+      supabase.from('sistem_ayarlari').select('deger').eq('anahtar', 'cek_turu_overrides').maybeSingle()
+    ]).then(([{ data: cekData, error: cekError }, { data: malikData }, { data: overrideRow }]) => {
       if (cekError) { alert('Çekler yüklenemedi: ' + cekError.message); return }
+
+      let guncelOverrides = turOverrides
+      if (overrideRow?.deger) {
+        try {
+          const bulutObj = JSON.parse(overrideRow.deger)
+          if (bulutObj && typeof bulutObj === 'object') {
+            const birlesik = { ...turOverrides, ...bulutObj }
+            guncelOverrides = birlesik
+            if (JSON.stringify(birlesik) !== JSON.stringify(turOverrides)) {
+              setTurOverrides(birlesik)
+            }
+            localStorage.setItem('cek_turu_overrides', JSON.stringify(birlesik))
+          }
+        } catch (e) {
+          console.error(e)
+        }
+      } else if (Object.keys(turOverrides).length > 0) {
+        supabase.from('sistem_ayarlari').upsert(
+          { anahtar: 'cek_turu_overrides', deger: JSON.stringify(turOverrides) },
+          { onConflict: 'anahtar' }
+        ).then(() => {})
+      }
 
       const tumCekler = cekData || []
       const maliklerListesi = malikData || []
@@ -127,7 +150,7 @@ export default function CekTakip() {
           const isGercekMalik = malikIsimleri.has(alinanOdeyenLower) || (!isFirmaVeyaOrtak && Boolean(alinanOdeyen))
 
           let varsayilanTur = isGercekMalik && !isFirmaVeyaOrtak ? 'ciro' : 'kendi_cekimiz'
-          const overrideTur = turOverrides[ver.id] || turOverrides[eslesenAlinan.id]
+          const overrideTur = guncelOverrides[ver.id] || guncelOverrides[eslesenAlinan.id]
           const nihaiTur = overrideTur || varsayilanTur
 
           const kesideci = alinanOdeyen || ver.odeyen || (nihaiTur === 'ciro' ? 'Malik / Keşideci' : 'Biz (Firma)')
@@ -171,7 +194,7 @@ export default function CekTakip() {
       const kendiCeklerimiz = verilenler
         .filter(ver => !eslesenVerilenIdleri.has(ver.id))
         .map(ver => {
-          const overrideTur = turOverrides[ver.id]
+          const overrideTur = guncelOverrides[ver.id]
           const nihaiTur = overrideTur || 'kendi_cekimiz'
 
           const isEmanet = Boolean(
@@ -198,7 +221,7 @@ export default function CekTakip() {
       const portfoydekiCekler = alinanlar
         .filter(al => !eslesenAlinanIdleri.has(al.id))
         .map(al => {
-          const overrideTur = turOverrides[al.id]
+          const overrideTur = guncelOverrides[al.id]
           const nihaiTur = overrideTur || 'portfoy'
 
           const isEmanet = Boolean(
@@ -239,7 +262,7 @@ export default function CekTakip() {
     return sayilar
   }, [cekler])
 
-  // Çek Türünü Anında Değiştir (Kendi Çekimiz ⇄ Cirolu Çek)
+  // Çek Türünü Anında Değiştir (Kendi Çekimiz ⇄ Cirolu Çek — Supabase Senkronize)
   const turDegistir = (c) => {
     const yeniTur = c.cek_turu === 'ciro' ? 'kendi_cekimiz' : 'ciro'
     const yeniOverrides = { ...turOverrides, [c.id]: yeniTur }
@@ -247,11 +270,16 @@ export default function CekTakip() {
     if (c.verilen_id) yeniOverrides[c.verilen_id] = yeniTur
 
     setTurOverrides(yeniOverrides)
+    const jsonStr = JSON.stringify(yeniOverrides)
     try {
-      localStorage.setItem('cek_turu_overrides', JSON.stringify(yeniOverrides))
+      localStorage.setItem('cek_turu_overrides', jsonStr)
     } catch (e) {
       console.error('Tür kaydedilemedi', e)
     }
+    supabase
+      .from('sistem_ayarlari')
+      .upsert({ anahtar: 'cek_turu_overrides', deger: jsonStr }, { onConflict: 'anahtar' })
+      .then(() => {})
 
     setCekler(prev => prev.map(item => {
       if (item.id === c.id || (item.verilen_id && item.verilen_id === c.verilen_id)) {

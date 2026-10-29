@@ -38,13 +38,20 @@ const Operasyon = lazy(() => import('./pages/Operasyon'))
 
 function YonetimKoruma({ children }) {
   const { profile } = useAuth()
-  const isYetkili = Boolean(
-    profile?.sistem_yoneticisi ||
+  if (!profile?.sistem_yoneticisi) {
+    return <div className="sayfa"><p className="bos-mesaj">Bu sayfaya erişim yetkiniz yok.</p></div>
+  }
+  return children
+}
+
+function SerhatHazarKoruma({ children }) {
+  const { profile } = useAuth()
+  const isSerhatHazar = Boolean(
     profile?.ad_soyad?.toLocaleLowerCase('tr-TR').includes('serhat') ||
     profile?.email?.toLowerCase().includes('serhat')
   )
-  if (!isYetkili) {
-    return <div className="sayfa"><p className="bos-mesaj">Bu sayfaya erişim yetkiniz yok.</p></div>
+  if (!isSerhatHazar) {
+    return <div className="sayfa"><p className="bos-mesaj">Bu sayfaya yalnızca Serhat Hazar erişebilir.</p></div>
   }
   return children
 }
@@ -107,7 +114,7 @@ function IcerikAlani() {
 
               <Route path="/yonetim" element={<YonetimKoruma><Yonetim /></YonetimKoruma>} />
               <Route path="/yonetim/santiyeler" element={<YonetimKoruma><YonetimSantiyeler /></YonetimKoruma>} />
-              <Route path="/yonetim/cek-takip" element={<YonetimKoruma><CekTakip /></YonetimKoruma>} />
+              <Route path="/yonetim/cek-takip" element={<SerhatHazarKoruma><CekTakip /></SerhatHazarKoruma>} />
               <Route path="/yonetim/teminatlar/banka" element={<YonetimKoruma><Teminatlar tur="banka_teminat_mektubu" /></YonetimKoruma>} />
               <Route path="/yonetim/teminatlar/belediye" element={<YonetimKoruma><Teminatlar tur="belediye_teminati" /></YonetimKoruma>} />
               <Route path="/yonetim/teminatlar/abonelik" element={<YonetimKoruma><Teminatlar tur="abonelik_bedeli" /></YonetimKoruma>} />
@@ -116,11 +123,11 @@ function IcerikAlani() {
               <Route path="/yonetim/fatura-bilgileri" element={<YonetimKoruma><FaturaBilgileri /></YonetimKoruma>} />
               <Route path="/yonetim/yapi-denetim" element={<YonetimKoruma><YapiDenetim /></YonetimKoruma>} />
               <Route path="/yonetim/santiye-adresleri" element={<YonetimKoruma><SantiyeAdresleri /></YonetimKoruma>} />
-              <Route path="/yonetim/yarisi-bizden" element={<YonetimKoruma><YarisiBizden /></YonetimKoruma>} />
-              <Route path="/yonetim/proje-gelirleri" element={<YonetimKoruma><ProjeGelirleri /></YonetimKoruma>} />
+              <Route path="/yonetim/yarisi-bizden" element={<SerhatHazarKoruma><YarisiBizden /></SerhatHazarKoruma>} />
+              <Route path="/yonetim/proje-gelirleri" element={<SerhatHazarKoruma><ProjeGelirleri /></SerhatHazarKoruma>} />
               <Route path="/yonetim/kredi-kartlari" element={<YonetimKoruma><KrediKartlari /></YonetimKoruma>} />
               <Route path="/yonetim/proje-dosyalari" element={<YonetimKoruma><ProjeDosyalari /></YonetimKoruma>} />
-              <Route path="/yonetim/anlasma-planlama" element={<YonetimKoruma><AnlasmaPlanlama /></YonetimKoruma>} />
+              <Route path="/yonetim/anlasma-planlama" element={<SerhatHazarKoruma><AnlasmaPlanlama /></SerhatHazarKoruma>} />
               <Route path="/yonetim/malik-koordinasyon" element={<YonetimKoruma><MalikKordinasyon /></YonetimKoruma>} />
               
               <Route path="/saha-dosyalari" element={<SahaDosyalari />} />

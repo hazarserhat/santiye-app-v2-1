@@ -234,6 +234,40 @@ function PuantajKayitEkleme({ isSantiyeSefi, isYonetici }) {
         })
         setCalisanToplamPuantaj(sayac)
       })
+
+    // 5. Pasife alınan işçiler listesini Supabase sistem_ayarlari tablosundan senkronize et
+    supabase
+      .from('sistem_ayarlari')
+      .select('deger')
+      .eq('anahtar', LOCAL_STORAGE_PASIF_ISCILER)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.deger) {
+          try {
+            const bulutPasifler = JSON.parse(data.deger)
+            if (Array.isArray(bulutPasifler)) {
+              setPasifIsciIds(bulutPasifler)
+              localStorage.setItem(LOCAL_STORAGE_PASIF_ISCILER, JSON.stringify(bulutPasifler))
+            }
+          } catch (e) {
+            console.error(e)
+          }
+        } else {
+          // Bulutta henüz yoksa ve yerelde varsa buluta aktar
+          try {
+            const yerelStr = localStorage.getItem(LOCAL_STORAGE_PASIF_ISCILER)
+            const yerelArr = yerelStr ? JSON.parse(yerelStr) : []
+            if (Array.isArray(yerelArr) && yerelArr.length > 0) {
+              supabase.from('sistem_ayarlari').upsert(
+                { anahtar: LOCAL_STORAGE_PASIF_ISCILER, deger: JSON.stringify(yerelArr) },
+                { onConflict: 'anahtar' }
+              ).then(() => {})
+            }
+          } catch (e) {
+            console.error(e)
+          }
+        }
+      })
   }, [])
 
   useEffect(() => {
@@ -492,9 +526,10 @@ function PuantajKayitEkleme({ isSantiyeSefi, isYonetici }) {
     }
   }
 
-  // PASİFE ALMA / AKTİFE ALMA (GEÇMİŞ KAYITLARI ASLA SİLMEZ, GELECEKTE GİZLER)
+  // PASİFE ALMA / AKTİFE ALMA (GEÇMİŞ KAYITLARI ASLA SİLMEZ, GELECEKTE GİZLER — SUPABASE SENKRONİZE)
   const handlePasifeAlToggle = (calisanId, adSoyad) => {
     const pasifMi = pasifIsciIds.includes(calisanId)
+    let yeni = pasifIsciIds
     if (!pasifMi) {
       const onay = window.confirm(
         `"${adSoyad}" isimli personeli pasife almak istiyor musunuz?\n\n` +
@@ -502,23 +537,22 @@ function PuantajKayitEkleme({ isSantiyeSefi, isYonetici }) {
       )
       if (!onay) return
 
-      const yeni = [...pasifIsciIds, calisanId]
-      setPasifIsciIds(yeni)
-      try {
-        localStorage.setItem(LOCAL_STORAGE_PASIF_ISCILER, JSON.stringify(yeni))
-      } catch (e) {
-        console.error(e)
-      }
+      yeni = [...pasifIsciIds, calisanId]
     } else {
-      // Yeniden aktife al
-      const yeni = pasifIsciIds.filter(id => id !== calisanId)
-      setPasifIsciIds(yeni)
-      try {
-        localStorage.setItem(LOCAL_STORAGE_PASIF_ISCILER, JSON.stringify(yeni))
-      } catch (e) {
-        console.error(e)
-      }
+      yeni = pasifIsciIds.filter(id => id !== calisanId)
     }
+
+    setPasifIsciIds(yeni)
+    const jsonStr = JSON.stringify(yeni)
+    try {
+      localStorage.setItem(LOCAL_STORAGE_PASIF_ISCILER, jsonStr)
+    } catch (e) {
+      console.error(e)
+    }
+    supabase
+      .from('sistem_ayarlari')
+      .upsert({ anahtar: LOCAL_STORAGE_PASIF_ISCILER, deger: jsonStr }, { onConflict: 'anahtar' })
+      .then(() => {})
   }
 
   // İSİMSİZ / GÜNDELİKÇİ SAYISI STEPPER
