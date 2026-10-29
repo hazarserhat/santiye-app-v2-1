@@ -6,7 +6,6 @@ import { supabase } from '../lib/supabase'
 import { paraFormatla } from '../lib/format'
 
 const DEFAULT_SAYFALAR = [
-  { yol: '/yonetim/proje-dosyalari', ad: 'Proje & Yönetim Dosyaları', aciklama: 'Sözleşme, vekalet, harita arşivi', ikon: '📁' },
   { yol: '/yonetim/santiyeler', ad: 'Şantiye Yönetimi', aciklama: 'Ekleme / düzenleme / silme', ikon: '🏗️' },
   { yol: '/yonetim/teminatlar/banka', ad: 'Banka Teminat Mektupları', aciklama: '', ikon: '📜' },
   { yol: '/yonetim/teminatlar/belediye', ad: 'Belediye Teminatları', aciklama: '', ikon: '🏛️' },

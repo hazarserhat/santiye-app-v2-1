@@ -133,15 +133,25 @@ export default function AltMenu() {
     },
   ].filter(item => item.izinli)
 
-  // 4. Depolama alt öğeleri (Drive & Notlarım)
+  // 4. Depolama alt öğeleri (Drive, Proje & Yönetim Dosyaları [Sadece Serhat Hazar], Notlarım)
   const depolamaAltOgeleri = [
     { 
       yol: '/saha-dosyalari', 
-      etiket: 'Drive', 
+      etiket: 'Drive (Saha Dosyaları)', 
       aciklama: 'Saha arşivi ve Google Drive belgeleri', 
       simge: '📁', 
       renk: '#0284c7',
-      bg: '#e0f2fe'
+      bg: '#e0f2fe',
+      izinli: true
+    },
+    { 
+      yol: '/yonetim/proje-dosyalari', 
+      etiket: 'Proje & Yönetim Dosyaları', 
+      aciklama: 'Sözleşme, vekalet, harita ve proje arşivi', 
+      simge: '🗂️', 
+      renk: '#7c3aed',
+      bg: '#ede9fe',
+      izinli: isSerhatHazar
     },
     { 
       yol: '/notlarim', 
@@ -149,9 +159,10 @@ export default function AltMenu() {
       aciklama: 'Kişisel notlar ve taslaklar', 
       simge: '📌', 
       renk: '#d97706',
-      bg: '#fef3c7'
+      bg: '#fef3c7',
+      izinli: true
     },
-  ]
+  ].filter(item => item.izinli)
 
   // 5. Sadece "Serhat Hazar" Yöneticiye Özel: Portföy & Planlama Alt Öğeleri
   const portfoyAltOgeleri = [

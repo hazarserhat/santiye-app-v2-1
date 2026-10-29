@@ -126,7 +126,7 @@ function IcerikAlani() {
               <Route path="/yonetim/yarisi-bizden" element={<SerhatHazarKoruma><YarisiBizden /></SerhatHazarKoruma>} />
               <Route path="/yonetim/proje-gelirleri" element={<SerhatHazarKoruma><ProjeGelirleri /></SerhatHazarKoruma>} />
               <Route path="/yonetim/kredi-kartlari" element={<YonetimKoruma><KrediKartlari /></YonetimKoruma>} />
-              <Route path="/yonetim/proje-dosyalari" element={<YonetimKoruma><ProjeDosyalari /></YonetimKoruma>} />
+              <Route path="/yonetim/proje-dosyalari" element={<SerhatHazarKoruma><ProjeDosyalari /></SerhatHazarKoruma>} />
               <Route path="/yonetim/anlasma-planlama" element={<SerhatHazarKoruma><AnlasmaPlanlama /></SerhatHazarKoruma>} />
               <Route path="/yonetim/malik-koordinasyon" element={<YonetimKoruma><MalikKordinasyon /></YonetimKoruma>} />
               
