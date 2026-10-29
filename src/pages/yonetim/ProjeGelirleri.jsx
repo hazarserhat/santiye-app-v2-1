@@ -992,6 +992,11 @@ export default function ProjeGelirleri() {
         }
         
         /* İçerideki esnek alanların (aşamalar vb.) bozulmaması için */
+        .sayfa-genis .kaydirilabilir-tablo tr.ruha-satir td:first-child { background: #1D9596 !important; color: #FFFFFF !important; }
+        .sayfa-genis .kaydirilabilir-tablo tr.ruha-satir .sil-buton { color: #FFFFFF !important; opacity: 0.9; }
+        .sayfa-genis .kaydirilabilir-tablo tr.ruha-satilan-satir td:first-child { background: #FDF2F8 !important; color: #831843 !important; }
+        .sayfa-genis .kaydirilabilir-tablo tr.tek-satir td:first-child { background: #F1F5F9 !important; }
+        .sayfa-genis .kaydirilabilir-tablo tfoot td:first-child { background: #D2ECE9 !important; color: #0F5859 !important; }
         .sayfa-genis table td > div {
           white-space: normal;
         }
@@ -1262,7 +1267,7 @@ export default function ProjeGelirleri() {
               }
 
               return (
-                <tr key={m.id} className="premium-satir" style={{ color: textColor }}>
+                <tr key={m.id} className={`premium-satir ${isRuha ? 'ruha-satir' : ''} ${isRuhaSatilan ? 'ruha-satilan-satir' : ''} ${!isEven && !isRuha && !isRuhaSatilan ? 'tek-satir' : ''}`} style={{ color: textColor }}>
                   {/* Malik Adı */}
                   <td className="td-expandable" style={{ position: pdfYukleniyor ? 'static' : 'sticky', left: 0, background: stickyBg, fontWeight: 700, zIndex: 5, boxShadow: '2px 0 5px rgba(0,0,0,0.03)', display: isColumnVisible('ad_soyad') ? '' : 'none', color: textColor, textAlign: 'left' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 6 }}>
@@ -1312,10 +1317,10 @@ export default function ProjeGelirleri() {
                   </td>
 
                   {/* Şantiye */}
-                  <td style={{ background: cellBg, display: isColumnVisible('santiye') ? '' : 'none' }}>{m.santiyeler?.ad}</td>
+                  <td style={{ background: cellBg, display: isColumnVisible('santiye') ? '' : 'none', color: textColor }}>{m.santiyeler?.ad}</td>
 
                   {/* Mesken Türü */}
-                  <td style={{ background: cellBg, display: isColumnVisible('mesken_turu') ? '' : 'none' }}>
+                  <td style={{ background: cellBg, display: isColumnVisible('mesken_turu') ? '' : 'none', color: textColor }}>
                     {hucreEdit?.malikId === m.id && hucreEdit?.alan === 'mesken_turu' ? (
                       <input
                         type="text"
@@ -1331,7 +1336,7 @@ export default function ProjeGelirleri() {
                   </td>
 
                   {/* Daire No */}
-                  <td style={{ background: cellBg, display: isColumnVisible('daire_no') ? '' : 'none' }}>
+                  <td style={{ background: cellBg, display: isColumnVisible('daire_no') ? '' : 'none', color: textColor }}>
                     {hucreEdit?.malikId === m.id && hucreEdit?.alan === 'daire_no' ? (
                       <input
                         type="text"
@@ -1442,7 +1447,7 @@ export default function ProjeGelirleri() {
                                   onKeyDown={(e) => { if (e.key === 'Enter') asamaTutarKaydet(s.id, e.target.value) }}
                                 />
                               ) : (
-                                <span onDoubleClick={() => hucreCiftTik(null, null, s.id)} title={hizliDuzenleModu ? "Çift tıklayarak tutarı düzenle" : "Hızlı Düzenleme modunu açarak düzenleyebilirsiniz"} style={{ fontSize: 12, fontWeight: 800, color: '#1E293B', cursor: hizliDuzenleModu ? 'pointer' : 'default' }}>{paraFormatla(s.tutar)} ₺</span>
+                                <span onDoubleClick={() => hucreCiftTik(null, null, s.id)} title={hizliDuzenleModu ? "Çift tıklayarak tutarı düzenle" : "Hızlı Düzenleme modunu açarak düzenleyebilirsiniz"} style={{ fontSize: 12, fontWeight: 800, color: isRuha && stageCellBg === cellBg ? '#FFFFFF' : '#1E293B', cursor: hizliDuzenleModu ? 'pointer' : 'default' }}>{paraFormatla(s.tutar)} ₺</span>
                               )}
                               {durumMetni && <span style={{ fontSize: 9, fontWeight: 800 }}>{durumMetni}</span>}
                             </div>
