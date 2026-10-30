@@ -122,11 +122,11 @@ export default function Animsaticilar() {
 
   return (
     <div className="sayfa">
-      <div className="sayfa-baslik-bar"><h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}><span>🔔</span> Anımsatıcı / Uyarı</h2></div>
+      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}><span>🔔</span> Anımsatıcı / Uyarı</h2>
 
       {bildirimler.length > 0 && (
         <>
-          <div className="sayfa-baslik-bar">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <p className="alt-baslik" style={{ margin: 0 }}>Bildirimlerim {yeniBildirimler.length > 0 && <span className="etiket" style={{ background: '#D64545', color: 'white' }}>{yeniBildirimler.length} yeni</span>}</p>
             {yeniBildirimler.length > 0 && (
               <button 
@@ -171,7 +171,7 @@ export default function Animsaticilar() {
         </>
       )}
 
-      <div className="sayfa-baslik-bar">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <p className="alt-baslik" style={{ margin: 0 }}>Anımsatıcılar</p>
         <button className="ekle-buton-genis" style={{ width: 'auto', padding: '6px 12px' }} onClick={() => setEkleAcik(!ekleAcik)}>
           {ekleAcik ? 'Vazgeç' : '+ Ekle'}

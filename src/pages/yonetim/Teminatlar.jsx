@@ -88,7 +88,7 @@ export default function Teminatlar({ tur }) {
 
   return (
     <div className="sayfa">
-      <div className="sayfa-baslik-bar">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div>
           <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
           <h2>{BASLIKLAR[tur]}</h2>

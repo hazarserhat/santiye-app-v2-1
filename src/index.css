@@ -1905,13 +1905,7 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   margin-bottom: 14px;
 }
 
-.makine-baslik-metin h1 {
-  font-size: 20px;
-  font-weight: 800;
-  color: #1e293b;
-  margin: 0 0 4px 0;
-  letter-spacing: -0.5px;
-}
+.makine-baslik-metin h1 { margin: 0 0 2px 0; font-size: 22px; font-weight: 800; color: #1D9596; letter-spacing: -0.3px; line-height: 1.25; }
 
 .makine-alt-bilgi {
   font-size: 13px;
@@ -6414,13 +6408,7 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   gap: 12px;
 }
 
-.makine-baslik-metin h1 {
-  margin: 0 0 2px 0;
-  font-size: 20px;
-  font-weight: 800;
-  color: #0f172a;
-  line-height: 1.25;
-}
+.makine-baslik-metin h1 { margin: 0 0 2px 0; font-size: 22px; font-weight: 800; color: #1D9596; letter-spacing: -0.3px; line-height: 1.25; }
 
 .makine-alt-bilgi {
   margin: 0;
@@ -7601,13 +7589,7 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   margin-bottom: 12px;
 }
 
-.saha-ust-baslik-sol h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #1A202C;
-  line-height: 1.25;
-}
+.saha-ust-baslik-sol h2 { margin: 0; font-size: 22px; font-weight: 800; color: #1D9596; letter-spacing: -0.3px; line-height: 1.25; }
 
 .saha-ana-ekle-btn {
   display: inline-flex;

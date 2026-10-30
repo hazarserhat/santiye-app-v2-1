@@ -240,36 +240,15 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ==========================================================================
-   ORTAK SAYFA BAŞLIĞI (Glassmorphism Header Pod)
+   ORTAK SAYFA BAŞLIĞI
    ========================================================================== */
-.ortak-sayfa-baslik,
-.makine-ust-baslik-alani,
-.saha-ust-baslik-bar,
-.sayfa-baslik-bar,
-.drv-header {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  margin-bottom: 16px !important;
-  padding: 12px 18px !important;
-  gap: 12px !important;
-  flex-wrap: wrap !important;
-  background: var(--bg-cam) !important;
-  backdrop-filter: var(--cam-blur) !important;
-  -webkit-backdrop-filter: var(--cam-blur) !important;
-  border: 1px solid var(--cam-kenarlik) !important;
-  border-radius: var(--radius-lg) !important;
-  box-shadow: var(--golge-cam), var(--ic-isik) !important;
-  transition: all 0.25s ease !important;
-}
-
-.ortak-sayfa-baslik:hover,
-.makine-ust-baslik-alani:hover,
-.saha-ust-baslik-bar:hover,
-.sayfa-baslik-bar:hover,
-.drv-header:hover {
-  box-shadow: var(--golge-cam-derin), var(--ic-isik) !important;
-  border-color: rgba(255, 255, 255, 1) !important;
+.ortak-sayfa-baslik {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .ortak-sayfa-baslik-sol {
@@ -279,11 +258,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 .ortak-sayfa-baslik h1,
-.ortak-sayfa-baslik h2,
-.makine-baslik-metin h1,
-.saha-ust-baslik-sol h2,
-.sayfa-baslik-bar h2,
-.drv-header h2 {
+.ortak-sayfa-baslik h2 {
   margin: 0 !important;
   font-size: 22px !important;
   font-weight: 800 !important;
@@ -295,8 +270,7 @@ input:focus, select:focus, textarea:focus {
   line-height: 1.25 !important;
 }
 
-.ortak-sayfa-altbilgi,
-.makine-alt-bilgi {
+.ortak-sayfa-altbilgi {
   margin: 2px 0 0 0 !important;
   font-size: 12px !important;
   color: #64748B !important;
