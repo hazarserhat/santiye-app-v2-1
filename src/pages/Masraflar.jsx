@@ -8,6 +8,7 @@ import OdemeVaatleri from './OdemeVaatleri'
 import { paraFormatla, sadeceSayiTuslari, formatInputTutar, temizleTutar } from '../lib/format'
 import CariAramaSecici from '../components/CariAramaSecici'
 import { uploadToGoogleDrive, moveToSilinenler, getGoogleDriveInlineImageUrl, getGoogleDriveViewUrl } from '../lib/googleDrive'
+import { SayfaBaslik, BosDurum } from '../components/OrtakBilesenler'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -563,11 +564,11 @@ export default function Masraflar() {
     masraflariYukle()
   }
 
-  if (!aktifSantiye) return <p className="bos-mesaj">Şantiye yükleniyor...</p>
+  if (!aktifSantiye) return <div className="sayfa"><BosDurum ikon="⏳" baslik="Şantiye Yükleniyor..." aciklama="Lütfen şantiye verileri yüklenirken bekleyiniz." /></div>
 
   return (
     <div className="sayfa">
-      <h2>GİDERLER</h2>
+      <SayfaBaslik ikon="💸" baslik="Giderler" altBaslik="Şantiye harcamaları, çek ve ödeme planı yönetimi" />
 
       {yonetici && (
         <div className="gorunum-secici" style={{ marginBottom: 14 }}>
@@ -1034,7 +1035,7 @@ export default function Masraflar() {
                 )}
               </div>
             ))}
-            {islenecekListe.length === 0 && <p className="bos-mesaj">Kayıt yok.</p>}
+            {islenecekListe.length === 0 && <BosDurum ikon="🧾" baslik="Kayıt Bulunamadı" aciklama="Seçili filtre ve kriterlere uygun herhangi bir gider kaydı yok." />}
           </div>
         </>
       )}

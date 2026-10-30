@@ -1,0 +1,174 @@
+/* ==========================================================================
+   TEMA & ORTAK TASARIM DEĞİŞKENLERİ (Design Tokens)
+   ========================================================================== */
+
+:root {
+  /* Kurumsal Renk Paleti */
+  --renk-ana: #1D9596;
+  --renk-ana-koyu: #137778;
+  --renk-ana-acik: #24B8B9;
+  --renk-ana-bg: #E6F4F1;
+  --renk-ana-bg-soft: #F0FDFA;
+
+  /* Nötr & Arka Plan */
+  --bg-sayfa: #F8F7F2;
+  --bg-kart: rgba(255, 255, 255, 0.85);
+  --bg-kart-kati: #FFFFFF;
+  --metin-ana: #1E293B;
+  --metin-ikincil: #64748B;
+  --metin-soluk: #94A3B8;
+  --kenarlik: #E2E8F0;
+  --kenarlik-koyu: #CBD5E1;
+
+  /* Durum Renkleri */
+  --durum-basari: #10B981;
+  --durum-basari-bg: #DCFCE7;
+  --durum-uyari: #F59E0B;
+  --durum-uyari-bg: #FEF3C7;
+  --durum-hata: #EF4444;
+  --durum-hata-bg: #FEE2E2;
+  --durum-bilgi: #3B82F6;
+  --durum-bilgi-bg: #DBEAFE;
+
+  /* Tipografi & Boyutlar */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-tam: 9999px;
+
+  /* Gölgeler */
+  --golge-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --golge-md: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --golge-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+  --golge-teal: 0 4px 14px rgba(29, 149, 150, 0.25);
+}
+
+/* ==========================================================================
+   ORTAK BİLEŞEN SINIFLARI
+   ========================================================================== */
+
+/* Sayfa Başlığı ve Açıklama Barı */
+.ortak-sayfa-baslik {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ortak-sayfa-baslik-sol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ortak-sayfa-baslik h1,
+.ortak-sayfa-baslik h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--metin-ana);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ortak-sayfa-altbilgi {
+  font-size: 12px;
+  color: var(--metin-ikincil);
+  margin: 0;
+}
+
+/* Ortak Kart Yapısı */
+.ortak-kart {
+  background: var(--bg-kart);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--golge-md);
+  transition: all 0.2s ease;
+}
+
+.ortak-kart:hover {
+  box-shadow: var(--golge-lg);
+}
+
+/* Ortak Boş Durum (Empty State) */
+.ortak-bos-durum {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  background: var(--bg-kart-kati);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--kenarlik-koyu);
+  margin: 16px 0;
+}
+
+.ortak-bos-durum-ikon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  opacity: 0.8;
+}
+
+.ortak-bos-durum-baslik {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--metin-ana);
+  margin: 0 0 6px 0;
+}
+
+.ortak-bos-durum-aciklama {
+  font-size: 13px;
+  color: var(--metin-ikincil);
+  max-width: 340px;
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+}
+
+/* Ortak Butonlar */
+.ortak-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.ortak-btn:active {
+  transform: scale(0.98);
+}
+
+.ortak-btn-primary {
+  background: linear-gradient(135deg, var(--renk-ana-acik) 0%, var(--renk-ana) 100%);
+  color: #FFFFFF;
+  box-shadow: var(--golge-teal);
+}
+
+.ortak-btn-primary:hover {
+  background: linear-gradient(135deg, var(--renk-ana) 0%, var(--renk-ana-koyu) 100%);
+}
+
+.ortak-btn-secondary {
+  background: #FFFFFF;
+  color: var(--metin-ana);
+  border: 1px solid var(--kenarlik);
+  box-shadow: var(--golge-sm);
+}
+
+.ortak-btn-secondary:hover {
+  background: #F8FAFC;
+  border-color: var(--kenarlik-koyu);
+}

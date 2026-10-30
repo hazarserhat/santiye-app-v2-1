@@ -6,6 +6,7 @@ import { uploadToGoogleDrive, moveToSilinenler, isGoogleDriveUrl, getGoogleDrive
 import { paraFormatla, sadeceSayiTuslari, formatInputTutar, temizleTutar } from '../lib/format'
 import CariAramaSecici from '../components/CariAramaSecici'
 import Cekler from './Cekler'
+import { SayfaBaslik, BosDurum } from '../components/OrtakBilesenler'
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
@@ -445,7 +446,7 @@ export default function Gelirler() {
 
   return (
     <div className="sayfa">
-      <h2>Gelirler</h2>
+      <SayfaBaslik ikon="💰" baslik="Gelirler" altBaslik="Tahsilat, hakediş ve proje nakit akış takibi" />
 
       {/* SEKME SEÇİCİ (yönetici için) */}
       {yonetici && (
@@ -884,7 +885,7 @@ export default function Gelirler() {
                 )}
               </div>
             ))}
-            {gorunenler.length === 0 && <p className="bos-mesaj">Kayıt yok.</p>}
+            {gorunenler.length === 0 && <BosDurum ikon="💰" baslik="Kayıt Bulunamadı" aciklama="Seçili filtre veya arama kriterlerine uygun gelir kaydı bulunmuyor." />}
           </div>
         </>
       )}
