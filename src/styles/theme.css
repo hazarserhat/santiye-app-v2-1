@@ -1,247 +1,53 @@
 /* ==========================================================================
-   TEMA & ORTAK TASARIM DEĞİŞKENLERİ (Modern Glassmorphism & Soft Glow)
+   TEMA & ORTAK TASARIM DEĞİŞKENLERİ (Design Tokens)
    ========================================================================== */
 
 :root {
-  /* Kurumsal Renk Paleti (Turkuaz & Glow) */
+  /* Kurumsal Renk Paleti */
   --renk-ana: #1D9596;
   --renk-ana-koyu: #137778;
-  --renk-ana-acik: #28B0B1;
+  --renk-ana-acik: #24B8B9;
   --renk-ana-bg: #E6F4F1;
   --renk-ana-bg-soft: #F0FDFA;
-  --renk-ana-glow: rgba(29, 149, 150, 0.25);
 
-  /* iOS/macOS Ferah Zemin & Yüzeyler */
-  --bg-sayfa: #F4F6F9;
-  --bg-cam: rgba(255, 255, 255, 0.78);
-  --bg-cam-parlak: rgba(255, 255, 255, 0.92);
+  /* Nötr & Arka Plan */
+  --bg-sayfa: #F8F7F2;
+  --bg-kart: rgba(255, 255, 255, 0.85);
   --bg-kart-kati: #FFFFFF;
-  
-  /* Kenarlık & Cam Işıltısı */
-  --cam-kenarlik: rgba(255, 255, 255, 0.85);
-  --cam-kenarlik-alt: rgba(226, 232, 240, 0.8);
-  --cam-blur: blur(20px);
-  --cam-blur-hafif: blur(12px);
-
-  /* Metin Renkleri */
-  --metin-ana: #0F172A;
+  --metin-ana: #1E293B;
   --metin-ikincil: #64748B;
   --metin-soluk: #94A3B8;
+  --kenarlik: #E2E8F0;
+  --kenarlik-koyu: #CBD5E1;
 
-  /* Durum Renkleri (Soft Glow) */
+  /* Durum Renkleri */
   --durum-basari: #10B981;
-  --durum-basari-bg: rgba(16, 185, 129, 0.12);
+  --durum-basari-bg: #DCFCE7;
   --durum-uyari: #F59E0B;
-  --durum-uyari-bg: rgba(245, 158, 11, 0.12);
+  --durum-uyari-bg: #FEF3C7;
   --durum-hata: #EF4444;
-  --durum-hata-bg: rgba(239, 68, 68, 0.12);
+  --durum-hata-bg: #FEE2E2;
   --durum-bilgi: #3B82F6;
-  --durum-bilgi-bg: rgba(59, 130, 246, 0.12);
+  --durum-bilgi-bg: #DBEAFE;
 
-  /* Radius (Modern Yuvarlatılmış Köşeler) */
-  --radius-xs: 6px;
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
+  /* Tipografi & Boyutlar */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
   --radius-tam: 9999px;
 
-  /* Lüks Yumuşak Gölgeler & Cam Derinliği */
-  --golge-sm: 0 2px 6px rgba(15, 23, 42, 0.04);
-  --golge-cam: 0 10px 30px -4px rgba(15, 23, 42, 0.06), 0 2px 8px -1px rgba(15, 23, 42, 0.03);
-  --golge-cam-derin: 0 20px 40px -10px rgba(15, 23, 42, 0.09), 0 4px 16px -2px rgba(15, 23, 42, 0.04);
-  --golge-teal-glow: 0 8px 20px -3px rgba(29, 149, 150, 0.35);
-  --ic-isik: inset 0 1px 1px rgba(255, 255, 255, 0.9);
+  /* Gölgeler */
+  --golge-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --golge-md: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --golge-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+  --golge-teal: 0 4px 14px rgba(29, 149, 150, 0.25);
 }
 
 /* ==========================================================================
-   GLOBAL GLASSMORPHISM & SOFT GLOW TEMEL SINIFLARI
+   ORTAK BİLEŞEN SINIFLARI
    ========================================================================== */
 
-/* Sayfa Gövdesi Genel Gradyan Zemin */
-body {
-  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%) !important;
-  color: var(--metin-ana) !important;
-  min-height: 100vh;
-}
-
-/* Glassmorphism Kart (.kart, .ortak-kart, .glass-kutu) */
-.kart, .ortak-kart, .glass-kutu {
-  background: var(--bg-cam) !important;
-  backdrop-filter: var(--cam-blur) !important;
-  -webkit-backdrop-filter: var(--cam-blur) !important;
-  border: 1px solid var(--cam-kenarlik) !important;
-  border-radius: var(--radius-lg) !important;
-  box-shadow: var(--golge-cam), var(--ic-isik) !important;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-.kart:hover, .ortak-kart:hover, .glass-kutu:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--golge-cam-derin), var(--ic-isik) !important;
-  border-color: rgba(255, 255, 255, 1) !important;
-}
-
-/* Üst Bar (iOS Tarzı Buzlu Cam) */
-.ust-bar {
-  background: rgba(255, 255, 255, 0.82) !important;
-  backdrop-filter: var(--cam-blur) !important;
-  -webkit-backdrop-filter: var(--cam-blur) !important;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
-}
-
-/* Alt Menü (Yüzen Floating Cam Menü) */
-.alt-menu {
-  background: rgba(255, 255, 255, 0.82) !important;
-  backdrop-filter: var(--cam-blur) !important;
-  -webkit-backdrop-filter: var(--cam-blur) !important;
-  border-top: 1px solid var(--cam-kenarlik) !important;
-  box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.05) !important;
-}
-
-.alt-menu-oge.aktif {
-  background: var(--renk-ana-bg-soft) !important;
-  color: var(--renk-ana) !important;
-  box-shadow: inset 0 0 0 1px rgba(29, 149, 150, 0.2) !important;
-}
-
-/* Giriş Alanları (Modern Input, Select & Textarea) */
-input[type="text"],
-input[type="number"],
-input[type="date"],
-input[type="datetime-local"],
-select,
-textarea {
-  background: rgba(255, 255, 255, 0.9) !important;
-  border: 1px solid rgba(203, 213, 225, 0.8) !important;
-  border-radius: var(--radius-md) !important;
-  color: var(--metin-ana) !important;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02) !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-input:focus, select:focus, textarea:focus {
-  background: #FFFFFF !important;
-  border-color: var(--renk-ana) !important;
-  box-shadow: 0 0 0 3.5px var(--renk-ana-glow), 0 2px 8px rgba(0, 0, 0, 0.04) !important;
-  outline: none !important;
-}
-
-/* Ekleme Kutusu (Masraflar, Gelirler vb. Giriş Kartları) */
-.ekleme-kutusu {
-  background: var(--bg-cam) !important;
-  backdrop-filter: var(--cam-blur) !important;
-  -webkit-backdrop-filter: var(--cam-blur) !important;
-  border: 1px solid var(--cam-kenarlik) !important;
-  border-radius: var(--radius-xl) !important;
-  box-shadow: var(--golge-cam-derin), var(--ic-isik) !important;
-}
-
-/* Ana Aksiyon Butonları (Turkuaz Gradient & Soft Glow) */
-.ekle-buton-genis,
-.yeni-dokum-baslat-btn,
-.saha-ana-ekle-btn,
-.tema-ana-aksiyon-btn,
-.ortak-btn-primary {
-  background: linear-gradient(135deg, var(--renk-ana-acik) 0%, var(--renk-ana) 100%) !important;
-  color: #FFFFFF !important;
-  border: none !important;
-  border-radius: var(--radius-md) !important;
-  box-shadow: var(--golge-teal-glow) !important;
-  font-weight: 700 !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  cursor: pointer;
-}
-
-.ekle-buton-genis:hover,
-.yeni-dokum-baslat-btn:hover,
-.saha-ana-ekle-btn:hover,
-.tema-ana-aksiyon-btn:hover,
-.ortak-btn-primary:hover {
-  transform: translateY(-1.5px) !important;
-  box-shadow: 0 10px 24px -2px rgba(29, 149, 150, 0.45) !important;
-  filter: brightness(1.03);
-}
-
-.ekle-buton-genis:active,
-.yeni-dokum-baslat-btn:active,
-.saha-ana-ekle-btn:active,
-.tema-ana-aksiyon-btn:active,
-.ortak-btn-primary:active {
-  transform: scale(0.98) !important;
-}
-
-/* Filtre Çipleri (Pill Tabs) */
-.filtre-chip {
-  background: rgba(255, 255, 255, 0.85) !important;
-  backdrop-filter: blur(8px) !important;
-  border: 1px solid rgba(226, 232, 240, 0.8) !important;
-  border-radius: var(--radius-tam) !important;
-  color: var(--metin-ikincil) !important;
-  box-shadow: var(--golge-sm) !important;
-  transition: all 0.2s ease !important;
-}
-
-.filtre-chip:hover {
-  background: #FFFFFF !important;
-  border-color: rgba(203, 213, 225, 1) !important;
-  color: var(--metin-ana) !important;
-}
-
-.filtre-chip.secili {
-  background: linear-gradient(135deg, var(--renk-ana-acik) 0%, var(--renk-ana) 100%) !important;
-  color: #FFFFFF !important;
-  border: 1px solid transparent !important;
-  box-shadow: var(--golge-teal-glow) !important;
-}
-
-/* Sekmeler (Tab Switchers) */
-.gorunum-secici button {
-  background: rgba(255, 255, 255, 0.75) !important;
-  backdrop-filter: blur(8px) !important;
-  border: 1px solid rgba(226, 232, 240, 0.8) !important;
-  border-radius: var(--radius-md) !important;
-  font-weight: 600 !important;
-  transition: all 0.2s ease !important;
-}
-
-.gorunum-secici button.secili-tab {
-  background: var(--renk-ana) !important;
-  color: #FFFFFF !important;
-  border-color: var(--renk-ana) !important;
-  box-shadow: var(--golge-teal-glow) !important;
-}
-
-/* Özet & KPI Metrik Kartları (Glassmorphism Glow) */
-.ozet-kart, .kpi-kart, .kpi-card-inline {
-  background: var(--bg-cam) !important;
-  backdrop-filter: var(--cam-blur) !important;
-  -webkit-backdrop-filter: var(--cam-blur) !important;
-  border: 1px solid var(--cam-kenarlik) !important;
-  border-radius: var(--radius-lg) !important;
-  box-shadow: var(--golge-cam), var(--ic-isik) !important;
-}
-
-/* Modallar (Modern iOS Dialog) */
-.modal-arka-plan {
-  background: rgba(15, 23, 42, 0.4) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-}
-
-.modal-kutu {
-  background: rgba(255, 255, 255, 0.94) !important;
-  backdrop-filter: var(--cam-blur) !important;
-  -webkit-backdrop-filter: var(--cam-blur) !important;
-  border: 1px solid rgba(255, 255, 255, 1) !important;
-  border-radius: var(--radius-xl) !important;
-  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25) !important;
-}
-
-/* ==========================================================================
-   ORTAK SAYFA BAŞLIĞI
-   ========================================================================== */
+/* Sayfa Başlığı ve Açıklama Barı */
 .ortak-sayfa-baslik {
   display: flex;
   align-items: center;
@@ -277,3 +83,97 @@ input:focus, select:focus, textarea:focus {
   font-weight: 600 !important;
   line-height: 1.3 !important;
 }
+
+/* Ortak Kart Yapısı */
+.ortak-kart {
+  background: var(--bg-kart);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--golge-md);
+  transition: all 0.2s ease;
+}
+
+.ortak-kart:hover {
+  box-shadow: var(--golge-lg);
+}
+
+/* Ortak Boş Durum (Empty State) */
+.ortak-bos-durum {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  background: var(--bg-kart-kati);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--kenarlik-koyu);
+  margin: 16px 0;
+}
+
+.ortak-bos-durum-ikon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  opacity: 0.8;
+}
+
+.ortak-bos-durum-baslik {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--metin-ana);
+  margin: 0 0 6px 0;
+}
+
+.ortak-bos-durum-aciklama {
+  font-size: 13px;
+  color: var(--metin-ikincil);
+  max-width: 340px;
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+}
+
+/* Ortak Butonlar */
+.ortak-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.ortak-btn:active {
+  transform: scale(0.98);
+}
+
+.ortak-btn-primary {
+  background: linear-gradient(135deg, var(--renk-ana-acik) 0%, var(--renk-ana) 100%);
+  color: #FFFFFF;
+  box-shadow: var(--golge-teal);
+}
+
+.ortak-btn-primary:hover {
+  background: linear-gradient(135deg, var(--renk-ana) 0%, var(--renk-ana-koyu) 100%);
+}
+
+.ortak-btn-secondary {
+  background: #FFFFFF;
+  color: var(--metin-ana);
+  border: 1px solid var(--kenarlik);
+  box-shadow: var(--golge-sm);
+}
+
+.ortak-btn-secondary:hover {
+  background: #F8FAFC;
+  border-color: var(--kenarlik-koyu);
+}
+
