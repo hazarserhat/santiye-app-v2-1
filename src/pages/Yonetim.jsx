@@ -220,15 +220,7 @@ export default function Yonetim() {
           justify-content: space-between;
           margin-bottom: 24px;
         }
-        .yonetim-title {
-          font-size: 28px;
-          font-weight: 800;
-          background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          margin: 0;
-          letter-spacing: -0.5px;
-        }
+        .yonetim-title { font-size: 22px; font-weight: 800; color: #1D9596; margin: 0; letter-spacing: -0.3px; line-height: 1.25; }
         .yonetim-tabs {
           display: inline-flex;
           background: #f1f5f9;

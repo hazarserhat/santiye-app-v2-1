@@ -28,7 +28,7 @@ export default function SantiyeAdresleri() {
     <div className="sayfa">
       <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <h2 style={{ margin: 0 }}>Şantiye Adresleri</h2>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}><span>📍</span> Şantiye Adresleri</h2>
         <Link to="/operasyon" style={{ fontSize: 12.5, fontWeight: 700, color: '#1D9596', textDecoration: 'none' }}>
           📍 Şantiye Konumlarını Aç →
         </Link>

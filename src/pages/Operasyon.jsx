@@ -169,7 +169,7 @@ export default function Operasyon() {
       {/* SAYFA ÜST BAŞLIĞI */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span>📍 Şantiye Konumları</span>
           </h2>
           {profile?.sistem_yoneticisi && (

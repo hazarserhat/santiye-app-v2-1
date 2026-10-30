@@ -1,3 +1,4 @@
+import { SayfaBaslik } from '../../components/OrtakBilesenler'
 import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
@@ -568,11 +569,9 @@ export default function CekTakip() {
 
   return (
     <div className="sayfa">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <div>
-          <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
-          <h2>Çek Takip Sayfası</h2>
-        </div>
+      <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+        <SayfaBaslik ikon="📑" baslik="Çek Takip Sayfası" altBaslik="Alınan, verilen ve ciro edilen çek portföyü ve vadeler" style={{ marginBottom: 0 }} />
         <div style={{ display: 'flex', gap: 8 }}>
           {seciliCekler.length > 0 && (
             <button

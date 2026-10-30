@@ -333,7 +333,7 @@ export default function SahaCepCetveli() {
         <div className="cetvel-baslik-satiri">
           <span className="cetvel-baslik-ikon">🧮</span>
           <div>
-            <h1>Saha Cep Cetveli</h1>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}><span>📐</span> Saha Cep Cetveli</h2>
             <p className="cetvel-alt-baslik">Şantiyede anlık yaklaşık metraj ve malzeme hesaplayıcıları</p>
           </div>
         </div>

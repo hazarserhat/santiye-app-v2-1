@@ -165,15 +165,7 @@ export default function SahaDosyalari() {
           justify-content: space-between;
           margin-bottom: 24px;
         }
-        .drv-title {
-          font-size: 28px;
-          font-weight: 800;
-          background: linear-gradient(135deg, #1D9596 0%, #137778 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          margin: 0;
-          letter-spacing: -0.5px;
-        }
+        .drv-title { font-size: 22px; font-weight: 800; color: #1D9596; margin: 0; letter-spacing: -0.3px; line-height: 1.25; }
         .drv-tabs {
           display: inline-flex;
           background: #f1f5f9;

@@ -140,7 +140,7 @@ export default function MalikKordinasyon() {
   return (
     <div className="sayfa" style={{ maxWidth: '1400px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#1e293b' }}>Malik Koordinasyon Matrisi</h2>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}><span>👥</span> Malik Koordinasyon Matrisi</h2>
       </div>
 
       <div className="ekleme-kutusu" style={{ marginBottom: 24, display: 'flex', gap: 16, alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', padding: 16, borderRadius: 16 }}>

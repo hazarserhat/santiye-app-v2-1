@@ -64,7 +64,7 @@ export default function KrediKartlari() {
         >
           ‹ Yönetim Menüsüne Dön
         </button>
-        <h2 style={{ margin: 0, marginBottom: 8 }}>Kredi Kartı Ödeme Tarihleri</h2>
+        <h2 style={{ margin: 0, marginBottom: 8, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}><span>💳</span> Kredi Kartı Ödeme Tarihleri</h2>
         <p style={{ color: '#5F5E5A', fontSize: 13, margin: 0 }}>
           Kartlarınızın bir sonraki kesim ve son ödeme tarihlerini buradan takip edebilirsiniz.
           Son ödeme tarihleri otomatik olarak hafta sonuna denk geldiğinde ilk iş gününe (Pazartesi) kaydırılmaktadır.

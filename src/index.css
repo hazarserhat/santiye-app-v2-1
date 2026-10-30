@@ -46,7 +46,15 @@ input, select, button { font-family: inherit; max-width: 100%; }
 
 .sayfa { max-width: 480px; margin: 0 auto; width: 100%; min-width: 0; }
 .sayfa-genis, .sayfa.sayfa-genis { max-width: 100% !important; margin: 0 !important; width: 100% !important; min-width: 0 !important; box-sizing: border-box; }
-.sayfa h2 { font-size: 18px; font-weight: 600; margin: 0 0 12px; word-break: break-word; color: #1A202C; }
+.sayfa h2 { 
+  margin: 0 0 12px; 
+  font-size: 22px; 
+  font-weight: 800; 
+  color: #1D9596; 
+  letter-spacing: -0.3px; 
+  word-break: break-word; 
+  line-height: 1.25;
+}
 
 .filtre-satiri { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; padding: 2px 0 6px; }
 .filtre-chip { font-size: 12px; padding: 6px 14px; border-radius: 999px; background: linear-gradient(to bottom, #ffffff, #f8f7f2); border: 1px solid rgba(0,0,0,0.04); box-shadow: 0 2px 6px rgba(0,0,0,0.04); color: #5F5E5A; white-space: nowrap; cursor: pointer; flex-shrink: 0; font-weight: 600; transition: all 0.2s ease; }
@@ -1897,13 +1905,7 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   margin-bottom: 14px;
 }
 
-.makine-baslik-metin h1 {
-  font-size: 20px;
-  font-weight: 800;
-  color: #1e293b;
-  margin: 0 0 4px 0;
-  letter-spacing: -0.5px;
-}
+.makine-baslik-metin h1 { margin: 0 0 2px 0; font-size: 22px; font-weight: 800; color: #1D9596; letter-spacing: -0.3px; line-height: 1.25; }
 
 .makine-alt-bilgi {
   font-size: 13px;
@@ -6406,13 +6408,7 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   gap: 12px;
 }
 
-.makine-baslik-metin h1 {
-  margin: 0 0 2px 0;
-  font-size: 20px;
-  font-weight: 800;
-  color: #0f172a;
-  line-height: 1.25;
-}
+.makine-baslik-metin h1 { margin: 0 0 2px 0; font-size: 22px; font-weight: 800; color: #1D9596; letter-spacing: -0.3px; line-height: 1.25; }
 
 .makine-alt-bilgi {
   margin: 0;
@@ -7593,13 +7589,7 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   margin-bottom: 12px;
 }
 
-.saha-ust-baslik-sol h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #1A202C;
-  line-height: 1.25;
-}
+.saha-ust-baslik-sol h2 { margin: 0; font-size: 22px; font-weight: 800; color: #1D9596; letter-spacing: -0.3px; line-height: 1.25; }
 
 .saha-ana-ekle-btn {
   display: inline-flex;

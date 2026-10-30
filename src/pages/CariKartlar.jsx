@@ -1,3 +1,4 @@
+import { SayfaBaslik } from '../components/OrtakBilesenler'
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
@@ -1396,17 +1397,12 @@ export default function CariKartlar() {
     <div className="sayfa" onClick={() => { setFormSifatOneriAcik(false); setDuzSifatOneriAcik(false) }}>
       
       {/* ÜST BAŞLIK VE AKSİYON BUTONLARI BARI */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>🏢</span> Rehber & Cari Hesaplar
-          </h2>
-          <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748B', fontWeight: 600 }}>
-            {filtreliFirmalar.length} Firma / Cari · {firmalarGruplanmis.reduce((top, g) => top + g.kisiler.length, 0)} İletişim Kişisi
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+      <SayfaBaslik
+        ikon="🏢"
+        baslik="Rehber & Cari Hesaplar"
+        altBaslik={`${filtreliFirmalar.length} Firma / Cari · ${firmalarGruplanmis.reduce((top, g) => top + g.kisiler.length, 0)} İletişim Kişisi`}
+        sagAksiyon={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {/* Yönetim / Düzenleme Modu Butonu */}
           {yonetici && (
             <button
@@ -1460,8 +1456,8 @@ export default function CariKartlar() {
             </button>
           )}
         </div>
-      </div>
-
+        }
+      />
       {/* ARAMA VE ŞANTİYE FİLTRESİ */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 2, minWidth: 240, position: 'relative' }}>

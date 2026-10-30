@@ -359,7 +359,7 @@ export default function AnlasmaPlanlama() {
         }
       `}</style>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#1D9596', letterSpacing: '-0.3px' }}>Anlaşma & Planlama</h2>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}><span>📑</span> Anlaşma & Planlama</h2>
         <button 
           onClick={() => window.print()}
           className="btn-print-hide"

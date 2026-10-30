@@ -122,7 +122,7 @@ export default function Animsaticilar() {
 
   return (
     <div className="sayfa">
-      <h2>Anımsatıcı / Uyarı</h2>
+      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}><span>🔔</span> Anımsatıcı / Uyarı</h2>
 
       {bildirimler.length > 0 && (
         <>

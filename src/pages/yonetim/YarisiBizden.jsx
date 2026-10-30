@@ -137,7 +137,7 @@ export default function YarisiBizden() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div>
           <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
-          <h2>Yarısı Bizden Ödemeleri</h2>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}><span>🏛️</span> Yarısı Bizden Ödemeleri</h2>
           <p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 0 }}>
             Toplam tutar, Proje Gelirleri sayfasındaki maliklerin "Devlet Desteği" alanlarının toplamından otomatik hesaplanır.
           </p>

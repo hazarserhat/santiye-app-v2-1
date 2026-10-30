@@ -1,3 +1,4 @@
+import { SayfaBaslik } from '../components/OrtakBilesenler'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -271,9 +272,7 @@ export default function KasaVirmanlar() {
 
   return (
     <div className="sayfa">
-      <div className="sayfa-baslik">
-        <h2>🏦 Kasa İşlemleri & Virmanlar</h2>
-      </div>
+      <SayfaBaslik ikon="🏦" baslik="Kasa İşlemleri & Virmanlar" altBaslik="Hesaplar arası transfer, nakit kasa ve virman hareketleri" />
 
 
       {/* Yeni İşlem Ekleme Kutusu */}

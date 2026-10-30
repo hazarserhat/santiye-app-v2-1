@@ -116,7 +116,7 @@ export default function AbonelikBedelleri() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div>
           <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
-          <h2>Abonelik Bedelleri</h2>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}><span>⚡</span> Abonelik Bedelleri</h2>
           <p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 0 }}>Elektrik / Su / Doğalgaz vb. abonelik ödemeleri — satır ve sütun serbestçe eklenebilir.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>

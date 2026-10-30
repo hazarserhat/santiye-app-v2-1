@@ -879,7 +879,7 @@ export default function ProjeGelirleri() {
       <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
         <div>
-          <h2 style={{ margin: 0 }}>Proje Gelirleri & Malik Takibi</h2>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}><span>📊</span> Proje Gelirleri & Malik Takibi</h2>
           <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 0', lineHeight: '1.4' }}>
             🔴 Ödeme alınmadı · 🟡 Kısmi ödeme alındı · 🟢 Tamamen ödendi · ⭐ Ruha'ya aittir<br/>
             💡 <i>Hücrelere çift tıklayarak hızlıca düzenleyebilirsiniz. Uzun içerikleri tam görmek için hücreye tıklayın.</i>

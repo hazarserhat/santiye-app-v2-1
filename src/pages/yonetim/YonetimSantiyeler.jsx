@@ -44,7 +44,7 @@ export default function YonetimSantiyeler() {
   return (
     <div className="sayfa">
       <Link to="/yonetim" className="geri-buton">← Yönetim</Link>
-      <h2>Şantiye Yönetimi</h2>
+      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}><span>🏗️</span> Şantiye Yönetimi</h2>
 
       <div className="liste">
         {santiyeler.map((s) => (
