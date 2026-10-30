@@ -298,7 +298,7 @@ export default function GunlukRapor() {
 
   return (
     <div className="sayfa">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
+      <div className="sayfa-baslik-bar">
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}><span>📋</span> Günlük Rapor</h2>
         <button 
           onClick={() => setGorunum('ekle')}

@@ -45,7 +45,7 @@ export default function Puantaj() {
 
   return (
     <div className="sayfa">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isYonetici ? 14 : 12 }}>
+      <div className="sayfa-baslik-bar">
         <div>
           <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.5px' }}>
             {isSantiyeSefi ? 'Puantaj & Günlük Yoklama' : 'Puantaj Yönetimi'}
@@ -918,7 +918,7 @@ function PuantajKayitEkleme({ isSantiyeSefi, isYonetici }) {
 
       {/* 2. ADIM: ŞANTİYE SEÇİMİ (TEK SEFERDE HEPSİ GÖRÜNÜR) */}
       <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <div className="sayfa-baslik-bar">
           <span style={{ fontSize: 12, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
             1. ŞANTİYE SEÇİN ({santiyeler.length}):
           </span>
@@ -998,7 +998,7 @@ function PuantajKayitEkleme({ isSantiyeSefi, isYonetici }) {
           {/* A) EKİP SEÇİLMEMİŞSE: EKİPLER DÖŞEMESİNİ GÖSTER */}
           {!seciliTaseronId ? (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+              <div className="sayfa-baslik-bar">
                 <div>
                   <span style={{ fontSize: 12, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                     2. ŞANTİYEDEKİ EKİPLER / İMALAT KALEMLERİ:
@@ -1330,7 +1330,7 @@ function PuantajKayitEkleme({ isSantiyeSefi, isYonetici }) {
 
               {/* ÇALIŞAN LİSTESİ: En Çok Puantajı Alınanlara Göre Sıralı & Tek Dokunuşla Yoklama */}
               <div style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div className="sayfa-baslik-bar">
                   <span style={{ fontSize: 11, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                     ÇALIŞANLAR (EN ÇOK GELENLER EN ÜSTTE):
                   </span>
@@ -1589,7 +1589,7 @@ function PuantajKayitEkleme({ isSantiyeSefi, isYonetici }) {
       {ekipEkleModalAcik && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: '#FFFFFF', borderRadius: 16, width: '100%', maxWidth: 440, padding: 20, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div className="sayfa-baslik-bar">
               <span style={{ fontSize: 15, fontWeight: 800, color: '#1E293B' }}>
                 ➕ Şantiyeye Ekip / Taşeron Dahil Et
               </span>
@@ -1687,7 +1687,7 @@ function PuantajKayitEkleme({ isSantiyeSefi, isYonetici }) {
       {ekipDuzenleModalAcik && duzenlenenEkip && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: '#FFFFFF', borderRadius: 16, width: '100%', maxWidth: 420, padding: 22, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div className="sayfa-baslik-bar">
               <span style={{ fontSize: 15, fontWeight: 800, color: '#1E293B' }}>
                 ✏️ Ekip / Taşeron Bilgilerini Düzenle
               </span>
@@ -1750,7 +1750,7 @@ function PuantajKayitEkleme({ isSantiyeSefi, isYonetici }) {
       {ekipSilModalAcik && silinecekEkip && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: '#FFFFFF', borderRadius: 16, width: '100%', maxWidth: 440, padding: 22, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div className="sayfa-baslik-bar">
               <span style={{ fontSize: 16, fontWeight: 800, color: '#DC2626', display: 'flex', alignItems: 'center', gap: 6 }}>
                 🗑️ Ekip Silme / Şantiyeden Çıkarma
               </span>
@@ -2380,7 +2380,7 @@ function PuantajCalisanRapor() {
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12, marginTop: 24 }}>
+      <div className="sayfa-baslik-bar">
         <p className="alt-baslik" style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Rapor Çıktısı</p>
         <div style={{ display: 'flex', gap: 10, flex: '1 1 auto', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <input 

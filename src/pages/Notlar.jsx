@@ -170,7 +170,7 @@ export default function Notlar() {
 
   return (
     <div className="sayfa">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      <div className="sayfa-baslik-bar">
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}><span>📝</span> Notlarım</h2>
         <button className="ekle-buton-genis" style={{ width: 'auto', padding: '8px 14px' }} onClick={() => setEkleAcik(!ekleAcik)}>
           {ekleAcik ? 'Vazgeç' : '+ Not Ekle'}
