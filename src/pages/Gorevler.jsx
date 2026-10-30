@@ -976,28 +976,6 @@ export default function Gorevler() {
             📦 Arşiv ({tamamlananGorevler.length})
           </button>
 
-          {/* YENİ GÖREV EKLE BUTONU (POP-UP MODAL AÇAR) */}
-          <button 
-            onClick={() => gorevEkleModaliniAc()} 
-            style={{ 
-              fontSize: 12, 
-              padding: '8px 14px', 
-              borderRadius: 10, 
-              background: 'linear-gradient(135deg, #24b8b9, #1D9596)', 
-              color: '#ffffff', 
-              border: 'none', 
-              boxShadow: '0 4px 12px rgba(29, 149, 150, 0.35)', 
-              fontWeight: 700, 
-              cursor: 'pointer', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 6,
-              transition: 'all 0.2s'
-            }}
-          >
-            ➕ Yeni Görev Ekle
-          </button>
-
           <button onClick={() => setYazdirModaliAcik(true)} style={{ fontSize: 12, padding: '8px 12px', borderRadius: 10, background: 'linear-gradient(to bottom, #ffffff, #f4f3ed)', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 2px 4px rgba(0,0,0,0.04)', fontWeight: 700, color: '#555', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
             🖨️ Yazdır
           </button>

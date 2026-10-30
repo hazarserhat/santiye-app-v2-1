@@ -1412,16 +1412,15 @@ export default function CariKartlar() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '9px 14px',
+                padding: '8px 13px',
                 borderRadius: 10,
-                border: yonetimModu ? '2px solid #1D9596' : '1px solid #CBD5E1',
-                background: yonetimModu ? '#F0FDFA' : '#FFFFFF',
-                color: yonetimModu ? '#0F766E' : '#475569',
-                fontWeight: 800,
-                fontSize: 12.5,
+                border: yonetimModu ? '1px solid rgba(29, 149, 150, 0.4)' : '0.5px solid rgba(60, 60, 67, 0.18)',
+                background: yonetimModu ? 'rgba(29, 149, 150, 0.1)' : 'rgba(120, 120, 128, 0.08)',
+                color: yonetimModu ? '#1D9596' : '#1C1C1E',
+                fontWeight: 600,
+                fontSize: 13,
                 cursor: 'pointer',
-                boxShadow: yonetimModu ? '0 0 0 3px rgba(29, 149, 150, 0.2)' : '0 1px 3px rgba(0,0,0,0.04)',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.15s ease'
               }}
               title="Kategori değiştirme, silme ve yetkilendirme araçlarını aç/kapat"
             >
@@ -1439,19 +1438,19 @@ export default function CariKartlar() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '9px 18px',
+                padding: '8px 16px',
                 borderRadius: 10,
-                background: 'linear-gradient(135deg, #24b8b9 0%, #1D9596 100%)',
+                background: '#1D9596',
                 color: '#FFFFFF',
                 border: 'none',
-                fontWeight: 800,
+                fontWeight: 600,
                 fontSize: 13,
                 cursor: 'pointer',
-                boxShadow: '0 3px 10px rgba(29, 149, 150, 0.35)',
+                boxShadow: '0 2px 8px rgba(29, 149, 150, 0.25)',
                 transition: 'all 0.15s ease'
               }}
             >
-              <span style={{ fontSize: 16 }}>➕</span>
+              <span style={{ fontSize: 15 }}>➕</span>
               <span>Kayıt Ekle</span>
             </button>
           )}
@@ -1461,7 +1460,7 @@ export default function CariKartlar() {
       {/* ARAMA VE ŞANTİYE FİLTRESİ */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 2, minWidth: 240, position: 'relative' }}>
-          <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: '#94A3B8' }}>🔍</span>
+          <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: '#8E8E93' }}>🔍</span>
           <input 
             type="text" 
             placeholder="Firma, kişi adı, telefon veya hizmet alanı ile arayın..." 
@@ -1469,22 +1468,22 @@ export default function CariKartlar() {
             onChange={(e) => setArama(e.target.value)} 
             style={{
               width: '100%',
-              padding: '11px 14px 11px 38px',
-              borderRadius: 12,
-              border: '1px solid #E2E8F0',
+              padding: '10px 14px 10px 38px',
+              borderRadius: 10,
+              border: '1px solid rgba(60, 60, 67, 0.18)',
               background: '#FFFFFF',
-              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)',
-              fontSize: 13,
+              boxShadow: 'none',
+              fontSize: 14,
               outline: 'none',
-              fontWeight: 600,
-              color: '#1E293B'
+              fontWeight: 500,
+              color: '#1C1C1E'
             }}
           />
           {arama && (
             <button 
               type="button"
               onClick={() => setArama('')}
-              style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8', fontWeight: 800 }}
+              style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', cursor: 'pointer', color: '#8E8E93', fontWeight: 600 }}
             >
               ✕
             </button>
@@ -1497,15 +1496,15 @@ export default function CariKartlar() {
             onChange={(e) => setFiltreSantiye(e.target.value)} 
             style={{
               width: '100%',
-              padding: '11px 14px',
-              fontSize: 13,
-              borderRadius: 12,
-              border: '1px solid #E2E8F0',
+              padding: '10px 14px',
+              fontSize: 14,
+              borderRadius: 10,
+              border: '1px solid rgba(60, 60, 67, 0.18)',
               background: '#FFFFFF',
               outline: 'none',
               cursor: 'pointer',
-              color: '#334155',
-              fontWeight: 700
+              color: '#1C1C1E',
+              fontWeight: 500
             }}
           >
             <option value="hepsi">🏗️ Tüm Şantiyeler</option>
@@ -1517,20 +1516,20 @@ export default function CariKartlar() {
       {/* SIRALAMA VE ARŞİV SEÇİCİ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: '#64748B' }}>
+          <span style={{ fontSize: 13, fontWeight: 500, color: '#6C6C70' }}>
             Toplam {filtreliFirmalar.length} kayıt listeleniyor
           </span>
           <button
             type="button"
             onClick={() => setArsivGoster(!arsivGoster)}
             style={{
-              padding: '3px 8px',
-              borderRadius: 6,
-              border: arsivGoster ? '1.5px solid #F59E0B' : '1px solid #E2E8F0',
-              background: arsivGoster ? '#FEF3C7' : '#FFFFFF',
-              color: arsivGoster ? '#B45309' : '#64748B',
-              fontSize: 11,
-              fontWeight: 700,
+              padding: '4px 10px',
+              borderRadius: 8,
+              border: arsivGoster ? '1px solid rgba(255, 149, 0, 0.4)' : '0.5px solid rgba(60, 60, 67, 0.18)',
+              background: arsivGoster ? 'rgba(255, 149, 0, 0.12)' : '#FFFFFF',
+              color: arsivGoster ? '#C96E00' : '#6C6C70',
+              fontSize: 12,
+              fontWeight: 600,
               cursor: 'pointer'
             }}
           >
@@ -1538,19 +1537,20 @@ export default function CariKartlar() {
           </button>
         </div>
 
-        <div style={{ display: 'inline-flex', background: '#F1F5F9', padding: 3, borderRadius: 8 }}>
+        <div style={{ display: 'inline-flex', background: 'rgba(118, 118, 128, 0.12)', padding: 3, borderRadius: 10 }}>
           <button 
             type="button"
             onClick={() => setSiralama('alfabetik')}
             style={{
-              padding: '4px 10px',
-              borderRadius: 6,
+              padding: '5px 12px',
+              borderRadius: 7,
               border: 'none',
               background: siralama === 'alfabetik' ? '#FFFFFF' : 'transparent',
-              color: siralama === 'alfabetik' ? '#1D9596' : '#64748B',
-              fontWeight: 800,
-              fontSize: 11,
-              cursor: 'pointer'
+              color: siralama === 'alfabetik' ? '#000000' : '#6C6C70',
+              fontWeight: 600,
+              fontSize: 12,
+              cursor: 'pointer',
+              boxShadow: siralama === 'alfabetik' ? '0 1px 3px rgba(0,0,0,0.12)' : 'none'
             }}
           >
             A-Z Alfabetik
@@ -1559,14 +1559,15 @@ export default function CariKartlar() {
             type="button"
             onClick={() => setSiralama('tarih')}
             style={{
-              padding: '4px 10px',
-              borderRadius: 6,
+              padding: '5px 12px',
+              borderRadius: 7,
               border: 'none',
               background: siralama === 'tarih' ? '#FFFFFF' : 'transparent',
-              color: siralama === 'tarih' ? '#1D9596' : '#64748B',
-              fontWeight: 800,
-              fontSize: 11,
-              cursor: 'pointer'
+              color: siralama === 'tarih' ? '#000000' : '#6C6C70',
+              fontWeight: 600,
+              fontSize: 12,
+              cursor: 'pointer',
+              boxShadow: siralama === 'tarih' ? '0 1px 3px rgba(0,0,0,0.12)' : 'none'
             }}
           >
             Son Eklenenler

@@ -1,179 +1,395 @@
 /* ==========================================================================
-   TEMA & ORTAK TASARIM DEĞİŞKENLERİ (Design Tokens)
+   TEMA & ORTAK TASARIM DEĞİŞKENLERİ (Apple HIG / iOS Human Interface Ekolü)
    ========================================================================== */
 
 :root {
-  /* Kurumsal Renk Paleti */
+  /* Kurumsal Renk Paleti (Apple System Tint) */
   --renk-ana: #1D9596;
-  --renk-ana-koyu: #137778;
-  --renk-ana-acik: #24B8B9;
+  --renk-ana-koyu: #147778;
+  --renk-ana-acik: #28B0B1;
   --renk-ana-bg: #E6F4F1;
-  --renk-ana-bg-soft: #F0FDFA;
+  --renk-ana-bg-soft: rgba(29, 149, 150, 0.08);
+  --renk-ana-glow: rgba(29, 149, 150, 0.18);
 
-  /* Nötr & Arka Plan */
-  --bg-sayfa: #F8F7F2;
-  --bg-kart: rgba(255, 255, 255, 0.85);
+  /* Apple iOS Zemin & Yüzey Renkleri */
+  --bg-sayfa: #F2F2F7;
+  --bg-kart: #FFFFFF;
   --bg-kart-kati: #FFFFFF;
-  --metin-ana: #1E293B;
-  --metin-ikincil: #64748B;
-  --metin-soluk: #94A3B8;
-  --kenarlik: #E2E8F0;
-  --kenarlik-koyu: #CBD5E1;
+  --bg-bar: rgba(249, 249, 249, 0.86);
 
-  /* Durum Renkleri */
-  --durum-basari: #10B981;
-  --durum-basari-bg: #DCFCE7;
-  --durum-uyari: #F59E0B;
-  --durum-uyari-bg: #FEF3C7;
-  --durum-hata: #EF4444;
-  --durum-hata-bg: #FEE2E2;
-  --durum-bilgi: #3B82F6;
-  --durum-bilgi-bg: #DBEAFE;
+  /* Apple Typography & Renk Hiyerarşisi */
+  --metin-ana: #1C1C1E;
+  --metin-ikincil: #6C6C70;
+  --metin-soluk: #8E8E93;
+  --metin-tertiary: #AEAEB2;
 
-  /* Tipografi & Boyutlar */
+  /* Apple Hairline Kenarlık & Ayırıcılar */
+  --kenarlik: rgba(60, 60, 67, 0.12);
+  --kenarlik-koyu: rgba(60, 60, 67, 0.2);
+  --kenarlik-ince: 0.5px solid rgba(60, 60, 67, 0.15);
+
+  /* Apple Status Tints (Soft Badges) */
+  --durum-basari: #34C759;
+  --durum-basari-bg: rgba(52, 199, 89, 0.12);
+  --durum-basari-metin: #248A3D;
+
+  --durum-uyari: #FF9500;
+  --durum-uyari-bg: rgba(255, 149, 0, 0.12);
+  --durum-uyari-metin: #C96E00;
+
+  --durum-hata: #FF3B30;
+  --durum-hata-bg: rgba(255, 59, 48, 0.12);
+  --durum-hata-metin: #D70015;
+
+  --durum-bilgi: #007AFF;
+  --durum-bilgi-bg: rgba(0, 122, 255, 0.12);
+  --durum-bilgi-metin: #0051A8;
+
+  /* Apple Corner Radii (Continuous Corners) */
+  --radius-xs: 6px;
   --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
   --radius-tam: 9999px;
 
-  /* Gölgeler */
-  --golge-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-  --golge-md: 0 4px 12px rgba(0, 0, 0, 0.05);
-  --golge-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
-  --golge-teal: 0 4px 14px rgba(29, 149, 150, 0.25);
+  /* Apple Soft Elevation Shadows */
+  --golge-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --golge-md: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
+  --golge-lg: 0 4px 20px rgba(0, 0, 0, 0.06);
+  --golge-kart: 0 1px 3px rgba(0, 0, 0, 0.03), 0 6px 16px rgba(0, 0, 0, 0.02);
+  --golge-teal: 0 2px 8px rgba(29, 149, 150, 0.25);
 }
 
 /* ==========================================================================
-   ORTAK BİLEŞEN SINIFLARI
+   GLOBAL APPLE HIG STİLLERİ
    ========================================================================== */
 
-/* Sayfa Başlığı ve Açıklama Barı */
+/* Apple Typography & Antialiasing */
+html, body {
+  background-color: var(--bg-sayfa) !important;
+  color: var(--metin-ana) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  letter-spacing: -0.2px;
+}
+
+/* ==========================================================================
+   TÜM SAYFALARDA EŞİT VE BİREBİR AYNI APPLE BAŞLIK TASARIMI (Apple Large Title)
+   ========================================================================== */
+.sayfa > h1,
+.sayfa > h2,
+.sayfa > div > h1,
+.sayfa > div > h2,
+.sayfa > div > div > h1,
+.sayfa > div > div > h2,
+.sayfa-genis > h1,
+.sayfa-genis > h2,
+.sayfa-genis > div > h1,
+.sayfa-genis > div > h2,
+.sayfa-genis > div > div > h1,
+.sayfa-genis > div > div > h2,
+.ortak-sayfa-baslik h1,
+.ortak-sayfa-baslik h2,
+.makine-baslik-metin h1,
+.makine-baslik-metin h2,
+.saha-ust-baslik-sol h1,
+.saha-ust-baslik-sol h2,
+.drv-title,
+.yonetim-title,
+.drv-container h1,
+.drv-container h2,
+.yonetim-container h1,
+.yonetim-container h2,
+.sayfa-baslik {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Segoe UI", Roboto, sans-serif !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.4px !important;
+  color: #1C1C1E !important;
+  line-height: 1.25 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 0 0 12px 0 !important;
+  padding: 0 !important;
+}
+
+.ortak-sayfa-baslik h1,
+.ortak-sayfa-baslik h2 {
+  margin: 0 !important;
+}
+
 .ortak-sayfa-baslik {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
-  gap: 10px;
+  margin-bottom: 16px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .ortak-sayfa-baslik-sol {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-}
-
-.ortak-sayfa-baslik h1,
-.ortak-sayfa-baslik h2 {
-  margin: 0 !important;
-  font-size: 22px !important;
-  font-weight: 800 !important;
-  color: #1D9596 !important;
-  letter-spacing: -0.3px !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  line-height: 1.25 !important;
+  gap: 3px;
 }
 
 .ortak-sayfa-altbilgi {
-  margin: 2px 0 0 0 !important;
-  font-size: 12px !important;
-  color: #64748B !important;
+  margin: 3px 0 0 0 !important;
+  font-size: 13px !important;
+  color: var(--metin-ikincil) !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+}
+
+/* Apple Grouped Kartlar (Inset Cards) */
+.kart, 
+.ortak-kart, 
+.glass-kutu, 
+.ozet-kart, 
+.kpi-kart,
+.makine-kart,
+.dokum-karti,
+.gorev-karti,
+.fatura-karti,
+.yonetim-kart,
+.yonetim-card,
+.drv-file-card,
+.drv-folder-card,
+.proje-karti,
+.bilgi-karti,
+.taseron-karti {
+  background: var(--bg-kart) !important;
+  border-radius: var(--radius-lg) !important;
+  border: 0.5px solid var(--kenarlik) !important;
+  box-shadow: var(--golge-kart) !important;
+  transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+.kart:active, .ortak-kart:active, .makine-kart:active {
+  transform: scale(0.99);
+}
+
+/* Apple Translucent Bars (Navigation & Tab Bar) */
+.ust-bar {
+  background: var(--bg-bar) !important;
+  backdrop-filter: saturate(180%) blur(20px) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+  border-bottom: var(--kenarlik-ince) !important;
+  box-shadow: none !important;
+}
+
+.alt-menu {
+  background: var(--bg-bar) !important;
+  backdrop-filter: saturate(180%) blur(20px) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+  border-top: var(--kenarlik-ince) !important;
+  box-shadow: none !important;
+}
+
+.alt-menu-oge {
+  color: var(--metin-soluk) !important;
+  font-weight: 500 !important;
+  transition: color 0.15s ease !important;
+}
+
+.alt-menu-oge.aktif {
+  color: var(--renk-ana) !important;
   font-weight: 600 !important;
-  line-height: 1.3 !important;
+  background: transparent !important;
 }
 
-/* Ortak Kart Yapısı */
-.ortak-kart {
-  background: var(--bg-kart);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  box-shadow: var(--golge-md);
-  transition: all 0.2s ease;
+.alt-menu-oge.aktif .alt-menu-simge {
+  transform: translateY(-1px);
 }
 
-.ortak-kart:hover {
-  box-shadow: var(--golge-lg);
+/* Apple Ekleme Çubuğu (Bottom Action Bar) */
+.ekleme-cubugu {
+  background: var(--bg-bar) !important;
+  backdrop-filter: saturate(180%) blur(20px) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+  border-top: var(--kenarlik-ince) !important;
 }
 
-/* Ortak Boş Durum (Empty State) */
-.ortak-bos-durum {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  text-align: center;
-  background: var(--bg-kart-kati);
-  border-radius: var(--radius-lg);
-  border: 1px dashed var(--kenarlik-koyu);
-  margin: 16px 0;
+/* Apple Form Fields (Inset Text Fields) */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="password"],
+input[type="email"],
+input[type="tel"],
+select,
+textarea {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(60, 60, 67, 0.18) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--metin-ana) !important;
+  font-size: 14px !important;
+  padding: 10px 12px !important;
+  outline: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
 }
 
-.ortak-bos-durum-ikon {
-  font-size: 40px;
-  margin-bottom: 12px;
-  opacity: 0.8;
+input:focus, select:focus, textarea:focus {
+  border-color: var(--renk-ana) !important;
+  box-shadow: 0 0 0 3px var(--renk-ana-glow) !important;
 }
 
-.ortak-bos-durum-baslik {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--metin-ana);
-  margin: 0 0 6px 0;
+/* Apple Segmented Controls (Sekmeler) */
+.gorunum-secici, .drv-tabs, .yonetim-tabs, .alt-gorunum-secici, .tab-bar, .sekme-cubugu {
+  background: rgba(118, 118, 128, 0.12) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 3px !important;
+  display: inline-flex !important;
+  gap: 2px !important;
+  border: none !important;
 }
 
-.ortak-bos-durum-aciklama {
-  font-size: 13px;
-  color: var(--metin-ikincil);
-  max-width: 340px;
-  margin: 0 0 16px 0;
-  line-height: 1.4;
+.gorunum-secici button, .drv-tab, .yonetim-tab, .sekme-btn {
+  background: transparent !important;
+  border: none !important;
+  border-radius: calc(var(--radius-md) - 2px) !important;
+  padding: 6px 14px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--metin-ana) !important;
+  cursor: pointer !important;
+  transition: all 0.15s cubic-bezier(0.25, 1, 0.5, 1) !important;
 }
 
-/* Ortak Butonlar */
-.ortak-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: all 0.2s ease;
-  user-select: none;
+.gorunum-secici button.secili-tab, 
+.gorunum-secici button.aktif,
+.drv-tab.active, 
+.yonetim-tab.active,
+.sekme-btn.aktif {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.04) !important;
 }
 
-.ortak-btn:active {
-  transform: scale(0.98);
+/* Apple Filter Chips (Capsules) */
+.filtre-chip {
+  background: #FFFFFF !important;
+  border: 0.5px solid rgba(60, 60, 67, 0.18) !important;
+  border-radius: var(--radius-tam) !important;
+  color: #3A3A3C !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  padding: 6px 14px !important;
+  box-shadow: var(--golge-sm) !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
 }
 
+.filtre-chip:hover {
+  background: #F8F8FA !important;
+  border-color: rgba(60, 60, 67, 0.25) !important;
+}
+
+.filtre-chip.secili {
+  background: var(--renk-ana) !important;
+  border-color: var(--renk-ana) !important;
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+  box-shadow: var(--golge-teal) !important;
+}
+
+/* Apple Primary & Filled Buttons */
+.ekle-buton-genis,
+.yeni-dokum-baslat-btn,
+.saha-ana-ekle-btn,
+.tema-ana-aksiyon-btn,
 .ortak-btn-primary {
-  background: linear-gradient(135deg, var(--renk-ana-acik) 0%, var(--renk-ana) 100%);
-  color: #FFFFFF;
-  box-shadow: var(--golge-teal);
+  background: var(--renk-ana) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  border-radius: var(--radius-md) !important;
+  padding: 10px 16px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  box-shadow: var(--golge-teal) !important;
+  transition: all 0.15s cubic-bezier(0.25, 1, 0.5, 1) !important;
 }
 
-.ortak-btn-primary:hover {
-  background: linear-gradient(135deg, var(--renk-ana) 0%, var(--renk-ana-koyu) 100%);
+.ekle-buton-genis:active,
+.yeni-dokum-baslat-btn:active,
+.saha-ana-ekle-btn:active,
+.tema-ana-aksiyon-btn:active,
+.ortak-btn-primary:active {
+  transform: scale(0.98) !important;
+  opacity: 0.92 !important;
 }
 
+/* Apple Secondary / Subdued Buttons */
 .ortak-btn-secondary {
-  background: #FFFFFF;
-  color: var(--metin-ana);
-  border: 1px solid var(--kenarlik);
-  box-shadow: var(--golge-sm);
+  background: rgba(120, 120, 128, 0.08) !important;
+  color: var(--metin-ana) !important;
+  border: none !important;
+  border-radius: var(--radius-md) !important;
+  padding: 8px 14px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease !important;
 }
 
 .ortak-btn-secondary:hover {
-  background: #F8FAFC;
-  border-color: var(--kenarlik-koyu);
+  background: rgba(120, 120, 128, 0.14) !important;
 }
 
+/* Apple Form Inset Container (.ekleme-kutusu) */
+.ekleme-kutusu {
+  background: #FFFFFF !important;
+  border-radius: var(--radius-lg) !important;
+  border: 0.5px solid var(--kenarlik) !important;
+  box-shadow: var(--golge-kart) !important;
+  padding: 16px !important;
+}
+
+/* Apple Modals & Dialogs */
+.modal-arka-plan {
+  background: rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+.modal-kutu {
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(25px) !important;
+  -webkit-backdrop-filter: blur(25px) !important;
+  border-radius: var(--radius-xl) !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.18) !important;
+}
+
+/* Apple Status Pill Rozetler */
+.durum-rozet, .pill-rozet {
+  border-radius: var(--radius-tam) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 3px 9px !important;
+}
+
+.rozet-yesil, .pill-yesil {
+  background: var(--durum-basari-bg) !important;
+  color: var(--durum-basari-metin) !important;
+  border: none !important;
+}
+
+.rozet-sari, .pill-sari {
+  background: var(--durum-uyari-bg) !important;
+  color: var(--durum-uyari-metin) !important;
+  border: none !important;
+}
+
+.rozet-kirmizi, .pill-kirmizi {
+  background: var(--durum-hata-bg) !important;
+  color: var(--durum-hata-metin) !important;
+  border: none !important;
+}

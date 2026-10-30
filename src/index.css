@@ -5,12 +5,15 @@ html, body {
   margin: 0;
   overflow-x: clip;
   width: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #F8F7F2;
-  color: #212124;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #F2F2F7;
+  color: #1C1C1E;
+  letter-spacing: -0.2px;
 }
 #root { overflow-x: clip; width: 100%; }
-input, select, button { font-family: inherit; max-width: 100%; }
+input, select, button, textarea { font-family: inherit; max-width: 100%; }
 
 .login-ekrani { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 16px; }
 .login-form { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px; }
@@ -26,7 +29,10 @@ input, select, button { font-family: inherit; max-width: 100%; }
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 16px;
   padding-top: calc(12px + env(safe-area-inset-top));
-  background: white; border-bottom: 1px solid #D3D1C7;
+  background: rgba(249, 249, 249, 0.86);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 0.5px solid rgba(60, 60, 67, 0.15);
   position: sticky; top: 0; z-index: 20;
 }
 .site-switcher-buton { background: none; border: none; font-size: 15px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 4px; }
@@ -48,10 +54,10 @@ input, select, button { font-family: inherit; max-width: 100%; }
 .sayfa-genis, .sayfa.sayfa-genis { max-width: 100% !important; margin: 0 !important; width: 100% !important; min-width: 0 !important; box-sizing: border-box; }
 .sayfa h2 { 
   margin: 0 0 12px; 
-  font-size: 22px; 
-  font-weight: 800; 
-  color: #1D9596; 
-  letter-spacing: -0.3px; 
+  font-size: 24px; 
+  font-weight: 700; 
+  color: #1C1C1E; 
+  letter-spacing: -0.4px; 
   word-break: break-word; 
   line-height: 1.25;
 }
