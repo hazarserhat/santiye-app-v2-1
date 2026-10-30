@@ -168,7 +168,7 @@ export default function SahaDosyalari() {
         .drv-title {
           font-size: 28px;
           font-weight: 800;
-          background: linear-gradient(135deg, #0f766e 0%, #06b6d4 100%);
+          background: linear-gradient(135deg, #1D9596 0%, #137778 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           margin: 0;
@@ -195,7 +195,7 @@ export default function SahaDosyalari() {
         }
         .drv-tab.active {
           background: #ffffff;
-          color: #0f172a;
+          color: #137778;
           box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
         }
         .drv-upload-zone {
@@ -210,14 +210,14 @@ export default function SahaDosyalari() {
           margin-bottom: 24px;
         }
         .drv-upload-zone:hover {
-          border-color: #0ea5e9;
-          background: #f0f9ff;
+          border-color: #1D9596;
+          background: #E6F4F1;
         }
         .drv-upload-zone.drag-active {
-          background: #e0f2fe;
-          border-color: #0284c7;
+          background: #D2ECE9;
+          border-color: #137778;
           transform: scale(1.01);
-          box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.15);
+          box-shadow: 0 10px 25px -5px rgba(29, 149, 150, 0.15);
         }
         .drv-folder-grid {
           display: grid;
@@ -244,7 +244,7 @@ export default function SahaDosyalari() {
           height: 64px;
           margin: 0 auto 16px;
           border-radius: 20px;
-          background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+          background: linear-gradient(135deg, #E6F4F1 0%, #D2ECE9 100%);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -292,8 +292,8 @@ export default function SahaDosyalari() {
           background: #ffffff;
         }
         .drv-input:focus {
-          border-color: #0ea5e9;
-          box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+          border-color: #1D9596;
+          box-shadow: 0 0 0 3px rgba(29, 149, 150, 0.15);
         }
         .drv-btn {
           padding: 8px 16px;
@@ -308,9 +308,9 @@ export default function SahaDosyalari() {
           gap: 6px;
         }
         .drv-btn-primary {
-          background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+          background: linear-gradient(135deg, #24b8b9 0%, #1D9596 100%);
           color: white;
-          box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.2);
+          box-shadow: 0 4px 6px -1px rgba(29, 149, 150, 0.3);
         }
         .drv-btn-primary:hover {
           opacity: 0.9;
@@ -373,13 +373,13 @@ export default function SahaDosyalari() {
             {yukleniyor ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%', maxWidth: 400 }}>
                 <span style={{ fontSize: 36 }}>⏳</span>
-                <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#4f46e5', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1D9596', textAlign: 'center' }}>
                   Dosyalar Buluta Aktarılıyor... {yuklemeDurumu ? `(${yuklemeDurumu.tamamlanan}/${yuklemeDurumu.toplam})` : ''}
                 </p>
                 {yuklemeDurumu && (
                   <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
                     <div style={{ width: '100%', height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
-                       <div style={{ height: '100%', background: '#4f46e5', width: `${((yuklemeDurumu.tamamlanan) / yuklemeDurumu.toplam) * 100}%`, transition: 'width 0.3s' }}></div>
+                       <div style={{ height: '100%', background: '#1D9596', width: `${((yuklemeDurumu.tamamlanan) / yuklemeDurumu.toplam) * 100}%`, transition: 'width 0.3s' }}></div>
                     </div>
                     <span style={{ fontSize: 13, color: '#64748b', fontStyle: 'italic', maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       Şu an yükleniyor: {yuklemeDurumu.mevcutDosyaAd}
@@ -391,7 +391,7 @@ export default function SahaDosyalari() {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 42 }}>📥</span>
                 <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#334155' }}>
-                  Dosyaları buraya sürükleyin veya <span style={{ color: '#0ea5e9' }}>tıklayın</span>
+                  Dosyaları buraya sürükleyin veya <span style={{ color: '#1D9596' }}>tıklayın</span>
                 </p>
                 <p style={{ margin: 0, fontSize: 13, color: '#94a3b8' }}>PDF, DWG, Görsel ve Excel dosyaları desteklenir</p>
               </div>
@@ -443,13 +443,13 @@ export default function SahaDosyalari() {
                 {yukleniyor ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%', maxWidth: 400 }}>
                     <span style={{ fontSize: 36 }}>⏳</span>
-                    <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#4f46e5', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1D9596', textAlign: 'center' }}>
                       Dosyalar Buluta Aktarılıyor... {yuklemeDurumu ? `(${yuklemeDurumu.tamamlanan}/${yuklemeDurumu.toplam})` : ''}
                     </p>
                     {yuklemeDurumu && (
                       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
                         <div style={{ width: '100%', height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
-                           <div style={{ height: '100%', background: '#4f46e5', width: `${((yuklemeDurumu.tamamlanan) / yuklemeDurumu.toplam) * 100}%`, transition: 'width 0.3s' }}></div>
+                           <div style={{ height: '100%', background: '#1D9596', width: `${((yuklemeDurumu.tamamlanan) / yuklemeDurumu.toplam) * 100}%`, transition: 'width 0.3s' }}></div>
                         </div>
                         <span style={{ fontSize: 13, color: '#64748b', fontStyle: 'italic', maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           Şu an yükleniyor: {yuklemeDurumu.mevcutDosyaAd}
@@ -461,7 +461,7 @@ export default function SahaDosyalari() {
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                     <span style={{ fontSize: 42 }}>📥</span>
                     <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#334155' }}>
-                      Dosyaları buraya sürükleyin veya <span style={{ color: '#4f46e5' }}>tıklayın</span>
+                      Dosyaları buraya sürükleyin veya <span style={{ color: '#1D9596' }}>tıklayın</span>
                     </p>
                     <p style={{ margin: 0, fontSize: 13, color: '#94a3b8' }}>PDF, DWG, Görsel ve Excel dosyaları desteklenir</p>
                   </div>
@@ -477,7 +477,7 @@ export default function SahaDosyalari() {
           <div 
             className="drv-file-list"
             onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}
-            style={{ background: surukleniyor ? '#f0f9ff' : 'transparent', padding: surukleniyor ? 10 : 0 }}
+            style={{ background: surukleniyor ? '#E6F4F1' : 'transparent', padding: surukleniyor ? 10 : 0 }}
           >
             {gosterilecekDosyalar.map((d) => {
               const bSantiye = santiyeler.find(s => s.id === d.santiye_id)?.ad || 'Bilinmeyen'
@@ -524,7 +524,7 @@ export default function SahaDosyalari() {
                     </div>
                   ) : (
                     d.aciklama && (
-                      <div style={{ marginTop: 12, background: '#f8fafc', padding: '10px 14px', borderRadius: 10, borderLeft: '4px solid #0ea5e9' }}>
+                      <div style={{ marginTop: 12, background: '#f8fafc', padding: '10px 14px', borderRadius: 10, borderLeft: '4px solid #1D9596' }}>
                         <p style={{ margin: 0, fontSize: 13, color: '#475569', fontStyle: 'italic', lineHeight: 1.4 }}>{d.aciklama}</p>
                       </div>
                     )

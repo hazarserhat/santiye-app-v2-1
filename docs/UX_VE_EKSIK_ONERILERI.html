@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8"><title>Uygulama Eksikleri ve UX İyileştirme Önerileri</title>
+<style>
+@page { size: A4; margin: 16mm; }
+body { font-family: 'Segoe UI', Arial, sans-serif; color:#1E293B; font-size:11.5pt; line-height:1.5; }
+h1 { color:#1D9596; font-size:20pt; border-bottom:3px solid #1D9596; padding-bottom:6px; margin-bottom:4px; }
+h2 { color:#0F5859; font-size:14pt; margin:18px 0 6px; border-left:5px solid #1D9596; padding-left:8px; page-break-after:avoid; }
+.tarih { color:#64748B; font-size:10pt; margin-bottom:10px; }
+.not { background:#F1F5F9; border-radius:6px; padding:8px 12px; font-size:10pt; color:#475569; }
+ul { list-style:none; padding-left:0; margin:4px 0; }
+li { margin:4px 0; padding-left:22px; position:relative; page-break-inside:avoid; }
+li::before { content:"\2610"; position:absolute; left:0; color:#1D9596; font-weight:700; }
+ol li::before, ul.duz li::before { content:"\2022"; }
+ol { padding-left:20px; } ol li { padding-left:4px; list-style:decimal; } ol li::before { content:none; }
+</style></head><body>
+<h1>Uygulama Eksikleri ve UX İyileştirme Önerileri</h1>
+<div class="tarih">Tarih: 30.10.2026</div>
+<div class="not">Öneriler oturumdaki gözlemlere ve kod yapısına dayanır. Her sayfa tek tek denetlenmedi, bazı maddeler tahmin içerir.</div>
+
+<h2>1. Mobil kullanım (sahada asıl cihaz telefon)</h2>
+<ul>
+<li><b>Geniş tablolar:</b> Proje Gelirleri ve Puantaj masaüstü tablosu, telefonda yatay kaydırma gerektiriyor. Dar ekranda satırı karta çeviren görünüm.</li>
+<li><b>Hızlı giriş:</b> İş makinesi formundaki sadeliği Masraf, Gelir ve Günlük Rapor girişlerine uygula.</li>
+<li><b>Başparmak erişimi:</b> Ekleme düğmesi sabit ve ekranın altında olsun.</li>
+<li><b>Giriş taslağı:</b> Yarım kalan formlar otomatik saklansın.</li>
+</ul>
+
+<h2>2. Tutarlılık</h2>
+<ul>
+<li><b>Tasarım dili:</b> Bazı sayfalar turkuaz temada, bazıları farklı (ör. Drive sayfalarındaki mavi/mor başlık). Ortak bileşen seti.</li>
+<li><b>CSS yapısı:</b> index.css 8000+ satır ve tekrar eden kurallar içeriyor. Ruha satırı isim sorunu bu tür bir çakışmadan çıktı.</li>
+<li><b>Sayfa içi stiller:</b> JSX içine gömülü stiller aynı düzeltmenin birden fazla yerde yapılmasına yol açıyor.</li>
+</ul>
+
+<h2>3. Veri ve güvenlik</h2>
+<ul>
+<li><b>Silme güvencesi:</b> Kayıtlar için geri alma / çöp kutusu. (Dosyalar Silinenler klasörüne gidiyor, kayıtlar geri dönmüyor.)</li>
+<li><b>Değişiklik geçmişi:</b> Kim, neyi, ne zaman değiştirdi. Tutar ve ödeme değişikliklerinde özellikle önemli.</li>
+<li><b>Yetkiler:</b> Arayüz kontrollerine ek olarak Supabase RLS politikalarının denetimi.</li>
+<li><b>Yedekleme:</b> Düzenli veritabanı yedeği ve geri yükleme denemesi.</li>
+<li><b>Çevrimdışı çalışma:</b> Girişleri çevrimdışı kuyruğa alıp bağlantı gelince gönder.</li>
+</ul>
+
+<h2>4. Performans</h2>
+<ul>
+<li><b>Büyük paketler:</b> Puantaj ~765 kB, Proje Gelirleri ~480 kB. Excel/PDF kütüphanelerini gerektiğinde yükle.</li>
+<li><b>Uzun listeler:</b> Sayfalandırma veya "daha fazla yükle".</li>
+<li><b>Görsel yükleme:</b> İlerleme göstergesi ve hata durumunda "tekrar dene".</li>
+</ul>
+
+<h2>5. Gezinme ve bulunabilirlik</h2>
+<ul>
+<li><b>Genel arama:</b> Firma, şantiye, belge, çek vb. tek yerden.</li>
+<li><b>Ana sayfa özeti:</b> Kullanıcıya özel "bugün" kutusu (yaklaşan çekler, geciken görevler, açık borç, bekleyen onaylar).</li>
+<li><b>Alt menü yoğunluğu:</b> Role göre sadeleşmiş menü ve sık kullanılanlar kısayolu.</li>
+<li><b>Boş durumlar:</b> Veri yokken ne yapılacağını söyleyen yönlendirme.</li>
+</ul>
+
+<h2>6. Raporlama</h2>
+<ul>
+<li><b>Şantiye karşılaştırma:</b> Maliyet, gelir ve nakit durumunu yan yana gösteren panel.</li>
+<li><b>Bütçe takibi:</b> Şantiye / kalem bazında planlanan ile gerçekleşen.</li>
+<li><b>PDF/Excel çıktıları:</b> Ortak başlık, logo ve tarih formatı.</li>
+<li><b>Bildirim merkezi:</b> Çek vadesi, geciken görev, onay bekleyen kayıt.</li>
+</ul>
+
+<h2>7. Erişilebilirlik ve ayrıntılar</h2>
+<ul>
+<li>Dokunma hedefleri en az ~44 px.</li>
+<li>Tablo yazıları 9–10 px'e kadar iniyor, telefonda okunması zor.</li>
+<li>Renk tek başına anlam taşımasın (metin veya simge ekle).</li>
+<li>Tarayıcı alert pencereleri yerine sayfa içi bildirim (toast).</li>
+<li>Geri dönüşsüz işlemlerde tek tip onay penceresi.</li>
+</ul>
+
+<h2>Öncelik önerisi</h2>
+<ol>
+<li><b>Düşük çaba, yüksek etki:</b> alert yerine toast, boş durum yönlendirmeleri, tablo yazı boyutu, taslak saklama.</li>
+<li><b>Orta:</b> Ana sayfa "bugün" özeti, genel arama, bildirim merkezi, ağır paketleri geç yükleme.</li>
+<li><b>Büyük ama değerli:</b> Değişiklik geçmişi ve geri alma, RLS denetimi, çevrimdışı kuyruk, bütçe takibi.</li>
+<li><b>Altyapı:</b> CSS temizliği ve ortak bileşen seti.</li>
+</ol>
+
+<h2>İlgili: Muhasebeci modülü (konuşuldu, henüz uygulanmadı)</h2>
+<ul class="duz">
+<li>Tek kişilik muhasebeci rolü, alt menüde Muhasebe sekmesi.</li>
+<li>Muhasebe takvimi: kart kesim/son ödeme, çek vadeleri, planlanan ödemeler otomatik; vergi, mizan, fatura şablonları.</li>
+<li>Fatura/irsaliye yükleme (Google Drive), "Logo'ya işlendi / Luca'ya işlendi" tikleri, eksik belge listesi.</li>
+<li>Logo GO3'e elle giriş için "Girilecek Kayıtlar" listesi ve hesap kodu eşleştirmesi.</li>
+<li>Uygulama içi bildirim.</li>
+<li>Açık karar: muhasebeci tutarları düzenleyebilsin mi (A: hayır, sadece durum işaretler; B: evet).</li>
+</ul>
+</body></html>
+
