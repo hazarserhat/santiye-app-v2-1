@@ -51,15 +51,17 @@ export function temizleTutar(formatliDeger) {
 
 export function isOtoparkSantiye(santiyeAdi) {
   if (!santiyeAdi) return false
-  const s = String(santiyeAdi).toLowerCase()
-  return s.includes('furkan') || s.includes('8917') || s.includes('8919') || s.includes('8920')
+  const s = String(santiyeAdi).toLocaleLowerCase('tr-TR')
+  return s.includes('furkan') || s.includes('8917') || s.includes('8919') || s.includes('8920') || s.includes('otopark')
 }
 
 export function isOtoparkHarcOdeme(gelirKaydi, santiyeAdi) {
   if (!gelirKaydi) return false
   if (gelirKaydi.is_otopark_harci || gelirKaydi.harc_turu === 'otopark') return true
   if (gelirKaydi.harc_turu === 'genel') return false
-  if (gelirKaydi.not_metni && gelirKaydi.not_metni.toLowerCase().includes('otopark')) return true
-  if (gelirKaydi.is_vergi_harc && isOtoparkSantiye(santiyeAdi)) return true
+  const notMetni = String(gelirKaydi.not_metni || '').toLocaleLowerCase('tr-TR')
+  if (notMetni.includes('otopark')) return true
+  const isVergi = !!gelirKaydi.is_vergi_harc || gelirKaydi.is_vergi_harc === 'true' || gelirKaydi.is_vergi_harc === 1
+  if (isVergi && isOtoparkSantiye(santiyeAdi)) return true
   return false
 }

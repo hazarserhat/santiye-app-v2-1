@@ -156,7 +156,7 @@ export default function ProjeGelirleri() {
     const yeniDurum = !mevcutDurum
     setMalikler(prev => prev.map(item => item.id === malikId ? { ...item, otopark_harc_durum: yeniDurum } : item))
     let { error } = await supabase.from('malikler').update({ otopark_harc_durum: yeniDurum }).eq('id', malikId)
-    if (error && error.message.includes('otopark_harc_durum')) {
+    if (error) {
       await supabase.from('malikler').update({ vergi_harc_durum: yeniDurum }).eq('id', malikId)
     }
     yenile()
@@ -166,9 +166,19 @@ export default function ProjeGelirleri() {
     if (m.otopark_harc_durum !== undefined && m.otopark_harc_durum !== null) {
       return !!m.otopark_harc_durum
     }
-    const isOtoparkProj = isOtoparkSantiye(m.santiyeler?.ad)
+    const sAd = m.santiyeler?.ad || santiyeler?.find(s => s.id === m.santiye_id)?.ad || ''
+    const isOtoparkProj = isOtoparkSantiye(sAd)
     if (isOtoparkProj && m.vergi_harc_durum) return true
     return (otoparkHarcToplamlari[m.id] || 0) > 0
+  }
+
+  const getVergiOdendi = (m) => {
+    const sAd = m.santiyeler?.ad || santiyeler?.find(s => s.id === m.santiye_id)?.ad || ''
+    const isOtoparkProj = isOtoparkSantiye(sAd)
+    if (isOtoparkProj) {
+      return (vergiHarcToplamlari[m.id] || 0) > 0
+    }
+    return !!m.vergi_harc_durum || (vergiHarcToplamlari[m.id] || 0) > 0
   }
 
   const [yeniAcik, setYeniAcik] = useState(false)
@@ -195,32 +205,40 @@ export default function ProjeGelirleri() {
     const otoparkHarita = {}
     
     // Nakit & Havale Gelirleri
-    const { data: g } = await supabase
+    const { data: g, error: gErr } = await supabase
       .from('gelirler')
-      .select('malik_id, tutar, is_vergi_harc, is_otopark_harci, harc_turu, not_metni, santiye_id, is_devlet_destegi')
+      .select('*')
       .not('malik_id', 'is', null)
 
-    ;(g || []).forEach((r) => { 
-      if (!r.is_vergi_harc && !r.is_devlet_destegi && !r.is_otopark_harci) {
-        odemeHarita[r.malik_id] = (odemeHarita[r.malik_id] || 0) + Number(r.tutar) 
-      } else if (r.is_vergi_harc || r.is_otopark_harci) {
-        const malikObj = (m || []).find(x => x.id === r.malik_id)
-        const sAd = malikObj?.santiyeler?.ad || ''
-        
-        let isOtopark = false
-        if (r.is_otopark_harci || r.harc_turu === 'otopark') {
-          isOtopark = true
-        } else if (r.harc_turu === 'genel') {
-          isOtopark = false
-        } else {
-          isOtopark = isOtoparkHarcOdeme(r, sAd)
-        }
+    if (gErr) console.error('Gelirler yüklenirken hata:', gErr)
 
-        if (isOtopark) {
-          otoparkHarita[r.malik_id] = (otoparkHarita[r.malik_id] || 0) + Number(r.tutar)
-        } else {
-          vergiHarita[r.malik_id] = (vergiHarita[r.malik_id] || 0) + Number(r.tutar)
-        }
+    const santiyeHarita = {}
+    ;(santiyeler || []).forEach(s => { santiyeHarita[s.id] = s.ad })
+    if (Object.keys(santiyeHarita).length === 0) {
+      const { data: sList } = await supabase.from('santiyeler').select('id, ad')
+      ;(sList || []).forEach(s => { santiyeHarita[s.id] = s.ad })
+    }
+
+    ;(g || []).forEach((r) => { 
+      const malikObj = (m || []).find(x => x.id === r.malik_id)
+      const sAd = malikObj?.santiyeler?.ad 
+        || santiyeHarita[r.santiye_id] 
+        || santiyeHarita[malikObj?.santiye_id] 
+        || ''
+
+      const isOtopark = isOtoparkHarcOdeme(r, sAd)
+      const isVergi = !!r.is_vergi_harc || isOtopark
+
+      if (r.is_devlet_destegi) {
+        return
+      }
+
+      if (isOtopark) {
+        otoparkHarita[r.malik_id] = (otoparkHarita[r.malik_id] || 0) + Number(r.tutar || 0)
+      } else if (isVergi) {
+        vergiHarita[r.malik_id] = (vergiHarita[r.malik_id] || 0) + Number(r.tutar || 0)
+      } else {
+        odemeHarita[r.malik_id] = (odemeHarita[r.malik_id] || 0) + Number(r.tutar || 0)
       }
     })
 
@@ -1602,18 +1620,24 @@ export default function ProjeGelirleri() {
                   </td>
 
                   {/* Vergi / Harç */}
-                  <td style={{ background: 'rgba(139, 92, 246, 0.08)', minWidth: 130, transition: 'background 0.2s ease', display: isColumnVisible('vergi_harc') ? '' : 'none' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
-                      <span className={`pill-rozet ${m.vergi_harc_durum ? 'pill-yesil' : 'pill-gri'}`} title={m.vergi_harc_durum ? 'Ödendi' : 'Ödenmedi'}>
-                        <input type="checkbox" style={{ width: 14, height: 14, cursor: 'pointer', accentColor: '#8B5CF6' }} checked={!!m.vergi_harc_durum} onChange={() => vergiHarcTikle(m.id, m.vergi_harc_durum)} title="Vergi / Harç ödendi işaretle" />
-                        <span>Vergi/Harç</span>
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 4, paddingLeft: 2 }}>
-                        <span style={{ fontSize: 12, fontWeight: 800, color: '#1E293B', cursor: 'default' }}>{paraFormatla(vergiHarcToplamlari[m.id] || 0)} ₺</span>
-                        {m.vergi_harc_durum && <span style={{ fontSize: 9, fontWeight: 800 }}>🟢 ÖDENDİ</span>}
-                      </div>
-                    </div>
-                  </td>
+                  {(() => {
+                    const vergiOdendi = getVergiOdendi(m)
+                    const vergiTutar = vergiHarcToplamlari[m.id] || 0
+                    return (
+                      <td style={{ background: 'rgba(139, 92, 246, 0.08)', minWidth: 130, transition: 'background 0.2s ease', display: isColumnVisible('vergi_harc') ? '' : 'none' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+                          <span className={`pill-rozet ${vergiOdendi ? 'pill-yesil' : 'pill-gri'}`} title={vergiOdendi ? 'Ödendi' : 'Ödenmedi'}>
+                            <input type="checkbox" style={{ width: 14, height: 14, cursor: 'pointer', accentColor: '#8B5CF6' }} checked={vergiOdendi} onChange={() => vergiHarcTikle(m.id, m.vergi_harc_durum)} title="Vergi / Harç ödendi işaretle" />
+                            <span>Vergi/Harç</span>
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 4, paddingLeft: 2 }}>
+                            <span style={{ fontSize: 12, fontWeight: 800, color: '#1E293B', cursor: 'default' }}>{paraFormatla(vergiTutar)} ₺</span>
+                            {vergiOdendi && <span style={{ fontSize: 9, fontWeight: 800 }}>🟢 ÖDENDİ</span>}
+                          </div>
+                        </div>
+                      </td>
+                    )
+                  })()}
 
                   {/* Otopark Harcı */}
                   {(() => {
