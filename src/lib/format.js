@@ -48,3 +48,18 @@ export function temizleTutar(formatliDeger) {
   const temiz = strDeger.replace(/\./g, '').replace(',', '.')
   return Number(temiz) || 0
 }
+
+export function isOtoparkSantiye(santiyeAdi) {
+  if (!santiyeAdi) return false
+  const s = String(santiyeAdi).toLowerCase()
+  return s.includes('furkan') || s.includes('8917') || s.includes('8919') || s.includes('8920')
+}
+
+export function isOtoparkHarcOdeme(gelirKaydi, santiyeAdi) {
+  if (!gelirKaydi) return false
+  if (gelirKaydi.is_otopark_harci || gelirKaydi.harc_turu === 'otopark') return true
+  if (gelirKaydi.harc_turu === 'genel') return false
+  if (gelirKaydi.not_metni && gelirKaydi.not_metni.toLowerCase().includes('otopark')) return true
+  if (gelirKaydi.is_vergi_harc && isOtoparkSantiye(santiyeAdi)) return true
+  return false
+}

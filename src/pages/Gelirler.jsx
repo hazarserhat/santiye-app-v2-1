@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 import { uploadToGoogleDrive, moveToSilinenler, isGoogleDriveUrl, getGoogleDriveInlineImageUrl, getGoogleDriveViewUrl } from '../lib/googleDrive'
-import { paraFormatla, sadeceSayiTuslari, formatInputTutar, temizleTutar } from '../lib/format'
+import { paraFormatla, sadeceSayiTuslari, formatInputTutar, temizleTutar, isOtoparkSantiye, isOtoparkHarcOdeme } from '../lib/format'
 import CariAramaSecici from '../components/CariAramaSecici'
 import Cekler from './Cekler'
 import { SayfaBaslik, BosDurum } from '../components/OrtakBilesenler'
@@ -223,7 +223,7 @@ export default function Gelirler() {
       if (eslesen) hedefAsama = eslesen.anahtar
     }
 
-    const { error } = await supabase.from('gelirler').insert({
+    const gelirPayload = {
       santiye_id: santiyeId,
       malik_id: malikId || null,
       cari_id: secilenCariId || null,
@@ -232,12 +232,24 @@ export default function Gelirler() {
       tarih,
       tahsilat_noktasi: gecmisDonemMi ? 'Geçmiş Dönem (Devir)' : tahsilatNoktasi,
       belge_url: belgeUrl,
-      not_metni: notMetni,
+      not_metni: isVergiHarc && harcTuru === 'otopark' && !notMetni.includes('[Otopark Harcı]')
+        ? (notMetni ? `${notMetni} [Otopark Harcı]` : '[Otopark Harcı]')
+        : notMetni,
       ekleyen: profile?.id,
       is_vergi_harc: isVergiHarc,
+      is_otopark_harci: isVergiHarc && harcTuru === 'otopark',
+      harc_turu: isVergiHarc ? harcTuru : null,
       is_devlet_destegi: isDevletDestegi,
       devlet_destegi_asama: isDevletDestegi ? (hedefAsama || null) : null,
-    })
+    }
+
+    let { error } = await supabase.from('gelirler').insert(gelirPayload)
+    if (error && (error.message.includes('is_otopark_harci') || error.message.includes('harc_turu'))) {
+      delete gelirPayload.is_otopark_harci
+      delete gelirPayload.harc_turu
+      const fb = await supabase.from('gelirler').insert(gelirPayload)
+      error = fb.error
+    }
 
     if (error) { alert('Gelir eklenemedi: ' + error.message); setYukleniyor(false); return }
 
@@ -255,7 +267,7 @@ export default function Gelirler() {
       }
     }
 
-    setMalikId(''); setSecilenCariId(null); setOdemeYapanAdi(''); setTutar(''); setNotMetni(''); setBelge(null); setTarih(bugun()); setTahsilatNoktasi('Merkez Kasa'); setGecmisDonemMi(false); setIsVergiHarc(false); setIsDevletDestegi(false); setDevletDestegiAsama('');
+    setMalikId(''); setSecilenCariId(null); setOdemeYapanAdi(''); setTutar(''); setNotMetni(''); setBelge(null); setTarih(bugun()); setTahsilatNoktasi('Merkez Kasa'); setGecmisDonemMi(false); setIsVergiHarc(false); setHarcTuru('genel'); setIsDevletDestegi(false); setDevletDestegiAsama('');
     setYukleniyor(false)
     gelirleriYukle()
   }
@@ -333,16 +345,27 @@ export default function Gelirler() {
   }
 
   const gelirDuzenle = async (id) => {
-    const { error } = await supabase.from('gelirler').update({
+    const duzPayload = {
       tutar: temizleTutar(duzTutar),
       tarih: duzTarih,
-      not_metni: duzNot,
+      not_metni: duzIsVergiHarc && duzHarcTuru === 'otopark' && !duzNot.includes('[Otopark Harcı]')
+        ? (duzNot ? `${duzNot} [Otopark Harcı]` : '[Otopark Harcı]')
+        : duzNot,
       odeme_yapan_adi: duzOdemeYapan,
       tahsilat_noktasi: duzGecmisDonemMi ? 'Geçmiş Dönem (Devir)' : duzTahsilatNoktasi,
       is_vergi_harc: duzIsVergiHarc,
+      is_otopark_harci: duzIsVergiHarc && duzHarcTuru === 'otopark',
+      harc_turu: duzIsVergiHarc ? duzHarcTuru : null,
       is_devlet_destegi: duzIsDevletDestegi,
       devlet_destegi_asama: duzIsDevletDestegi ? (duzDevletDestegiAsama || null) : null,
-    }).eq('id', id)
+    }
+    let { error } = await supabase.from('gelirler').update(duzPayload).eq('id', id)
+    if (error && (error.message.includes('is_otopark_harci') || error.message.includes('harc_turu'))) {
+      delete duzPayload.is_otopark_harci
+      delete duzPayload.harc_turu
+      const fb = await supabase.from('gelirler').update(duzPayload).eq('id', id)
+      error = fb.error
+    }
     if (error) { alert('Güncellenemedi: ' + error.message); return }
     setDuzenlenenId(null)
     gelirleriYukle()
@@ -548,13 +571,34 @@ export default function Gelirler() {
               </div>
             </label>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, cursor: 'pointer', background: isVergiHarc ? '#F3E8FF' : '#F8F9FA', padding: '10px 12px', borderRadius: 8, border: `1px solid ${isVergiHarc ? '#A855F7' : '#E2E8F0'}` }}>
-              <input type="checkbox" checked={isVergiHarc} onChange={(e) => setIsVergiHarc(e.target.checked)} style={{ width: 16, height: 16, accentColor: '#9333EA', cursor: 'pointer' }} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: isVergiHarc ? 6 : 12, cursor: 'pointer', background: isVergiHarc ? '#F3E8FF' : '#F8F9FA', padding: '10px 12px', borderRadius: 8, border: `1px solid ${isVergiHarc ? '#A855F7' : '#E2E8F0'}` }}>
+              <input type="checkbox" checked={isVergiHarc} onChange={(e) => {
+                const checked = e.target.checked
+                setIsVergiHarc(checked)
+                const seciliAd = santiyeler.find(s => s.id === santiyeId)?.ad || ''
+                if (checked && isOtoparkSantiye(seciliAd)) {
+                  setHarcTuru('otopark')
+                }
+              }} style={{ width: 16, height: 16, accentColor: '#9333EA', cursor: 'pointer' }} />
               <div>
                 <span style={{ fontSize: 13, fontWeight: 700, color: isVergiHarc ? '#7E22CE' : '#475569', display: 'block' }}>Vergi / Harç Ödemesidir</span>
                 <span style={{ fontSize: 11, color: '#64748B' }}>İşaretlerseniz bu tutar ana projeye ait 'Kalan Bakiye'den <b>düşülmez</b>.</span>
               </div>
             </label>
+
+            {isVergiHarc && (
+              <div style={{ marginLeft: 20, marginBottom: 12, display: 'flex', gap: 14, alignItems: 'center', background: '#FAF5FF', padding: '8px 14px', borderRadius: 8, border: '1px solid #E9D5FF' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#6B21A8' }}>Harç Türü:</span>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#475569', cursor: 'pointer' }}>
+                  <input type="radio" name="harcTuru" checked={harcTuru === 'genel'} onChange={() => setHarcTuru('genel')} />
+                  📑 Genel Vergi / Harç
+                </label>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#0369A1', cursor: 'pointer' }}>
+                  <input type="radio" name="harcTuru" checked={harcTuru === 'otopark'} onChange={() => setHarcTuru('otopark')} />
+                  🚗 Otopark Harcı
+                </label>
+              </div>
+            )}
 
             {/* Yarısı Bizden (Devlet Desteği) Seçeneği */}
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, cursor: 'pointer', background: isDevletDestegi ? '#E0F2FE' : '#F8F9FA', padding: '10px 12px', borderRadius: 8, border: `1px solid ${isDevletDestegi ? '#0284C7' : '#E2E8F0'}` }}>
@@ -786,6 +830,20 @@ export default function Gelirler() {
                       <span style={{ fontSize: 12, fontWeight: duzIsVergiHarc ? 600 : 400, color: duzIsVergiHarc ? '#7E22CE' : '#555' }}>Vergi / Harç Ödemesidir</span>
                     </label>
 
+                    {duzIsVergiHarc && (
+                      <div style={{ marginLeft: 16, display: 'flex', gap: 10, alignItems: 'center', background: '#FAF5FF', padding: '6px 10px', borderRadius: 6, border: '1px solid #E9D5FF' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#6B21A8' }}>Tür:</span>
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: '#475569', cursor: 'pointer' }}>
+                          <input type="radio" name={`duzHarcTuru-${g.id}`} checked={duzHarcTuru === 'genel'} onChange={() => setDuzHarcTuru('genel')} />
+                          📑 Genel
+                        </label>
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: '#0369A1', cursor: 'pointer' }}>
+                          <input type="radio" name={`duzHarcTuru-${g.id}`} checked={duzHarcTuru === 'otopark'} onChange={() => setDuzHarcTuru('otopark')} />
+                          🚗 Otopark
+                        </label>
+                      </div>
+                    )}
+
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', background: duzIsDevletDestegi ? '#E0F2FE' : '#f9f9f9', padding: '6px 8px', borderRadius: 6, border: `1px solid ${duzIsDevletDestegi ? '#0284C7' : '#eee'}` }}>
                       <input type="checkbox" checked={duzIsDevletDestegi} onChange={(e) => setDuzIsDevletDestegi(e.target.checked)} style={{ width: 14, height: 14, accentColor: '#0284C7' }} />
                       <span style={{ fontSize: 12, fontWeight: duzIsDevletDestegi ? 600 : 400, color: duzIsDevletDestegi ? '#0369A1' : '#555' }}>🏛️ Yarısı Bizden (Devlet Desteği) Ödemesidir</span>
@@ -811,7 +869,9 @@ export default function Gelirler() {
                             setDuzOdemeYapan(g.odeme_yapan_adi || '')
                             setDuzTahsilatNoktasi(g.tahsilat_noktasi || 'Merkez Kasa')
                             setDuzGecmisDonemMi(g.tahsilat_noktasi === 'Geçmiş Dönem (Devir)')
-                            setDuzIsVergiHarc(!!g.is_vergi_harc)
+                            const sAd = g.santiyeler?.ad || santiyeler.find(s => s.id === g.santiye_id)?.ad || ''
+                            setDuzIsVergiHarc(!!g.is_vergi_harc || !!g.is_otopark_harci)
+                            setDuzHarcTuru(isOtoparkHarcOdeme(g, sAd) ? 'otopark' : 'genel')
                             setDuzIsDevletDestegi(!!g.is_devlet_destegi)
                             setDuzDevletDestegiAsama(g.devlet_destegi_asama || '')
                           }} aria-label="Düzenle">✎</button>
@@ -836,7 +896,13 @@ export default function Gelirler() {
                           🏛 Yarısı Bizden {g.devlet_destegi_asama ? `(${ASAMALAR_YARISI_BIZDEN.find(a => a.anahtar === g.devlet_destegi_asama)?.etiket || ''})` : ''}
                         </span>
                       )}
-                      {g.is_vergi_harc && <span className="etiket" style={{ background: '#F3E8FF', color: '#7E22CE', border: '1px solid #D8B4FE' }}>🏛 Vergi / Harç</span>}
+                      {g.is_vergi_harc && (
+                        isOtoparkHarcOdeme(g, g.santiyeler?.ad) ? (
+                          <span className="etiket" style={{ background: '#E0F2FE', color: '#0369A1', border: '1px solid #BAE6FD', fontWeight: 600 }}>🚗 Otopark Harcı</span>
+                        ) : (
+                          <span className="etiket" style={{ background: '#F3E8FF', color: '#7E22CE', border: '1px solid #D8B4FE', fontWeight: 600 }}>🏛 Vergi / Harç</span>
+                        )
+                      )}
                     </div>
                     {g.not_metni && <p className="not-icerik" style={{ marginTop: 6 }}>{g.not_metni}</p>}
 

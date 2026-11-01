@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useSite } from '../../context/SiteContext'
 import { useAuth } from '../../context/AuthContext'
-import { paraFormatla, sadeceSayiTuslari } from '../../lib/format'
+import { paraFormatla, sadeceSayiTuslari, isOtoparkSantiye, isOtoparkHarcOdeme } from '../../lib/format'
 import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas'
 import * as XLSX from 'xlsx'
@@ -28,6 +28,10 @@ export default function ProjeGelirleri() {
   const [asamalar, setAsamalar] = useState({}) // { malikId: [asama,...] }
   const [odemeToplamlari, setOdemeToplamlari] = useState({}) // { malikId: toplam }
   const [vergiHarcToplamlari, setVergiHarcToplamlari] = useState({}) // { malikId: toplam }
+  const [otoparkHarcToplamlari, setOtoparkHarcToplamlari] = useState({}) // { malikId: toplam }
+  const [otoparkWpModalAcik, setOtoparkWpModalAcik] = useState(false)
+  const [wpKopyalandi, setWpKopyalandi] = useState(false)
+  const [wpSeciliSantiyeId, setWpSeciliSantiyeId] = useState('hepsi')
   const [yukleniyor, setYukleniyor] = useState(false)
   const dosyaInputRef = useRef(null)
 
@@ -148,6 +152,25 @@ export default function ProjeGelirleri() {
     yenile()
   }
 
+  const otoparkHarcTikle = async (malikId, mevcutDurum) => {
+    const yeniDurum = !mevcutDurum
+    setMalikler(prev => prev.map(item => item.id === malikId ? { ...item, otopark_harc_durum: yeniDurum } : item))
+    let { error } = await supabase.from('malikler').update({ otopark_harc_durum: yeniDurum }).eq('id', malikId)
+    if (error && error.message.includes('otopark_harc_durum')) {
+      await supabase.from('malikler').update({ vergi_harc_durum: yeniDurum }).eq('id', malikId)
+    }
+    yenile()
+  }
+
+  const getOtoparkOdendi = (m) => {
+    if (m.otopark_harc_durum !== undefined && m.otopark_harc_durum !== null) {
+      return !!m.otopark_harc_durum
+    }
+    const isOtoparkProj = isOtoparkSantiye(m.santiyeler?.ad)
+    if (isOtoparkProj && m.vergi_harc_durum) return true
+    return (otoparkHarcToplamlari[m.id] || 0) > 0
+  }
+
   const [yeniAcik, setYeniAcik] = useState(false)
   const [yeniAd, setYeniAd] = useState('')
   const [yeniTelefon, setYeniTelefon] = useState('')
@@ -169,14 +192,35 @@ export default function ProjeGelirleri() {
 
     const odemeHarita = {}
     const vergiHarita = {}
+    const otoparkHarita = {}
     
     // Nakit & Havale Gelirleri
-    const { data: g } = await supabase.from('gelirler').select('malik_id, tutar, is_vergi_harc, is_devlet_destegi').not('malik_id', 'is', null)
+    const { data: g } = await supabase
+      .from('gelirler')
+      .select('malik_id, tutar, is_vergi_harc, is_otopark_harci, harc_turu, not_metni, santiye_id, is_devlet_destegi')
+      .not('malik_id', 'is', null)
+
     ;(g || []).forEach((r) => { 
-      if (!r.is_vergi_harc && !r.is_devlet_destegi) {
+      if (!r.is_vergi_harc && !r.is_devlet_destegi && !r.is_otopark_harci) {
         odemeHarita[r.malik_id] = (odemeHarita[r.malik_id] || 0) + Number(r.tutar) 
-      } else if (r.is_vergi_harc) {
-        vergiHarita[r.malik_id] = (vergiHarita[r.malik_id] || 0) + Number(r.tutar)
+      } else if (r.is_vergi_harc || r.is_otopark_harci) {
+        const malikObj = (m || []).find(x => x.id === r.malik_id)
+        const sAd = malikObj?.santiyeler?.ad || ''
+        
+        let isOtopark = false
+        if (r.is_otopark_harci || r.harc_turu === 'otopark') {
+          isOtopark = true
+        } else if (r.harc_turu === 'genel') {
+          isOtopark = false
+        } else {
+          isOtopark = isOtoparkHarcOdeme(r, sAd)
+        }
+
+        if (isOtopark) {
+          otoparkHarita[r.malik_id] = (otoparkHarita[r.malik_id] || 0) + Number(r.tutar)
+        } else {
+          vergiHarita[r.malik_id] = (vergiHarita[r.malik_id] || 0) + Number(r.tutar)
+        }
       }
     })
 
@@ -195,6 +239,7 @@ export default function ProjeGelirleri() {
 
     setOdemeToplamlari(odemeHarita)
     setVergiHarcToplamlari(vergiHarita)
+    setOtoparkHarcToplamlari(otoparkHarita)
   }
 
   useEffect(() => { 
@@ -648,6 +693,62 @@ export default function ProjeGelirleri() {
     return `${santiyeAd}_${tarih}_GELİRLER-Raporu.${uzanti}`
   }
 
+  const otoparkWpMetniUret = () => {
+    const seciliSantiyeObj = santiyeler.find(s => s.id === wpSeciliSantiyeId)
+    const baslikSantiye = seciliSantiyeObj ? seciliSantiyeObj.ad : (filtreSantiye !== 'hepsi' ? (santiyeler.find(s => s.id === filtreSantiye)?.ad || 'Tüm Projeler') : 'Tüm Projeler')
+    const bugunTarih = new Date().toLocaleDateString('tr-TR')
+    
+    // Filtrelenen malikler
+    const hedefMalikler = malikler.filter(m => {
+      if (wpSeciliSantiyeId !== 'hepsi' && m.santiye_id !== wpSeciliSantiyeId) return false
+      if (m.ad_soyad && m.ad_soyad.toLowerCase().includes('ruha')) return false
+      return true
+    })
+
+    // Daire no sıralaması
+    hedefMalikler.sort((a, b) => {
+      const d1 = parseInt(a.daire_no, 10)
+      const d2 = parseInt(b.daire_no, 10)
+      if (!isNaN(d1) && !isNaN(d2)) return d1 - d2
+      return (a.daire_no || '').localeCompare(b.daire_no || '')
+    })
+
+    const toplamMalik = hedefMalikler.length
+    let odeyenSayisi = 0
+    let toplamTutar = 0
+    
+    const satirlar = hedefMalikler.map((m, idx) => {
+      const odendi = getOtoparkOdendi(m)
+      const tutar = otoparkHarcToplamlari[m.id] || 0
+      
+      if (odendi || tutar > 0) odeyenSayisi++
+      toplamTutar += tutar
+      
+      const daireEtiket = m.daire_no ? `Daire ${m.daire_no}` : `Kayıt ${idx + 1}`
+      const ad = (m.ad_soyad || '').replace('[R_SATIS]', '').trim()
+      const durumIkon = (odendi || tutar > 0) ? '🟢' : '🔴'
+      const durumMetin = (odendi || tutar > 0) ? 'ÖDENDİ' : 'BEKLİYOR'
+      const tutarMetin = tutar > 0 ? ` (${paraFormatla(tutar)} ₺)` : ''
+      
+      return `• ${daireEtiket} - ${ad}: ${durumIkon} *${durumMetin}*${tutarMetin}`
+    })
+    
+    const bekleyenSayisi = Math.max(0, toplamMalik - odeyenSayisi)
+    
+    let metin = `🚗 *${baslikSantiye.toUpperCase()} - OTOPARK HARCI ÖDEME DURUM LİSTESİ*\n`
+    metin += `📅 *Tarih:* ${bugunTarih}\n\n`
+    metin += `📊 *GENEL DURUM ÖZETİ:*\n`
+    metin += `• Toplam Bağımsız Bölüm: *${toplamMalik}*\n`
+    metin += `• Ödeyen Malik Sayısı: *${odeyenSayisi}* 🟢\n`
+    metin += `• Bekleyen Malik Sayısı: *${bekleyenSayisi}* 🔴\n`
+    metin += `• Toplanan Otopark Harcı: *${paraFormatla(toplamTutar)} ₺*\n\n`
+    metin += `📋 *MALİK DETAY LİSTESİ:*\n`
+    metin += satirlar.join('\n') + `\n\n`
+    metin += `ℹ️ _Not: Otopark harcı ödemesini gerçekleştiren maliklerimizin dekontlarını tarafımıza iletmesini rica ederiz._`
+    
+    return metin
+  }
+
   const excelIndir = () => {
     try {
       const data = []
@@ -676,7 +777,7 @@ export default function ProjeGelirleri() {
         headers.push(stageName)
       }
 
-      headers.push('Alınan (TL)', 'Kalan (TL)', 'Vergi / Harç (TL)')
+      headers.push('Alınan (TL)', 'Kalan (TL)', 'Vergi / Harç (TL)', 'Otopark Harcı (TL)')
       data.push(headers)
 
       // Body Rows
@@ -708,7 +809,7 @@ export default function ProjeGelirleri() {
           }
         }
 
-        row.push(alinan, kalan, vergiHarcToplamlari[m.id] || 0)
+        row.push(alinan, kalan, vergiHarcToplamlari[m.id] || 0, otoparkHarcToplamlari[m.id] || 0)
         data.push(row)
       })
 
@@ -732,7 +833,8 @@ export default function ProjeGelirleri() {
       }
 
       const toplamVergiEx = gorunenler.reduce((acc, m) => acc + (vergiHarcToplamlari[m.id] || 0), 0)
-      totalRow.push(toplamAlinanGenel, toplamKalanGenel, toplamVergiEx)
+      const toplamOtoparkEx = gorunenler.reduce((acc, m) => acc + (otoparkHarcToplamlari[m.id] || 0), 0)
+      totalRow.push(toplamAlinanGenel, toplamKalanGenel, toplamVergiEx, toplamOtoparkEx)
       data.push(totalRow)
 
       const ws = XLSX.utils.aoa_to_sheet(data)
@@ -904,6 +1006,31 @@ export default function ProjeGelirleri() {
             ⚡ Hızlı Düzenle: {hizliDuzenleModu ? 'AÇIK' : 'KAPALI'}
           </button>
           <button
+            onClick={() => {
+              setWpSeciliSantiyeId(filtreSantiye !== 'hepsi' ? filtreSantiye : (santiyeler[0]?.id || 'hepsi'))
+              setWpKopyalandi(false)
+              setOtoparkWpModalAcik(true)
+            }}
+            style={{
+              padding: '8px 16px',
+              background: '#25D366',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 8px rgba(37, 211, 102, 0.28)'
+            }}
+            title="Otopark harcı ödeme durumlarını WhatsApp grubu formatında görüntüle ve paylaş"
+          >
+            <span>🚗</span>
+            <span>Otopark WP Paylaşımı</span>
+          </button>
+          <button
             onClick={excelIndir}
             style={{
               padding: '8px 16px',
@@ -1061,6 +1188,14 @@ export default function ProjeGelirleri() {
           <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Kalan Borç</span>
           <span style={{ fontSize: '22px', fontWeight: '800', color: '#D97706' }}>{paraFormatla(toplamKalanGenel)} ₺</span>
         </div>
+        <div className="kpi-card-inline" style={{ background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.9)', borderRadius: '16px', padding: '16px 20px', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <span style={{ fontSize: '12px', fontWeight: '700', color: '#7E22CE', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Genel Vergi / Harç</span>
+          <span style={{ fontSize: '22px', fontWeight: '800', color: '#7E22CE' }}>{paraFormatla(gorunenler.reduce((acc, m) => acc + (vergiHarcToplamlari[m.id] || 0), 0))} ₺</span>
+        </div>
+        <div className="kpi-card-inline" style={{ background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.9)', borderRadius: '16px', padding: '16px 20px', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <span style={{ fontSize: '12px', fontWeight: '700', color: '#0284C7', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🚗 Otopark Harçları</span>
+          <span style={{ fontSize: '22px', fontWeight: '800', color: '#0284C7' }}>{paraFormatla(gorunenler.reduce((acc, m) => acc + (otoparkHarcToplamlari[m.id] || 0), 0))} ₺</span>
+        </div>
       </div>
 
       {/* Glassmorphism Filter & Sort Panel */}
@@ -1212,7 +1347,8 @@ export default function ProjeGelirleri() {
                   ))}
                   <th style={{ ...thStil, display: isColumnVisible('alinan') ? '' : 'none', textAlign: 'right' }}>Alınan</th>
                   <th style={{ ...thStil, display: isColumnVisible('kalan') ? '' : 'none', textAlign: 'right' }}>Kalan</th>
-                  <th style={{ ...thStil, display: isColumnVisible('vergi_harc') ? '' : 'none', minWidth: 140 }}>Vergi / Harç</th>
+                  <th style={{ ...thStil, display: isColumnVisible('vergi_harc') ? '' : 'none', minWidth: 130 }}>📑 Vergi / Harç</th>
+                  <th style={{ ...thStil, display: isColumnVisible('otopark_harci') ? '' : 'none', minWidth: 130 }}>🚗 Otopark Harcı</th>
                   <th style={{ ...thStil, display: isColumnVisible('islemler') ? '' : 'none' }}>İşlemler</th>
                 </tr>
               )
@@ -1466,11 +1602,11 @@ export default function ProjeGelirleri() {
                   </td>
 
                   {/* Vergi / Harç */}
-                  <td style={{ background: 'rgba(139, 92, 246, 0.15)', minWidth: 140, transition: 'background 0.2s ease', display: isColumnVisible('vergi_harc') ? '' : 'none' }}>
+                  <td style={{ background: 'rgba(139, 92, 246, 0.08)', minWidth: 130, transition: 'background 0.2s ease', display: isColumnVisible('vergi_harc') ? '' : 'none' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
                       <span className={`pill-rozet ${m.vergi_harc_durum ? 'pill-yesil' : 'pill-gri'}`} title={m.vergi_harc_durum ? 'Ödendi' : 'Ödenmedi'}>
                         <input type="checkbox" style={{ width: 14, height: 14, cursor: 'pointer', accentColor: '#8B5CF6' }} checked={!!m.vergi_harc_durum} onChange={() => vergiHarcTikle(m.id, m.vergi_harc_durum)} title="Vergi / Harç ödendi işaretle" />
-                        <span>Vergi / Harç</span>
+                        <span>Vergi/Harç</span>
                       </span>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 4, paddingLeft: 2 }}>
                         <span style={{ fontSize: 12, fontWeight: 800, color: '#1E293B', cursor: 'default' }}>{paraFormatla(vergiHarcToplamlari[m.id] || 0)} ₺</span>
@@ -1478,6 +1614,26 @@ export default function ProjeGelirleri() {
                       </div>
                     </div>
                   </td>
+
+                  {/* Otopark Harcı */}
+                  {(() => {
+                    const otoparkOdendi = getOtoparkOdendi(m)
+                    const otoparkTutar = otoparkHarcToplamlari[m.id] || 0
+                    return (
+                      <td style={{ background: 'rgba(14, 165, 233, 0.1)', minWidth: 130, transition: 'background 0.2s ease', display: isColumnVisible('otopark_harci') ? '' : 'none' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+                          <span className={`pill-rozet ${otoparkOdendi ? 'pill-yesil' : 'pill-gri'}`} title={otoparkOdendi ? 'Ödendi' : 'Ödenmedi'}>
+                            <input type="checkbox" style={{ width: 14, height: 14, cursor: 'pointer', accentColor: '#0284C7' }} checked={otoparkOdendi} onChange={() => otoparkHarcTikle(m.id, otoparkOdendi)} title="Otopark Harcı ödendi işaretle" />
+                            <span>Otopark</span>
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 4, paddingLeft: 2 }}>
+                            <span style={{ fontSize: 12, fontWeight: 800, color: '#1E293B', cursor: 'default' }}>{paraFormatla(otoparkTutar)} ₺</span>
+                            {otoparkOdendi && <span style={{ fontSize: 9, fontWeight: 800 }}>🟢 ÖDENDİ</span>}
+                          </div>
+                        </div>
+                      </td>
+                    )
+                  })()}
 
                   {/* İşlemler */}
                   <td style={{ background: cellBg, display: isColumnVisible('islemler') ? '' : 'none' }}>
@@ -1514,6 +1670,7 @@ export default function ProjeGelirleri() {
               <td style={{ color: '#059669', fontSize: 15, fontWeight: 900, background: '#E6F4F1', display: isColumnVisible('alinan') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(toplamAlinanGenel)} ₺</td>
               <td style={{ color: '#DC2626', fontSize: 15, fontWeight: 900, background: '#E6F4F1', display: isColumnVisible('kalan') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(toplamKalanGenel)} ₺</td>
               <td style={{ color: '#6D28D9', fontSize: 15, fontWeight: 900, background: '#F3E8FF', display: isColumnVisible('vergi_harc') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(gorunenler.reduce((acc, m) => acc + (vergiHarcToplamlari[m.id] || 0), 0))} ₺</td>
+              <td style={{ color: '#0369A1', fontSize: 15, fontWeight: 900, background: '#E0F2FE', display: isColumnVisible('otopark_harci') ? '' : 'none', textAlign: 'right' }}>{paraFormatla(gorunenler.reduce((acc, m) => acc + (otoparkHarcToplamlari[m.id] || 0), 0))} ₺</td>
               <td style={{ background: '#E6F4F1', display: isColumnVisible('islemler') ? '' : 'none' }}></td>
             </tr>
           </tfoot>
@@ -1760,7 +1917,7 @@ export default function ProjeGelirleri() {
             {/* Quick Actions */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
               <button
-                onClick={() => setSeciliSutunlarPDF({ ad_soyad: true, telefon: true, santiye: true, mesken_turu: true, daire_no: true, toplam_alacak: true, iskonto_farki: true, devlet_destegi: true, kalan_bakiye: true, asamalar: true, alinan: true, kalan: true, vergi_harc: true })}
+                onClick={() => setSeciliSutunlarPDF({ ad_soyad: true, telefon: true, santiye: true, mesken_turu: true, daire_no: true, toplam_alacak: true, iskonto_farki: true, devlet_destegi: true, kalan_bakiye: true, asamalar: true, alinan: true, kalan: true, vergi_harc: true, otopark_harci: true })}
                 style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '6px', border: '1px solid #CBD5E0', background: '#F1F5F9', fontWeight: 600, cursor: 'pointer' }}
               >
                 ✓ Tümünü Seç
@@ -1788,7 +1945,8 @@ export default function ProjeGelirleri() {
                 { key: 'asamalar', label: 'Aşamalar (Aşama 1..N)' },
                 { key: 'alinan', label: 'Alınan (Tahsilat)' },
                 { key: 'kalan', label: 'Kalan Borç' },
-                { key: 'vergi_harc', label: 'Vergi / Harç Ödemeleri' }
+                { key: 'vergi_harc', label: 'Vergi / Harç Ödemeleri' },
+                { key: 'otopark_harci', label: 'Otopark Harcı Ödemeleri' }
               ].map((item) => (
                 <label key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
                   <input
@@ -1822,6 +1980,132 @@ export default function ProjeGelirleri() {
           </div>
         </div>
       )}
+    
+      {/* OTOPARK HARCI WHATSAPP PAYLAŞIM MODALI */}
+      {otoparkWpModalAcik && (
+        <div className="modal-arka-plan" style={{ zIndex: 9999 }}>
+          <div className="modal-kutu" style={{ maxWidth: 580, width: '92%', maxHeight: '90vh', overflowY: 'auto', padding: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1C1C1E', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>🚗</span> Otopark Harçları WhatsApp Paylaşımı
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: '#6C6C70' }}>
+                  Şantiye WhatsApp gruplarında paylaşmaya hazır güncel ödeme listesi
+                </p>
+              </div>
+              <button 
+                onClick={() => setOtoparkWpModalAcik(false)}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#8E8E93' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Proje / Şantiye Seçici */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#3A3A3C', marginBottom: 6 }}>
+                Raporlanacak Proje / Şantiye:
+              </label>
+              <select 
+                value={wpSeciliSantiyeId} 
+                onChange={(e) => setWpSeciliSantiyeId(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(60, 60, 67, 0.18)', fontSize: 14, fontWeight: 600, color: '#1C1C1E' }}
+              >
+                <option value="hepsi">🌐 Tüm Projeler</option>
+                {santiyeler.map(s => (
+                  <option key={s.id} value={s.id}>🏗️ {s.ad}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Önizleme Alanı */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#3A3A3C', marginBottom: 6 }}>
+                WhatsApp Mesaj Önizlemesi:
+              </label>
+              <textarea 
+                readOnly
+                value={otoparkWpMetniUret()}
+                rows={12}
+                style={{
+                  width: '100%',
+                  padding: 12,
+                  borderRadius: 12,
+                  border: '1px solid rgba(60, 60, 67, 0.18)',
+                  background: '#F8F9FA',
+                  fontFamily: 'monospace, SF Pro Text, sans-serif',
+                  fontSize: 12.5,
+                  lineHeight: '1.45',
+                  color: '#1C1C1E',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            {/* İşlem Butonları */}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(otoparkWpMetniUret())
+                    setWpKopyalandi(true)
+                    setTimeout(() => setWpKopyalandi(false), 2500)
+                  } catch (e) {
+                    alert('Kopyalanamadı: ' + e.message)
+                  }
+                }}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: 10,
+                  border: '1px solid rgba(60, 60, 67, 0.18)',
+                  background: wpKopyalandi ? '#DCFCE7' : '#FFFFFF',
+                  color: wpKopyalandi ? '#15803D' : '#1C1C1E',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <span>{wpKopyalandi ? '✅' : '📋'}</span>
+                <span>{wpKopyalandi ? 'Metin Kopyalandı!' : 'Metni Kopyala'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const metin = otoparkWpMetniUret()
+                  const url = `https://wa.me/?text=${encodeURIComponent(metin)}`
+                  window.open(url, '_blank')
+                }}
+                style={{
+                  padding: '10px 18px',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: '#25D366',
+                  color: '#FFFFFF',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 2px 8px rgba(37, 211, 102, 0.35)',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <span>💬</span>
+                <span>WhatsApp'ta Aç / Paylaş</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
