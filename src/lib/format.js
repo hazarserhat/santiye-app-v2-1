@@ -49,6 +49,15 @@ export function temizleTutar(formatliDeger) {
   return Number(temiz) || 0
 }
 
+export function daireNoKarsilastir(aNo, bNo) {
+  const aStr = String(aNo || '').trim()
+  const bStr = String(bNo || '').trim()
+  if (!aStr && !bStr) return 0
+  if (!aStr) return 1
+  if (!bStr) return -1
+  return aStr.localeCompare(bStr, 'tr-TR', { numeric: true, sensitivity: 'base' })
+}
+
 export function isOtoparkSantiye(santiyeAdi) {
   if (!santiyeAdi) return false
   const s = String(santiyeAdi).toLocaleLowerCase('tr-TR')

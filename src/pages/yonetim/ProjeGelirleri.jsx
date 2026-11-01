@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useSite } from '../../context/SiteContext'
 import { useAuth } from '../../context/AuthContext'
-import { paraFormatla, sadeceSayiTuslari, isOtoparkSantiye, isOtoparkHarcOdeme } from '../../lib/format'
+import { paraFormatla, sadeceSayiTuslari, isOtoparkSantiye, isOtoparkHarcOdeme, daireNoKarsilastir } from '../../lib/format'
 import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas'
 import * as XLSX from 'xlsx'
@@ -645,10 +645,10 @@ export default function ProjeGelirleri() {
 
   gorunenler.sort((a, b) => {
     if (siralama === 'daire_artan') {
-      return (a.daire_no || '').localeCompare(b.daire_no || '', undefined, { numeric: true })
+      return daireNoKarsilastir(a.daire_no, b.daire_no)
     }
     if (siralama === 'daire_azalan') {
-      return (b.daire_no || '').localeCompare(a.daire_no || '', undefined, { numeric: true })
+      return daireNoKarsilastir(b.daire_no, a.daire_no)
     }
     if (siralama === 'isim_artan') {
       return (a.ad_soyad || '').localeCompare(b.ad_soyad || '')
@@ -723,45 +723,63 @@ export default function ProjeGelirleri() {
       return true
     })
 
-    // Daire no sıralaması
-    hedefMalikler.sort((a, b) => {
-      const d1 = parseInt(a.daire_no, 10)
-      const d2 = parseInt(b.daire_no, 10)
-      if (!isNaN(d1) && !isNaN(d2)) return d1 - d2
-      return (a.daire_no || '').localeCompare(b.daire_no || '')
-    })
+    // Daire no sıralaması (A-1, A-2... A-17, B-1, B-2... B-15 doğal alfabetik ve sayısal sıralama)
+    hedefMalikler.sort((a, b) => daireNoKarsilastir(a.daire_no, b.daire_no))
 
     const toplamMalik = hedefMalikler.length
     let odeyenSayisi = 0
     let toplamTutar = 0
     
-    const satirlar = hedefMalikler.map((m, idx) => {
+    const satirlar = []
+    let oncekiBlok = null
+
+    // Projede bloklu daireler (A-1, B-1 vb.) varsa blok başlığı ekle
+    const blokVarMi = hedefMalikler.some(m => /^[a-zA-ZğüşıöçĞÜŞİÖÇ]+[-/.\s]\d+/i.test(String(m.daire_no || '').trim()))
+
+    hedefMalikler.forEach((m, idx) => {
       const odendi = getOtoparkOdendi(m)
       const tutar = otoparkHarcToplamlari[m.id] || 0
       
       if (odendi || tutar > 0) odeyenSayisi++
       toplamTutar += tutar
       
-      const daireEtiket = m.daire_no ? `Daire ${m.daire_no}` : `Kayıt ${idx + 1}`
+      const noStr = String(m.daire_no || '').trim()
+
+      if (blokVarMi && noStr) {
+        const blokMatch = noStr.match(/^([a-zA-ZğüşıöçĞÜŞİÖÇ]+)[-/.\s]/i)
+        const suankiBlok = blokMatch ? blokMatch[1].toLocaleUpperCase('tr-TR') : ''
+        if (suankiBlok && suankiBlok !== oncekiBlok) {
+          oncekiBlok = suankiBlok
+          satirlar.push(`\n🏢 *${suankiBlok} BLOK*`)
+        }
+      }
+
+      let daireEtiket = `Kayıt ${idx + 1}`
+      if (noStr) {
+        daireEtiket = /^daire\s*/i.test(noStr) ? noStr : `Daire ${noStr}`
+      }
+
       const ad = (m.ad_soyad || '').replace('[R_SATIS]', '').trim()
       const durumIkon = (odendi || tutar > 0) ? '🟢' : '🔴'
       const durumMetin = (odendi || tutar > 0) ? 'ÖDENDİ' : 'BEKLİYOR'
       const tutarMetin = tutar > 0 ? ` (${paraFormatla(tutar)} ₺)` : ''
       
-      return `• ${daireEtiket} - ${ad}: ${durumIkon} *${durumMetin}*${tutarMetin}`
+      satirlar.push(`• *${daireEtiket}* - ${ad}: ${durumIkon} *${durumMetin}*${tutarMetin}`)
     })
     
     const bekleyenSayisi = Math.max(0, toplamMalik - odeyenSayisi)
+    const tahsilatYuzdesi = toplamMalik > 0 ? Math.round((odeyenSayisi / toplamMalik) * 100) : 0
     
-    let metin = `🚗 *${baslikSantiye.toUpperCase()} - OTOPARK HARCI ÖDEME DURUM LİSTESİ*\n`
+    let metin = `🚗 *${baslikSantiye.toLocaleUpperCase('tr-TR')} - OTOPARK HARCI ÖDEME DURUM LİSTESİ*\n`
     metin += `📅 *Tarih:* ${bugunTarih}\n\n`
     metin += `📊 *GENEL DURUM ÖZETİ:*\n`
     metin += `• Toplam Bağımsız Bölüm: *${toplamMalik}*\n`
     metin += `• Ödeyen Malik Sayısı: *${odeyenSayisi}* 🟢\n`
     metin += `• Bekleyen Malik Sayısı: *${bekleyenSayisi}* 🔴\n`
+    metin += `• Tahsilat Oranı: *%${tahsilatYuzdesi}*\n`
     metin += `• Toplanan Otopark Harcı: *${paraFormatla(toplamTutar)} ₺*\n\n`
-    metin += `📋 *MALİK DETAY LİSTESİ:*\n`
-    metin += satirlar.join('\n') + `\n\n`
+    metin += `📋 *MALİK DETAY LİSTESİ:*`
+    metin += (satirlar.length > 0 ? '\n' + satirlar.join('\n') : '\n(Kayıt bulunamadı)') + `\n\n`
     metin += `ℹ️ _Not: Otopark harcı ödemesini gerçekleştiren maliklerimizin dekontlarını tarafımıza iletmesini rica ederiz._`
     
     return metin
