@@ -46,6 +46,7 @@ export default function Gelirler() {
   const [tahsilatNoktasi, setTahsilatNoktasi] = useState('Merkez Kasa')
   const [gecmisDonemMi, setGecmisDonemMi] = useState(false)
   const [isVergiHarc, setIsVergiHarc] = useState(false)
+  const [harcTuru, setHarcTuru] = useState('genel')
   const [isDevletDestegi, setIsDevletDestegi] = useState(false)
   const [devletDestegiAsama, setDevletDestegiAsama] = useState('')
   const [notMetni, setNotMetni] = useState('')
@@ -68,6 +69,7 @@ export default function Gelirler() {
   const [duzTahsilatNoktasi, setDuzTahsilatNoktasi] = useState('')
   const [duzGecmisDonemMi, setDuzGecmisDonemMi] = useState(false)
   const [duzIsVergiHarc, setDuzIsVergiHarc] = useState(false)
+  const [duzHarcTuru, setDuzHarcTuru] = useState('genel')
   const [duzIsDevletDestegi, setDuzIsDevletDestegi] = useState(false)
   const [duzDevletDestegiAsama, setDuzDevletDestegiAsama] = useState('')
 
@@ -82,7 +84,12 @@ export default function Gelirler() {
   const dosyaAlaniRef = useRef(null)
 
   useEffect(() => {
-    if (aktifSantiye) setSantiyeId(aktifSantiye.id)
+    if (aktifSantiye) {
+      setSantiyeId(aktifSantiye.id)
+      if (isOtoparkSantiye(aktifSantiye.ad)) {
+        setHarcTuru('otopark')
+      }
+    }
   }, [aktifSantiye])
 
   useEffect(() => {
@@ -485,7 +492,17 @@ export default function Gelirler() {
         <>
           {/* YENİ GELİR EKLEME ALANI */}
           <div className="ekleme-kutusu" style={{ marginBottom: 16 }}>
-            <select value={santiyeId} onChange={(e) => { setSantiyeId(e.target.value); setMalikId('') }}>
+            <select value={santiyeId} onChange={(e) => { 
+              const sId = e.target.value
+              setSantiyeId(sId)
+              setMalikId('')
+              const sObj = (santiyeler || []).find(s => s.id === sId)
+              if (sObj && isOtoparkSantiye(sObj.ad)) {
+                setHarcTuru('otopark')
+              } else {
+                setHarcTuru('genel')
+              }
+            }}>
               {santiyeler.map((s) => <option key={s.id} value={s.id}>{s.ad}</option>)}
             </select>
 
