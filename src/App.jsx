@@ -35,6 +35,7 @@ const SevkiyatKabul = lazy(() => import('./pages/SevkiyatKabul'))
 const SevkiyatPlanlama = lazy(() => import('./pages/SevkiyatPlanlama'))
 const SahaCepCetveli = lazy(() => import('./pages/SahaCepCetveli'))
 const Operasyon = lazy(() => import('./pages/Operasyon'))
+const Danismanliklar = lazy(() => import('./pages/Danismanliklar'))
 
 function YonetimKoruma({ children }) {
   const { profile } = useAuth()
@@ -129,6 +130,8 @@ function IcerikAlani() {
               <Route path="/yonetim/proje-dosyalari" element={<SerhatHazarKoruma><ProjeDosyalari /></SerhatHazarKoruma>} />
               <Route path="/yonetim/anlasma-planlama" element={<SerhatHazarKoruma><AnlasmaPlanlama /></SerhatHazarKoruma>} />
               <Route path="/yonetim/malik-koordinasyon" element={<YonetimKoruma><MalikKordinasyon /></YonetimKoruma>} />
+              <Route path="/danismanliklar" element={<Danismanliklar />} />
+              <Route path="/yonetim/danismanliklar" element={<Danismanliklar />} />
               
               <Route path="/saha-dosyalari" element={<SahaDosyalari />} />
             </Routes>

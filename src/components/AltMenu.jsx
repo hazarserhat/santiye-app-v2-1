@@ -57,7 +57,7 @@ export default function AltMenu() {
     { 
       yol: '/kasalar', 
       etiket: 'Virman', 
-      aciklama: 'Kasa transferi ve mütabakat', 
+      aciklama: 'Kasa transferi ve mutabakat', 
       simge: '🏦', 
       renk: '#2563eb',
       bg: '#dbeafe',
@@ -197,6 +197,14 @@ export default function AltMenu() {
       simge: '📊',
       renk: '#7c3aed',
       bg: '#ede9fe'
+    },
+    {
+      yol: '/danismanliklar',
+      etiket: 'Danışmanlıklar',
+      aciklama: 'Yasin Çiçen (%15 Kâr Payı) cari hesap, harcama ve mutabakat takibi',
+      simge: '💼',
+      renk: '#4f46e5',
+      bg: '#e0e7ff'
     },
   ]
 
@@ -408,7 +416,7 @@ export default function AltMenu() {
             type="button"
             onClick={() => toggleMenu('portfoy')}
             className={`alt-menu-oge ${isPortfoyAktif ? 'aktif' : ''}`}
-            title="Proje Portföy & Planlama (Proje Gelirleri, Yarısı Bizden, Çek Takip, Anlaşma & Planlama)"
+            title="Proje Portföy & Planlama (Proje Gelirleri, Yarısı Bizden, Çek Takip, Anlaşma & Planlama, Danışmanlıklar)"
           >
             <span className="alt-menu-simge">📊</span>
             <span className="alt-menu-etiket" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>

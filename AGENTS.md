@@ -35,3 +35,4 @@ gün-ay-yıl-saat-dakika-saniye-ADSOYAD-uniqueId.UZANTI
 - **Beton Dökümü & Mikser** (`src/pages/BetonDokumu.jsx`): `BetonDokumu/{Şantiye Adı}`
 - **Sevkiyat Planlama & Kabul** (`src/pages/SevkiyatPlanlama.jsx`): `Sevkiyatlar/{Şantiye Adı}`
 - **İş Makinesi & Hafriyat** (`src/pages/MakineHafriyat.jsx`): `MakineHafriyat/{Şantiye Adı}`
+- **Danışmanlıklar** (`src/pages/Danismanliklar.jsx`): `Danismanliklar/{Proje Adı}`
