@@ -434,6 +434,21 @@ export default function Gorevler() {
     
     let gecerliGorevler = data || []
     
+    // Geçmişte ana görevi tamamlanmış fakat alt görevi bekliyor kalmış yetim kayıtları otomatik tamamla
+    const tamamlanmisParentIdleri = new Set(
+      gecerliGorevler.filter(g => g.durum === 'tamamlandi').map(g => g.id)
+    )
+    const yetimKalanAltGorevler = gecerliGorevler.filter(
+      g => g.ust_gorev_id && tamamlanmisParentIdleri.has(g.ust_gorev_id) && g.durum !== 'tamamlandi'
+    )
+    if (yetimKalanAltGorevler.length > 0) {
+      const yetimIds = yetimKalanAltGorevler.map(g => g.id)
+      supabase.from('gorevler').update({ durum: 'tamamlandi' }).in('id', yetimIds).then(() => {
+        supabase.from('bildirimler').update({ okundu: true }).in('gorev_id', yetimIds)
+      })
+      gecerliGorevler = gecerliGorevler.map(g => yetimIds.includes(g.id) ? { ...g, durum: 'tamamlandi' } : g)
+    }
+
     if (profile?.rol === 'santiye_sefi') {
       gecerliGorevler = gecerliGorevler.filter(g => 
         g.olusturan === profile.id || 
@@ -681,12 +696,25 @@ export default function Gorevler() {
     gorevleriYukle()
   }
 
+  const tumAltGorevIdleriniBul = (parentId, gorevListesi = gorevler) => {
+    const directChildren = gorevListesi.filter(g => g.ust_gorev_id === parentId)
+    let ids = directChildren.map(c => c.id)
+    directChildren.forEach(c => {
+      ids = ids.concat(tumAltGorevIdleriniBul(c.id, gorevListesi))
+    })
+    return ids
+  }
+
   const durumGuncelle = async (id, yeniDurum) => {
-    await supabase.from('gorevler').update({ durum: yeniDurum }).eq('id', id)
-    
+    const altIds = tumAltGorevIdleriniBul(id)
+
     if (yeniDurum === 'tamamlandi') {
-      await supabase.from('bildirimler').update({ okundu: true }).eq('gorev_id', id)
+      // Ana görev tamamlandığında ona ait tüm alt görevler de otomatik tamamlanır
+      const tumIdler = [id, ...altIds]
+      await supabase.from('gorevler').update({ durum: 'tamamlandi' }).in('id', tumIdler)
+      await supabase.from('bildirimler').update({ okundu: true }).in('gorev_id', tumIdler)
     } else {
+      await supabase.from('gorevler').update({ durum: yeniDurum }).eq('id', id)
       await supabase.from('bildirimler').update({ okundu: false }).eq('gorev_id', id)
     }
     
@@ -732,18 +760,25 @@ export default function Gorevler() {
   const gorevSil = async (id) => {
     if (!window.confirm('Bu görevi (ve varsa alt görevlerini) silmek istediğinize emin misiniz?')) return
     
-    const silinecek = gorevler.find((g) => g.id === id)
-    const gorsel = gorevGorseliBul(silinecek)
-    if (gorsel) {
-      try {
-        const s = santiyeler.find((x) => x.id === silinecek.santiye_id)
-        const folderName = `Gorevler/${s ? s.ad : 'Genel'}`
-        await moveToSilinenler(gorsel, folderName)
-      } catch (e) {
-        console.warn('Görsel silinenlere taşınamadı:', e)
+    const altIds = tumAltGorevIdleriniBul(id)
+    const tumSilinecekler = gorevler.filter((g) => g.id === id || altIds.includes(g.id))
+
+    for (const silinecek of tumSilinecekler) {
+      const gorsel = gorevGorseliBul(silinecek)
+      if (gorsel) {
+        try {
+          const s = santiyeler.find((x) => x.id === silinecek.santiye_id)
+          const folderName = `Gorevler/${s ? s.ad : 'Genel'}`
+          await moveToSilinenler(gorsel, folderName)
+        } catch (e) {
+          console.warn('Görsel silinenlere taşınamadı:', e)
+        }
       }
     }
 
+    if (altIds.length > 0) {
+      await supabase.from('gorevler').delete().in('id', altIds)
+    }
     await supabase.from('gorevler').delete().eq('id', id)
     gorevleriYukle()
   }
@@ -848,11 +883,15 @@ export default function Gorevler() {
   const aktifGorevler = gorevler.filter((g) => g.durum !== 'tamamlandi')
   const tamamlananGorevler = gorevler.filter((g) => g.durum === 'tamamlandi')
 
-  // Şantiyelerin aktif görev sayıları haritası
+  // Ana ve alt aktif görevler
+  const aktifKokGorevler = aktifGorevler.filter((g) => !g.ust_gorev_id)
+  const aktifAltGorevler = aktifGorevler.filter((g) => g.ust_gorev_id)
+
+  // Şantiyelerin aktif görev sayıları haritası (Ekranda listelenen ana görev kartı sayısını yansıtır)
   const santiyeGorevSayilari = {}
   const santiyeGecikenSayilari = {}
   karuselSantiyeler.forEach(s => {
-    santiyeGorevSayilari[s.id] = aktifGorevler.filter(g => s.id === 'genel' ? !g.santiye_id : g.santiye_id === s.id).length
+    santiyeGorevSayilari[s.id] = aktifKokGorevler.filter(g => s.id === 'genel' ? !g.santiye_id : g.santiye_id === s.id).length
     santiyeGecikenSayilari[s.id] = gorevler.filter(g => (s.id === 'genel' ? !g.santiye_id : g.santiye_id === s.id) && g.durum === 'gecikti').length
   })
 
@@ -873,6 +912,9 @@ export default function Gorevler() {
   const oSantiyeGeciken = oSantiyeGorevleri.filter(g => g.durum === 'gecikti').length
   const oSantiyeToplam = oSantiyeGorevleri.length
   const oSantiyeYuzde = oSantiyeToplam > 0 ? Math.round((oSantiyeTamam / oSantiyeToplam) * 100) : 0
+
+  const oSantiyeKokAktif = oSantiyeGorevleri.filter(g => !g.ust_gorev_id && g.durum !== 'tamamlandi').length
+  const oSantiyeAltAktif = oSantiyeGorevleri.filter(g => g.ust_gorev_id && g.durum !== 'tamamlandi').length
 
   // Liste Modu için filtreleme zinciri
   const santiyeyeGoreFiltreli = gorunumModu === 'karusel' 
@@ -928,7 +970,7 @@ export default function Gorevler() {
           <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span>Görevler</span>
             <span style={{ fontSize: 13, background: '#E6F9F0', color: '#0B6B41', padding: '2px 8px', borderRadius: 12, fontWeight: 700 }}>
-              {aktifGorevler.length} Aktif
+              {aktifKokGorevler.length} Aktif
             </span>
           </h2>
         </div>
@@ -1025,7 +1067,7 @@ export default function Gorevler() {
                 <span className="santiye-izgara-ikon">🌐</span>
                 <span className="santiye-izgara-ad">Tüm Şantiyeler</span>
               </div>
-              <span className="santiye-izgara-rozet">{aktifGorevler.length}</span>
+              <span className="santiye-izgara-rozet">{aktifKokGorevler.length}</span>
             </button>
           )}
 
@@ -1090,12 +1132,14 @@ export default function Gorevler() {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <h3 className="santiye-ad">{aktifSantiyeKarusel?.ad}</h3>
-                      <span className="santiye-sira-rozet">
-                        {santiyeIndex + 1} / {toplamSantiye}
+                      <span className="santiye-sira-rozet" title="Karuseldeki Şantiye Sırası">
+                        Şantiye {santiyeIndex + 1} / {toplamSantiye}
                       </span>
                     </div>
                     <div className="santiye-istatistik-satiri">
-                      <span>{oSantiyeBekleyen + oSantiyeDevam + oSantiyeGeciken} Aktif Görev</span>
+                      <span>
+                        {oSantiyeKokAktif} Aktif Görev{oSantiyeAltAktif > 0 ? ` (${oSantiyeAltAktif} alt görev)` : ''}
+                      </span>
                       {oSantiyeGeciken > 0 && <span className="geciken-rozet">🔴 {oSantiyeGeciken} Gecikti</span>}
                       {oSantiyeTamam > 0 && <span className="tamam-rozet">🟢 %{oSantiyeYuzde} Tamamlandı</span>}
                     </div>
