@@ -887,11 +887,11 @@ export default function Gorevler() {
   const aktifKokGorevler = aktifGorevler.filter((g) => !g.ust_gorev_id)
   const aktifAltGorevler = aktifGorevler.filter((g) => g.ust_gorev_id)
 
-  // Şantiyelerin aktif görev sayıları haritası (Ekranda listelenen ana görev kartı sayısını yansıtır)
+  // Şantiyelerin aktif görev sayıları haritası (Tüm aktif ana ve alt görevleri kapsar)
   const santiyeGorevSayilari = {}
   const santiyeGecikenSayilari = {}
   karuselSantiyeler.forEach(s => {
-    santiyeGorevSayilari[s.id] = aktifKokGorevler.filter(g => s.id === 'genel' ? !g.santiye_id : g.santiye_id === s.id).length
+    santiyeGorevSayilari[s.id] = aktifGorevler.filter(g => s.id === 'genel' ? !g.santiye_id : g.santiye_id === s.id).length
     santiyeGecikenSayilari[s.id] = gorevler.filter(g => (s.id === 'genel' ? !g.santiye_id : g.santiye_id === s.id) && g.durum === 'gecikti').length
   })
 
@@ -970,7 +970,7 @@ export default function Gorevler() {
           <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1D9596', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span>Görevler</span>
             <span style={{ fontSize: 13, background: '#E6F9F0', color: '#0B6B41', padding: '2px 8px', borderRadius: 12, fontWeight: 700 }}>
-              {aktifKokGorevler.length} Aktif
+              {aktifGorevler.length} Aktif
             </span>
           </h2>
         </div>
@@ -1067,7 +1067,7 @@ export default function Gorevler() {
                 <span className="santiye-izgara-ikon">🌐</span>
                 <span className="santiye-izgara-ad">Tüm Şantiyeler</span>
               </div>
-              <span className="santiye-izgara-rozet">{aktifKokGorevler.length}</span>
+              <span className="santiye-izgara-rozet">{aktifGorevler.length}</span>
             </button>
           )}
 
@@ -1132,13 +1132,10 @@ export default function Gorevler() {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <h3 className="santiye-ad">{aktifSantiyeKarusel?.ad}</h3>
-                      <span className="santiye-sira-rozet" title="Karuseldeki Şantiye Sırası">
-                        Şantiye {santiyeIndex + 1} / {toplamSantiye}
-                      </span>
                     </div>
                     <div className="santiye-istatistik-satiri">
                       <span>
-                        {oSantiyeKokAktif} Aktif Görev{oSantiyeAltAktif > 0 ? ` (${oSantiyeAltAktif} alt görev)` : ''}
+                        {oSantiyeBekleyen + oSantiyeDevam + oSantiyeGeciken} Aktif Görev{oSantiyeAltAktif > 0 ? ` (${oSantiyeKokAktif} ana, ${oSantiyeAltAktif} alt)` : ''}
                       </span>
                       {oSantiyeGeciken > 0 && <span className="geciken-rozet">🔴 {oSantiyeGeciken} Gecikti</span>}
                       {oSantiyeTamam > 0 && <span className="tamam-rozet">🟢 %{oSantiyeYuzde} Tamamlandı</span>}
@@ -1249,7 +1246,7 @@ export default function Gorevler() {
                   onChange={(e) => setFiltreDurum(e.target.value)} 
                   className="filtre-durum-select"
                 >
-                  <option value="hepsi">Tüm Durumlar ({kokGorevler.length})</option>
+                  <option value="hepsi">Tüm Durumlar ({aramayaGoreFiltreli.length})</option>
                   {DURUMLAR.filter(d => d.deger !== 'tamamlandi').map((d) => <option key={d.deger} value={d.deger}>{d.etiket}</option>)}
                 </select>
 
