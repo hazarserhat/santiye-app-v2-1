@@ -314,103 +314,19 @@ export default function AltMenu() {
       )}
 
       <nav className="alt-menu">
-        {/* 1. Görevler */}
-        <NavLink 
-          to="/gorevler" 
-          className={({ isActive }) => `alt-menu-oge ${isActive ? 'aktif' : ''}`}
-        >
-          <span className="alt-menu-simge">✓</span>
-          <span className="alt-menu-etiket">Görevler</span>
-        </NavLink>
-
-        {/* 2. Rehber (Cari Kartlar) */}
-        <NavLink 
-          to="/cari-kartlar" 
-          className={({ isActive }) => `alt-menu-oge ${isActive ? 'aktif' : ''}`}
-        >
-          <span className="alt-menu-simge">👤</span>
-          <span className="alt-menu-etiket">Rehber</span>
-        </NavLink>
-
-        {/* 3. Finans Sekmesi */}
+        {/* 1. Finans (Ana Sayfa — Gider, Gelir, Virman & Timeline) */}
         {finansAltOgeleri.length > 0 && (
-          <button
-            type="button"
-            onClick={() => toggleMenu('finans')}
-            className={`alt-menu-oge ${isFinansAktif ? 'aktif' : ''}`}
-            title="Finans (Giderler, Gelirler, Virman)"
+          <NavLink 
+            to="/finans" 
+            className={({ isActive }) => `alt-menu-oge ${isActive || isFinansAktif ? 'aktif' : ''}`}
+            title="Finans Merkezi (Gider, Gelir, Virman & Timeline)"
           >
             <span className="alt-menu-simge">💳</span>
-            <span className="alt-menu-etiket" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              Finans
-              <span style={{ 
-                fontSize: 7, 
-                opacity: 0.6,
-                transition: 'transform 0.2s', 
-                transform: acikMenu === 'finans' ? 'rotate(180deg)' : 'none' 
-              }}>▲</span>
-            </span>
-          </button>
+            <span className="alt-menu-etiket">Finans</span>
+          </NavLink>
         )}
 
-        {/* 4. İmalat Sekmesi */}
-        <button
-          type="button"
-          onClick={() => toggleMenu('imalat')}
-          className={`alt-menu-oge ${isImalatAktif ? 'aktif' : ''}`}
-          title="İmalat Kayıtları (Puantaj, Rapor, Makineler)"
-        >
-          <span className="alt-menu-simge">🔨</span>
-          <span className="alt-menu-etiket" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            İmalat
-            <span style={{ 
-              fontSize: 7, 
-              opacity: 0.6,
-              transition: 'transform 0.2s', 
-              transform: acikMenu === 'imalat' ? 'rotate(180deg)' : 'none' 
-            }}>▲</span>
-          </span>
-        </button>
-
-        {/* 5. Operasyon Sekmesi */}
-        <button
-          type="button"
-          onClick={() => toggleMenu('operasyon')}
-          className={`alt-menu-oge ${isOperasyonAktif ? 'aktif' : ''}`}
-          title="Saha Operasyonları (Beton, Sevkiyat, Cep Cetveli)"
-        >
-          <span className="alt-menu-simge">⚡</span>
-          <span className="alt-menu-etiket" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            Operasyon
-            <span style={{ 
-              fontSize: 7, 
-              opacity: 0.6,
-              transition: 'transform 0.2s', 
-              transform: acikMenu === 'operasyon' ? 'rotate(180deg)' : 'none' 
-            }}>▲</span>
-          </span>
-        </button>
-
-        {/* 6. Depolama Sekmesi */}
-        <button
-          type="button"
-          onClick={() => toggleMenu('depolama')}
-          className={`alt-menu-oge ${isDepolamaAktif ? 'aktif' : ''}`}
-          title="Depolama (Drive, Notlarım)"
-        >
-          <span className="alt-menu-simge">🗄️</span>
-          <span className="alt-menu-etiket" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            Depolama
-            <span style={{ 
-              fontSize: 7, 
-              opacity: 0.6,
-              transition: 'transform 0.2s', 
-              transform: acikMenu === 'depolama' ? 'rotate(180deg)' : 'none' 
-            }}>▲</span>
-          </span>
-        </button>
-
-        {/* 7. SADECE SERHAT HAZAR YÖNETİCİ İÇİN: Portföy Sekmesi */}
+        {/* 2. SADECE SERHAT HAZAR YÖNETİCİ İÇİN: Portföy Sekmesi */}
         {isSerhatHazar && (
           <button
             type="button"
@@ -430,6 +346,81 @@ export default function AltMenu() {
             </span>
           </button>
         )}
+
+        {/* 3. Görevler */}
+        <NavLink 
+          to="/gorevler" 
+          className={({ isActive }) => `alt-menu-oge ${isActive ? 'aktif' : ''}`}
+        >
+          <span className="alt-menu-simge">✓</span>
+          <span className="alt-menu-etiket">Görevler</span>
+        </NavLink>
+
+        {/* 4. Rehber (Cari Kartlar) */}
+        <NavLink 
+          to="/cari-kartlar" 
+          className={({ isActive }) => `alt-menu-oge ${isActive ? 'aktif' : ''}`}
+        >
+          <span className="alt-menu-simge">👤</span>
+          <span className="alt-menu-etiket">Rehber</span>
+        </NavLink>
+
+        {/* 5. İmalat Sekmesi */}
+        <button
+          type="button"
+          onClick={() => toggleMenu('imalat')}
+          className={`alt-menu-oge ${isImalatAktif ? 'aktif' : ''}`}
+          title="İmalat Kayıtları (Puantaj, Rapor, Makineler)"
+        >
+          <span className="alt-menu-simge">🔨</span>
+          <span className="alt-menu-etiket" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            İmalat
+            <span style={{ 
+              fontSize: 7, 
+              opacity: 0.6,
+              transition: 'transform 0.2s', 
+              transform: acikMenu === 'imalat' ? 'rotate(180deg)' : 'none' 
+            }}>▲</span>
+          </span>
+        </button>
+
+        {/* 6. Operasyon Sekmesi */}
+        <button
+          type="button"
+          onClick={() => toggleMenu('operasyon')}
+          className={`alt-menu-oge ${isOperasyonAktif ? 'aktif' : ''}`}
+          title="Saha Operasyonları (Beton, Sevkiyat, Cep Cetveli)"
+        >
+          <span className="alt-menu-simge">⚡</span>
+          <span className="alt-menu-etiket" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            Operasyon
+            <span style={{ 
+              fontSize: 7, 
+              opacity: 0.6,
+              transition: 'transform 0.2s', 
+              transform: acikMenu === 'operasyon' ? 'rotate(180deg)' : 'none' 
+            }}>▲</span>
+          </span>
+        </button>
+
+        {/* 7. Depolama Sekmesi */}
+        <button
+          type="button"
+          onClick={() => toggleMenu('depolama')}
+          className={`alt-menu-oge ${isDepolamaAktif ? 'aktif' : ''}`}
+          title="Depolama (Drive, Notlarım)"
+        >
+          <span className="alt-menu-simge">🗄️</span>
+          <span className="alt-menu-etiket" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            Depolama
+            <span style={{ 
+              fontSize: 7, 
+              opacity: 0.6,
+              transition: 'transform 0.2s', 
+              transform: acikMenu === 'depolama' ? 'rotate(180deg)' : 'none' 
+            }}>▲</span>
+          </span>
+        </button>
 
         {/* 8. Yönetim (Sadece Sistem Yöneticisi) */}
         {profile?.sistem_yoneticisi && (

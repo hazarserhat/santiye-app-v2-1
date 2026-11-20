@@ -466,7 +466,8 @@ export default function Danismanliklar() {
       tahsilat_resmi: rTahsilat,
       tahsilat_elden: eTahsilat,
       not_metni: yeniNot.trim(),
-      belge_url: belgeUrl
+      belge_url: belgeUrl,
+      kayit_tarihi: new Date().toISOString()
     }
 
     const guncelListe = [...aktifCariListesi, yeniKayit]

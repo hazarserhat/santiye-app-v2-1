@@ -5,6 +5,7 @@ import { SiteProvider, useSite } from './context/SiteContext'
 import AltMenu from './components/AltMenu'
 import Login from './pages/Login'
 
+const Finans = lazy(() => import('./pages/Finans'))
 const Gorevler = lazy(() => import('./pages/Gorevler'))
 const Masraflar = lazy(() => import('./pages/Masraflar'))
 const Gelirler = lazy(() => import('./pages/Gelirler'))
@@ -75,6 +76,16 @@ function GiderKoruma({ children }) {
   return children
 }
 
+function AnaSayfaYonlendir() {
+  const { profile } = useAuth()
+  const { sistemAyarlari } = useSite()
+
+  if (profile?.rol === 'santiye_sefi' && sistemAyarlari?.sef_gider_erisimi !== 'true') {
+    return <Navigate to="/gorevler" replace />
+  }
+  return <Navigate to="/finans" replace />
+}
+
 function IcerikAlani() {
   const { session, profile, yukleniyor, cikisYap } = useAuth()
 
@@ -94,7 +105,8 @@ function IcerikAlani() {
         <main className="icerik">
           <Suspense fallback={<p className="bos-mesaj">Yükleniyor...</p>}>
             <Routes>
-              <Route path="/" element={<Navigate to="/gorevler" replace />} />
+              <Route path="/" element={<AnaSayfaYonlendir />} />
+              <Route path="/finans" element={<GiderKoruma><Finans /></GiderKoruma>} />
               <Route path="/gorevler" element={<Gorevler />} />
               <Route path="/masraflar" element={<GiderKoruma><Masraflar /></GiderKoruma>} />
               <Route path="/gelirler" element={<GelirKoruma><Gelirler /></GelirKoruma>} />
