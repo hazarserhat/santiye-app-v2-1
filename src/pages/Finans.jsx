@@ -230,8 +230,9 @@ export default function Finans() {
   const [ycNot, setYcNot] = useState('')
   const [ycBelge, setYcBelge] = useState(null)
 
-  // KPI Kartı Hover Bilgi Kutusu
+  // KPI Kartı Hover Bilgi Kutusu & Gizlilik Yıldızlama
   const [acikKpiTooltip, setAcikKpiTooltip] = useState(null) // 'gider' | 'gelir' | 'net' | 'virman' | null
+  const [kpiTutarlarGizli, setKpiTutarlarGizli] = useState(true)
 
   // =========================================================
   // TİMELİNE FİLTRE STATE'LERİ
@@ -1578,7 +1579,30 @@ export default function Finans() {
         <OdemeVaatleri />
       ) : (
         <>
-          {/* KPI ÖZET KARTLARI (Fare ile üzerine gelindiğinde mantık & tarih aralığı açıklaması) */}
+          {/* KPI ÖZET KARTLARI (Varsayılan yıldızlı/gizli, tek tıkla görünür yapılabilir) */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
+            <button
+              type="button"
+              onClick={() => setKpiTutarlarGizli((p) => !p)}
+              style={{
+                padding: '5px 12px',
+                borderRadius: 999,
+                border: '1px solid #CBD5E1',
+                background: kpiTutarlarGizli ? '#F8FAFC' : '#EEF2FF',
+                color: kpiTutarlarGizli ? '#475569' : '#3730A3',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+              title={kpiTutarlarGizli ? 'Bilgi kartlarındaki tutarları görünür yap' : 'Bilgi kartlarındaki tutarları yıldızla gizle'}
+            >
+              {kpiTutarlarGizli ? '👁️ Tutarları Göster' : '🙈 Tutarları Gizle'}
+            </button>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10, marginBottom: 16 }}>
             {[
               {
@@ -1615,7 +1639,7 @@ export default function Finans() {
                 border: '#E2E8F0',
                 golge: 'rgba(15,23,42,0.05)',
                 aciklama: 'Hesaplama Mantığı: (Toplam Gelir − Toplam Gider). Artı (+) değer ilgili aralıkta tahsilat fazlasını, eksi (−) değer gider fazlasını ifade eder.',
-                detay: `${paraFormatla(kpiOzet.toplamGelir)} ₺ − ${paraFormatla(kpiOzet.toplamGider)} ₺`
+                detay: kpiTutarlarGizli ? '****** ₺ − ****** ₺' : `${paraFormatla(kpiOzet.toplamGelir)} ₺ − ${paraFormatla(kpiOzet.toplamGider)} ₺`
               },
               {
                 id: 'virman',
@@ -1636,7 +1660,7 @@ export default function Finans() {
                   key={kart.id}
                   onMouseEnter={() => setAcikKpiTooltip(kart.id)}
                   onMouseLeave={() => setAcikKpiTooltip(null)}
-                  onClick={() => setAcikKpiTooltip((p) => p === kart.id ? null : kart.id)}
+                  onClick={() => setKpiTutarlarGizli((p) => !p)}
                   style={{
                     position: 'relative',
                     background: '#FFFFFF',
@@ -1644,7 +1668,7 @@ export default function Finans() {
                     padding: '14px 16px',
                     border: `1px solid ${kart.border}`,
                     boxShadow: `0 2px 10px ${kart.golge}`,
-                    cursor: 'help'
+                    cursor: 'pointer'
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
@@ -1653,7 +1677,9 @@ export default function Finans() {
                     </div>
                     <span style={{ fontSize: 12, color: '#94A3B8', fontWeight: 700 }}>ⓘ</span>
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: kart.renk, marginTop: 4 }}>{kart.deger}</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: kpiTutarlarGizli ? '#94A3B8' : kart.renk, marginTop: 4, letterSpacing: kpiTutarlarGizli ? 2 : 0 }}>
+                    {kpiTutarlarGizli ? '****** ₺' : kart.deger}
+                  </div>
 
                   {acikMi && (
                     <div
