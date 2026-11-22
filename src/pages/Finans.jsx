@@ -2867,6 +2867,7 @@ export default function Finans() {
                                   {/* SOL TARAF */}
                                   <div className="finans-kart-sol">
                                     {/* Tür + Şantiye* + Harcama Noktası* (+ Mobilde Sağ Üst Tutar) */}
+                                    {/* Üst Satır 1: İşlem Tipi + Hesap/Kart + (Mobilde Sağda Tutar) */}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                       <span style={{
                                         fontSize: 10.5,
@@ -2880,7 +2881,33 @@ export default function Finans() {
                                         {item.etiket}
                                       </span>
 
-                                      {item.santiyeAd && (
+                                      {item.hesapBilgisi && (
+                                        <span style={{
+                                          fontSize: 11,
+                                          fontWeight: 700,
+                                          padding: '3px 8px',
+                                          borderRadius: 7,
+                                          background: '#EFF6FF',
+                                          color: '#1E40AF',
+                                          border: '1px solid #BFDBFE',
+                                          maxWidth: '100%',
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap'
+                                        }}>
+                                          💳 {item.hesapBilgisi}
+                                        </span>
+                                      )}
+
+                                      <span className="finans-mobil-tutar" style={{ color: item.renk }}>
+                                        {item.yon === 'cikis' ? '-' : item.yon === 'giris' ? '+' : ''}
+                                        {paraFormatla(item.tutar)} ₺
+                                      </span>
+                                    </div>
+
+                                    {/* Üst Satır 2: Şantiye / Proje Adı */}
+                                    {item.santiyeAd && (
+                                      <div style={{ display: 'flex', alignItems: 'center' }}>
                                         <span style={{
                                           fontSize: 11.5,
                                           fontWeight: 800,
@@ -2896,27 +2923,8 @@ export default function Finans() {
                                         }}>
                                           {item.kaynak === 'danismanlik' ? '💼' : item.kaynak === 'virman' ? '🏦' : '🏗️'} {item.santiyeAd}
                                         </span>
-                                      )}
-
-                                      <span className="finans-mobil-tutar" style={{ color: item.renk }}>
-                                        {item.yon === 'cikis' ? '-' : item.yon === 'giris' ? '+' : ''}
-                                        {paraFormatla(item.tutar)} ₺
-                                      </span>
-
-                                      {item.hesapBilgisi && (
-                                        <span style={{
-                                          fontSize: 11,
-                                          fontWeight: 700,
-                                          padding: '3px 8px',
-                                          borderRadius: 7,
-                                          background: '#EFF6FF',
-                                          color: '#1E40AF',
-                                          border: '1px solid #BFDBFE'
-                                        }}>
-                                          💳 {item.hesapBilgisi}
-                                        </span>
-                                      )}
-                                    </div>
+                                      </div>
+                                    )}
 
                                     {/* Harcama Başlığı (Üstte) & Harcamanın Yapıldığı Kişi (Hemen Altında) */}
                                     <div style={{
@@ -3039,24 +3047,16 @@ export default function Finans() {
                                 </div>
 
                                 {/* Kart Alt Aksiyon Çubuğu */}
-                                <div className="finans-aksiyon-bar" style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center',
-                                  flexWrap: 'wrap',
-                                  gap: 8,
-                                  marginTop: 10,
-                                  paddingTop: 8,
-                                  borderTop: '1px solid #F1F5F9'
-                                }}>
-                                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                                    {item.kaynak !== 'danismanlik' && (
+                                <div className="finans-aksiyon-bar">
+                                  {/* Satır 1 (Mobilde Yarı Yarıya): Muhasebeye İşlendi + Paylaş */}
+                                  <div className="finans-aksiyon-ust">
+                                    {item.kaynak !== 'danismanlik' ? (
                                       <button
                                         type="button"
                                         className="finans-muhasebe-btn"
                                         onClick={() => muhasebeToggle(item)}
                                         style={{
-                                          padding: '5px 12px',
+                                          padding: '6px 12px',
                                           borderRadius: 9,
                                           border: item.muhasebePaylasim ? '1.5px solid #047857' : '1.5px solid #F59E0B',
                                           background: item.muhasebePaylasim ? '#059669' : '#FFFBEB',
@@ -3069,146 +3069,170 @@ export default function Finans() {
                                           cursor: 'pointer',
                                           display: 'inline-flex',
                                           alignItems: 'center',
+                                          justifyContent: 'center',
                                           gap: 5
                                         }}
                                       >
-                                        {item.muhasebePaylasim ? '✅ Muhasebeleştirildi' : '🧾 Muhasebeleştir'}
+                                        {item.muhasebePaylasim ? '✅ Muhasebeye İşlendi' : '🧾 Muhasebeye İşle'}
                                       </button>
-                                    )}
-
-                                    {item.belgeUrl ? (
+                                    ) : (
                                       <button
                                         type="button"
-                                        onClick={() => setOnizlemeBelge({ url: item.belgeUrl, baslik: item.baslik })}
-                                        style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid #BAE6FD', background: '#E0F2FE', color: '#0369A1', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}
-                                      >
-                                        📎 Belgeyi Gör
-                                      </button>
-                                    ) : item.kaynak !== 'virman' && (
-                                      <>
-                                        <label style={{ padding: '4px 10px', borderRadius: 8, border: '1px dashed #CBD5E1', background: '#F8FAFC', color: '#64748B', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>
-                                          + Belge Ekle
-                                          <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(e) => sonradanBelgeYukle(item, e.target.files?.[0])} />
-                                        </label>
-                                        <button
-                                          type="button"
-                                          onClick={() => panodanGorselYapistir((file) => sonradanBelgeYukle(item, file))}
-                                          title="Kopyalanmış panodaki görseli bu kayda ekle"
-                                          style={{ padding: '4px 10px', borderRadius: 8, border: '1px dashed #93C5FD', background: '#EFF6FF', color: '#1D4ED8', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}
-                                        >
-                                          📋 Panodan Ekle
-                                        </button>
-                                      </>
-                                    )}
-
-                                    {item.kaynak === 'danismanlik' && (
-                                      <button
-                                        type="button"
+                                        className="finans-muhasebe-btn"
                                         onClick={() => navigate('/danismanliklar')}
-                                        style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid #C7D2FE', background: '#EEF2FF', color: '#4338CA', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}
+                                        style={{
+                                          padding: '6px 12px',
+                                          borderRadius: 9,
+                                          border: '1px solid #C7D2FE',
+                                          background: '#EEF2FF',
+                                          color: '#4338CA',
+                                          fontSize: 12,
+                                          fontWeight: 700,
+                                          cursor: 'pointer',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          gap: 5
+                                        }}
                                       >
                                         💼 Mutabakat Sayfası
                                       </button>
                                     )}
-                                  </div>
 
-                                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', position: 'relative' }}>
-                                    <button
-                                      type="button"
-                                      onClick={() => universalPaylasTetikle(item)}
-                                      title="Paylaş (WhatsApp, Telegram, E-posta, Kopyala, Sistem Paylaşımı)"
-                                      style={{
-                                        padding: '4px 10px',
-                                        borderRadius: 8,
-                                        border: paylasMenuKey === item.key ? '1px solid #0284C7' : '1px solid #E2E8F0',
-                                        background: paylasMenuKey === item.key ? '#E0F2FE' : '#F8FAFC',
-                                        color: '#0F172A',
-                                        fontSize: 11.5,
-                                        fontWeight: 700,
-                                        cursor: 'pointer',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: 4
-                                      }}
-                                    >
-                                      📤 Paylaş
-                                    </button>
-
-                                    {paylasMenuKey === item.key && (
-                                      <div
+                                    <div style={{ position: 'relative', display: 'flex' }}>
+                                      <button
+                                        type="button"
+                                        className="finans-paylas-btn"
+                                        onClick={() => universalPaylasTetikle(item)}
+                                        title="Paylaş (WhatsApp, Telegram, E-posta, Kopyala, Sistem Paylaşımı)"
                                         style={{
-                                          position: 'absolute',
-                                          bottom: 'calc(100% + 6px)',
-                                          right: 0,
-                                          zIndex: 60,
-                                          minWidth: 195,
-                                          background: '#FFFFFF',
-                                          border: '1px solid #CBD5E1',
-                                          borderRadius: 12,
-                                          padding: 6,
-                                          boxShadow: '0 12px 28px rgba(15, 23, 42, 0.16)',
-                                          display: 'flex',
-                                          flexDirection: 'column',
-                                          gap: 4
+                                          width: '100%',
+                                          padding: '6px 12px',
+                                          borderRadius: 9,
+                                          border: paylasMenuKey === item.key ? '1.5px solid #0284C7' : '1px solid #CBD5E1',
+                                          background: paylasMenuKey === item.key ? '#E0F2FE' : '#F8FAFC',
+                                          color: '#0F172A',
+                                          fontSize: 12,
+                                          fontWeight: 700,
+                                          cursor: 'pointer',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          gap: 5
                                         }}
                                       >
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            window.open('https://wa.me/?text=' + encodeURIComponent(paylasMetniOlustur(item, true)), '_blank')
-                                            setPaylasMenuKey(null)
+                                        📤 Paylaş
+                                      </button>
+
+                                      {paylasMenuKey === item.key && (
+                                        <div
+                                          style={{
+                                            position: 'absolute',
+                                            bottom: 'calc(100% + 6px)',
+                                            right: 0,
+                                            zIndex: 60,
+                                            minWidth: 195,
+                                            background: '#FFFFFF',
+                                            border: '1px solid #CBD5E1',
+                                            borderRadius: 12,
+                                            padding: 6,
+                                            boxShadow: '0 12px 28px rgba(15, 23, 42, 0.16)',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: 4
                                           }}
-                                          style={{ textAlign: 'left', padding: '7px 10px', borderRadius: 8, border: 'none', background: '#F0FDF4', color: '#166534', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                                         >
-                                          📱 WhatsApp
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            window.open('https://t.me/share/url?url=' + encodeURIComponent(item.belgeUrl || window.location.origin) + '&text=' + encodeURIComponent(paylasMetniOlustur(item, true)), '_blank')
-                                            setPaylasMenuKey(null)
-                                          }}
-                                          style={{ textAlign: 'left', padding: '7px 10px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#1D4ED8', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-                                        >
-                                          ✈️ Telegram
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            const konu = `${item.etiket} — ${item.santiyeAd || ''} — ${paraFormatla(item.tutar)} TL`
-                                            window.location.href = `mailto:?subject=${encodeURIComponent(konu)}&body=${encodeURIComponent(paylasMetniOlustur(item, true))}`
-                                            setPaylasMenuKey(null)
-                                          }}
-                                          style={{ textAlign: 'left', padding: '7px 10px', borderRadius: 8, border: 'none', background: '#F8FAFC', color: '#334155', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-                                        >
-                                          ✉️ E-posta
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => metinPanoyaKopyala(item)}
-                                          style={{ textAlign: 'left', padding: '7px 10px', borderRadius: 8, border: 'none', background: kopyalandiKey === item.key ? '#DCFCE7' : '#F8FAFC', color: kopyalandiKey === item.key ? '#166534' : '#334155', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-                                        >
-                                          {kopyalandiKey === item.key ? '✓ Panoya Kopyalandı' : '📋 Metni Kopyala'}
-                                        </button>
-                                        {typeof navigator !== 'undefined' && navigator.share && (
                                           <button
                                             type="button"
-                                            onClick={() => sistemPaylas(item)}
-                                            style={{ textAlign: 'left', padding: '7px 10px', borderRadius: 8, border: 'none', background: '#EEF2FF', color: '#4338CA', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                                            onClick={() => {
+                                              window.open('https://wa.me/?text=' + encodeURIComponent(paylasMetniOlustur(item, true)), '_blank')
+                                              setPaylasMenuKey(null)
+                                            }}
+                                            style={{ textAlign: 'left', padding: '7px 10px', borderRadius: 8, border: 'none', background: '#F0FDF4', color: '#166534', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                                           >
-                                            🌐 Diğer Uygulamalar
+                                            📱 WhatsApp
                                           </button>
-                                        )}
-                                      </div>
-                                    )}
-                                    {item.kaynak !== 'danismanlik' && (
-                                      <button type="button" onClick={() => duzenlemeBaslat(item)} title="Düzenle" style={{ padding: '4px 9px', borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: 12, cursor: 'pointer' }}>
-                                        ✏️
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              window.open('https://t.me/share/url?url=' + encodeURIComponent(item.belgeUrl || window.location.origin) + '&text=' + encodeURIComponent(paylasMetniOlustur(item, true)), '_blank')
+                                              setPaylasMenuKey(null)
+                                            }}
+                                            style={{ textAlign: 'left', padding: '7px 10px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#1D4ED8', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                                          >
+                                            ✈️ Telegram
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const konu = `${item.etiket} — ${item.santiyeAd || ''} — ${paraFormatla(item.tutar)} TL`
+                                              window.location.href = `mailto:?subject=${encodeURIComponent(konu)}&body=${encodeURIComponent(paylasMetniOlustur(item, true))}`
+                                              setPaylasMenuKey(null)
+                                            }}
+                                            style={{ textAlign: 'left', padding: '7px 10px', borderRadius: 8, border: 'none', background: '#F8FAFC', color: '#334155', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                                          >
+                                            ✉️ E-posta
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => metinPanoyaKopyala(item)}
+                                            style={{ textAlign: 'left', padding: '7px 10px', borderRadius: 8, border: 'none', background: kopyalandiKey === item.key ? '#DCFCE7' : '#F8FAFC', color: kopyalandiKey === item.key ? '#166534' : '#334155', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                                          >
+                                            {kopyalandiKey === item.key ? '✓ Panoya Kopyalandı' : '📋 Metni Kopyala'}
+                                          </button>
+                                          {typeof navigator !== 'undefined' && navigator.share && (
+                                            <button
+                                              type="button"
+                                              onClick={() => sistemPaylas(item)}
+                                              style={{ textAlign: 'left', padding: '7px 10px', borderRadius: 8, border: 'none', background: '#EEF2FF', color: '#4338CA', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                                            >
+                                              🌐 Diğer Uygulamalar
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Satır 2 (En Alt Satır): Belge Ekle, Panodan Ekle, Düzenle, Sil */}
+                                  <div className="finans-aksiyon-alt">
+                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                                      {item.belgeUrl ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => setOnizlemeBelge({ url: item.belgeUrl, baslik: item.baslik })}
+                                          style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid #BAE6FD', background: '#E0F2FE', color: '#0369A1', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}
+                                        >
+                                          📎 Belgeyi Gör
+                                        </button>
+                                      ) : item.kaynak !== 'virman' && (
+                                        <>
+                                          <label style={{ padding: '4px 10px', borderRadius: 8, border: '1px dashed #CBD5E1', background: '#F8FAFC', color: '#64748B', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>
+                                            + Belge Ekle
+                                            <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(e) => sonradanBelgeYukle(item, e.target.files?.[0])} />
+                                          </label>
+                                          <button
+                                            type="button"
+                                            onClick={() => panodanGorselYapistir((file) => sonradanBelgeYukle(item, file))}
+                                            title="Kopyalanmış panodaki görseli bu kayda ekle"
+                                            style={{ padding: '4px 10px', borderRadius: 8, border: '1px dashed #93C5FD', background: '#EFF6FF', color: '#1D4ED8', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}
+                                          >
+                                            📋 Panodan Ekle
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginLeft: 'auto' }}>
+                                      {item.kaynak !== 'danismanlik' && (
+                                        <button type="button" onClick={() => duzenlemeBaslat(item)} title="Düzenle" style={{ padding: '4px 9px', borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: 12, cursor: 'pointer' }}>
+                                          ✏️
+                                        </button>
+                                      )}
+                                      <button type="button" onClick={() => timelineKayitSil(item)} title="Sil" style={{ padding: '4px 9px', borderRadius: 8, border: '1px solid #FECDD3', background: '#FFF1F2', color: '#E11D48', fontSize: 12, cursor: 'pointer' }}>
+                                        🗑️
                                       </button>
-                                    )}
-                                    <button type="button" onClick={() => timelineKayitSil(item)} title="Sil" style={{ padding: '4px 9px', borderRadius: 8, border: '1px solid #FECDD3', background: '#FFF1F2', color: '#E11D48', fontSize: 12, cursor: 'pointer' }}>
-                                      🗑️
-                                    </button>
+                                    </div>
                                   </div>
                                 </div>
                               </>
