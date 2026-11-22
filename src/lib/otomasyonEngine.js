@@ -280,8 +280,9 @@ ${JSON.stringify(baglam)}`
   })()
   const adayModeller = [
     ...(kayitliModel ? [kayitliModel] : []),
-    'gemini-3.8-flash',
     'gemini-2.5-flash-lite',
+    'gemini-2.0-flash',
+    'gemini-3.8-flash',
     'gemini-3.0-flash',
     'gemini-2.5-flash',
   ].filter((v, i, a) => a.indexOf(v) === i)
@@ -313,6 +314,9 @@ ${JSON.stringify(baglam)}`
       break
     }
     sonHata = await res.text()
+    if (modelAdi === kayitliModel && geciciVeyaYok(res.status)) {
+      try { localStorage.removeItem(KEY_GEMINI_MODEL) } catch { /* ignore */ }
+    }
     if (!geciciVeyaYok(res.status)) break
   }
 
