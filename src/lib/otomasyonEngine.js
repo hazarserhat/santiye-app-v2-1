@@ -230,24 +230,70 @@ ${JSON.stringify(baglam)}`
     parts.push({ inline_data: { mime_type: inline.mimeType, data: inline.data } })
   }
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts }],
-        generationConfig: {
-          temperature: 0.2,
-          responseMimeType: 'application/json',
-        },
-      }),
-    }
-  )
+  const bodyPayload = JSON.stringify({
+    contents: [{ role: 'user', parts }],
+    generationConfig: {
+      temperature: 0.2,
+      responseMimeType: 'application/json',
+    },
+  })
 
-  if (!res.ok) {
-    const errText = await res.text()
-    throw new Error(`Gemini API hatası (${res.status}): ${errText.slice(0, 180)}`)
+  const adayModeller = ['gemini-3.8-flash', 'gemini-3.0-flash', 'gemini-2.5-flash']
+  let res = null
+  let sonHata = ''
+
+  for (const modelAdi of adayModeller) {
+    res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelAdi}:generateContent?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: bodyPayload,
+      }
+    )
+    if (res.ok) break
+    sonHata = await res.text()
+    if (res.status !== 404) break
+  }
+
+  // Tüm sabit adaylar 404 dönerse hesaptaki güncel Flash modelini otomatik bul ve dene
+  if (!res || !res.ok) {
+    if (res?.status === 404) {
+      try {
+        const listRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`
+        )
+        if (listRes.ok) {
+          const listJson = await listRes.json()
+          const uygun = (listJson.models || []).find(
+            (m) =>
+              Array.isArray(m.supportedGenerationMethods) &&
+              m.supportedGenerationMethods.includes('generateContent') &&
+              String(m.name || '').includes('flash')
+          ) || (listJson.models || []).find(
+            (m) =>
+              Array.isArray(m.supportedGenerationMethods) &&
+              m.supportedGenerationMethods.includes('generateContent')
+          )
+          if (uygun?.name) {
+            const temizAd = uygun.name.replace(/^models\//, '')
+            res = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${temizAd}:generateContent?key=${encodeURIComponent(apiKey)}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: bodyPayload,
+              }
+            )
+            if (!res.ok) sonHata = await res.text()
+          }
+        }
+      } catch { /* ignore */ }
+    }
+  }
+
+  if (!res || !res.ok) {
+    throw new Error(`Gemini API hatası (${res?.status || 'ERR'}): ${sonHata.slice(0, 220)}`)
   }
 
   const json = await res.json()
