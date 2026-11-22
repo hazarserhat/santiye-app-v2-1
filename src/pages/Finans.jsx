@@ -1655,9 +1655,6 @@ export default function Finans() {
             <button className={altModul === 'timeline' ? 'secili-tab' : ''} onClick={() => { setAltModul('timeline'); tumVerileriYukle() }}>
               📊 Timeline
             </button>
-            <button className={altModul === 'cek' ? 'secili-tab' : ''} onClick={() => setAltModul('cek')}>
-              🧾 Çekler
-            </button>
             <button className={altModul === 'planli' ? 'secili-tab' : ''} onClick={() => setAltModul('planli')}>
               🗓️ Düzenli Ödemeler
             </button>
@@ -1669,49 +1666,7 @@ export default function Finans() {
       </div>
 
       {/* ALT MODÜLLER */}
-      {altModul === 'cek' && yonetici ? (
-        <div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => setCekYonu('verilen')}
-              style={{
-                flex: 1,
-                minWidth: 200,
-                padding: '10px 14px',
-                borderRadius: 12,
-                fontWeight: 700,
-                fontSize: 13.5,
-                cursor: 'pointer',
-                border: cekYonu === 'verilen' ? '2px solid #E11D48' : '1px solid #CBD5E1',
-                background: cekYonu === 'verilen' ? '#FFF1F2' : '#FFFFFF',
-                color: cekYonu === 'verilen' ? '#BE123C' : '#475569'
-              }}
-            >
-              📤 Verilen / Ciro Edilen Çekler
-            </button>
-            <button
-              type="button"
-              onClick={() => setCekYonu('alinan')}
-              style={{
-                flex: 1,
-                minWidth: 200,
-                padding: '10px 14px',
-                borderRadius: 12,
-                fontWeight: 700,
-                fontSize: 13.5,
-                cursor: 'pointer',
-                border: cekYonu === 'alinan' ? '2px solid #059669' : '1px solid #CBD5E1',
-                background: cekYonu === 'alinan' ? '#ECFDF5' : '#FFFFFF',
-                color: cekYonu === 'alinan' ? '#047857' : '#475569'
-              }}
-            >
-              📥 Alınan Çek / Senet (Malik Ödemesi)
-            </button>
-          </div>
-          <Cekler key={cekYonu} yon={cekYonu} />
-        </div>
-      ) : altModul === 'planli' && yonetici ? (
+      {altModul === 'planli' && yonetici ? (
         <PlanlananOdemeler />
       ) : altModul === 'vaat' && yonetici ? (
         <OdemeVaatleri />
@@ -1927,9 +1882,32 @@ export default function Finans() {
                       💰 Gelir Ekle
                     </button>
 
+                    {yonetici && (
+                      <button
+                        type="button"
+                        onClick={() => { setGirisModu('cek'); setPanelAcik(true) }}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: 10,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          border: girisModu === 'cek' ? '1.5px solid #0F766E' : '1px solid #CBD5E1',
+                          background: girisModu === 'cek' ? '#F0FDFA' : '#FFFFFF',
+                          color: girisModu === 'cek' ? '#0F766E' : '#475569'
+                        }}
+                      >
+                        🧾 Çekler
+                      </button>
+                    )}
+
                     <button
                       type="button"
-                      onClick={() => { setGirisModu('virman'); setPanelAcik(true) }}
+                      onClick={() => {
+                        if (girisModu === 'cek') tumVerileriYukle()
+                        setGirisModu('virman')
+                        setPanelAcik(true)
+                      }}
                       style={{
                         padding: '8px 14px',
                         borderRadius: 10,
@@ -2205,7 +2183,7 @@ export default function Finans() {
                         {yonetici && (
                           <button
                             type="button"
-                            onClick={() => { setCekYonu('alinan'); setAltModul('cek') }}
+                            onClick={() => { setCekYonu('alinan'); setGirisModu('cek'); setPanelAcik(true) }}
                             style={{
                               padding: '5px 10px',
                               borderRadius: 8,
@@ -2267,6 +2245,51 @@ export default function Finans() {
                       </button>
                     </div>
                   </form>
+                )}
+
+                {/* ==================== 2.5. ÇEKLER (GELİR İLE VİRMAN ARASINDA) ==================== */}
+                {girisModu === 'cek' && yonetici && (
+                  <div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => setCekYonu('verilen')}
+                        style={{
+                          flex: 1,
+                          minWidth: 200,
+                          padding: '10px 14px',
+                          borderRadius: 12,
+                          fontWeight: 700,
+                          fontSize: 13.5,
+                          cursor: 'pointer',
+                          border: cekYonu === 'verilen' ? '2px solid #E11D48' : '1px solid #CBD5E1',
+                          background: cekYonu === 'verilen' ? '#FFF1F2' : '#FFFFFF',
+                          color: cekYonu === 'verilen' ? '#BE123C' : '#475569'
+                        }}
+                      >
+                        📤 Verilen / Ciro Edilen Çekler
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCekYonu('alinan')}
+                        style={{
+                          flex: 1,
+                          minWidth: 200,
+                          padding: '10px 14px',
+                          borderRadius: 12,
+                          fontWeight: 700,
+                          fontSize: 13.5,
+                          cursor: 'pointer',
+                          border: cekYonu === 'alinan' ? '2px solid #059669' : '1px solid #CBD5E1',
+                          background: cekYonu === 'alinan' ? '#ECFDF5' : '#FFFFFF',
+                          color: cekYonu === 'alinan' ? '#047857' : '#475569'
+                        }}
+                      >
+                        📥 Alınan Çek / Senet (Malik Ödemesi)
+                      </button>
+                    </div>
+                    <Cekler key={cekYonu} yon={cekYonu} />
+                  </div>
                 )}
 
                 {/* ==================== 3. VİRMAN / KASA FORMU ==================== */}
