@@ -251,9 +251,11 @@ export default function Finans() {
   // Belge Önizleme Lightbox
   const [onizlemeBelge, setOnizlemeBelge] = useState(null)
 
-  // Satır İçi Hızlı Düzenleme (Masraf / Gelir)
+  // Satır İçi Hızlı Düzenleme & Universal Paylaş Menüsü
   const [duzenlenenKey, setDuzenlenenKey] = useState(null)
   const [duzForm, setDuzForm] = useState({})
+  const [paylasMenuKey, setPaylasMenuKey] = useState(null)
+  const [kopyalandiKey, setKopyalandiKey] = useState(null)
 
   // =========================================================
   // VERİ YÜKLEME
@@ -1169,19 +1171,76 @@ export default function Finans() {
     tumVerileriYukle()
   }
 
-  const whatsappPaylas = (item) => {
-    const tarihStr = item.tarih ? new Date(item.tarih).toLocaleDateString('tr-TR') : '—'
-    let metin = `💳 *${item.etiket} BİLDİRİMİ*\n` +
-      `📌 *Başlık:* ${item.baslik}\n` +
-      `💵 *Tutar:* ${paraFormatla(item.tutar)} ₺\n` +
+  const paylasMetniOlustur = (item, linkDahil = true) => {
+    const tarihStr = item.tarih ? new Date(`${item.tarih.slice(0, 10)}T12:00:00`).toLocaleDateString('tr-TR') : '—'
+    return (
+      `💳 *${item.etiket} BİLDİRİMİ*\n` +
       (item.santiyeAd ? `🏗️ *Şantiye:* ${item.santiyeAd}\n` : '') +
       (item.kisi ? `👤 *Kişi/Cari:* ${item.kisi}\n` : '') +
+      `📌 *Başlık:* ${item.baslik}\n` +
+      `💵 *Tutar:* ${paraFormatla(item.tutar)} ₺\n` +
       (item.hesapBilgisi ? `🏦 *Hesap/Kasa:* ${item.hesapBilgisi}\n` : '') +
-      `📅 *Tarih:* ${tarihStr}\n` +
-      (item.notMetni ? `📝 *Not:* ${item.notMetni}\n` : '') +
-      (item.belgeUrl ? `🔗 *Belge:* ${item.belgeUrl}` : '')
+      `📅 *İşlem Tarihi:* ${tarihStr}\n` +
+      `🕒 *Kayıt:* ${kayitZamaniFormatla(item.kayitTarihi || item.tarih)}\n` +
+      (item.notMetni ? `📝 *Açıklama:* ${item.notMetni}\n` : '') +
+      (linkDahil && item.belgeUrl ? `🔗 *Belge:* ${item.belgeUrl}` : '')
+    ).trim()
+  }
 
-    window.open('https://wa.me/?text=' + encodeURIComponent(metin), '_blank')
+  const sistemPaylas = async (item) => {
+    const metin = paylasMetniOlustur(item, false)
+    const metinVeLink = paylasMetniOlustur(item, true)
+    try {
+      let dosyalar = []
+      if (item.belgeUrl && navigator.canShare) {
+        try {
+          const fetchUrl = getGoogleDriveInlineImageUrl(item.belgeUrl)
+          const response = await fetch(fetchUrl)
+          const blob = await response.blob()
+          let mime = blob.type
+          if (!mime || mime.includes('octet-stream') || mime.includes('binary')) {
+            mime = fetchUrl.toLowerCase().includes('pdf') ? 'application/pdf' : 'image/jpeg'
+          }
+          const ext = mime.includes('pdf') ? 'pdf' : 'jpg'
+          const ad = (item.baslik || 'finans_belgesi').replace(/[^a-zA-Z0-9]/gi, '_').toLowerCase()
+          dosyalar.push(new File([blob], `${ad}.${ext}`, { type: mime }))
+        } catch { /* dosya alınamazsa link ile paylaşılır */ }
+      }
+
+      if (dosyalar.length > 0 && navigator.canShare && navigator.canShare({ files: dosyalar })) {
+        await navigator.share({ title: `${item.etiket} - ${item.baslik}`, text: metin, files: dosyalar })
+      } else if (navigator.share) {
+        await navigator.share({ title: `${item.etiket} - ${item.baslik}`, text: metinVeLink })
+      }
+      setPaylasMenuKey(null)
+    } catch (err) {
+      if (err?.name !== 'AbortError') {
+        console.warn('Sistem paylaşımı başarısız:', err)
+      }
+    }
+  }
+
+  const universalPaylasTetikle = (item) => {
+    const isMobil = navigator.maxTouchPoints > 0
+    if (isMobil && navigator.share) {
+      sistemPaylas(item)
+      return
+    }
+    setPaylasMenuKey((prev) => (prev === item.key ? null : item.key))
+  }
+
+  const metinPanoyaKopyala = async (item) => {
+    const metin = paylasMetniOlustur(item, true)
+    try {
+      await navigator.clipboard.writeText(metin)
+      setKopyalandiKey(item.key)
+      setTimeout(() => {
+        setKopyalandiKey(null)
+        setPaylasMenuKey(null)
+      }, 1200)
+    } catch {
+      alert('Panoya kopyalanamadı.')
+    }
   }
 
   // =========================================================
@@ -2981,10 +3040,95 @@ export default function Finans() {
                                     )}
                                   </div>
 
-                                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                    <button type="button" onClick={() => whatsappPaylas(item)} title="WhatsApp ile Paylaş" style={{ padding: '4px 9px', borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: 12, cursor: 'pointer' }}>
-                                      📤
+                                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', position: 'relative' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => universalPaylasTetikle(item)}
+                                      title="Paylaş (WhatsApp, Telegram, E-posta, Kopyala, Sistem Paylaşımı)"
+                                      style={{
+                                        padding: '4px 10px',
+                                        borderRadius: 8,
+                                        border: paylasMenuKey === item.key ? '1px solid #0284C7' : '1px solid #E2E8F0',
+                                        background: paylasMenuKey === item.key ? '#E0F2FE' : '#F8FAFC',
+                                        color: '#0F172A',
+                                        fontSize: 11.5,
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 4
+                                      }}
+                                    >
+                                      📤 Paylaş
                                     </button>
+
+                                    {paylasMenuKey === item.key && (
+                                      <div
+                                        style={{
+                                          position: 'absolute',
+                                          bottom: 'calc(100% + 6px)',
+                                          right: 0,
+                                          zIndex: 60,
+                                          minWidth: 195,
+                                          background: '#FFFFFF',
+                                          border: '1px solid #CBD5E1',
+                                          borderRadius: 12,
+                                          padding: 6,
+                                          boxShadow: '0 12px 28px rgba(15, 23, 42, 0.16)',
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          gap: 4
+                                        }}
+                                      >
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            window.open('https://wa.me/?text=' + encodeURIComponent(paylasMetniOlustur(item, true)), '_blank')
+                                            setPaylasMenuKey(null)
+                                          }}
+                                          style={{ textAlign: 'left', padding: '7px 10px', borderRadius: 8, border: 'none', background: '#F0FDF4', color: '#166534', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                                        >
+                                          📱 WhatsApp
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            window.open('https://t.me/share/url?url=' + encodeURIComponent(item.belgeUrl || window.location.origin) + '&text=' + encodeURIComponent(paylasMetniOlustur(item, true)), '_blank')
+                                            setPaylasMenuKey(null)
+                                          }}
+                                          style={{ textAlign: 'left', padding: '7px 10px', borderRadius: 8, border: 'none', background: '#EFF6FF', color: '#1D4ED8', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                                        >
+                                          ✈️ Telegram
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const konu = `${item.etiket} — ${item.santiyeAd || ''} — ${paraFormatla(item.tutar)} TL`
+                                            window.location.href = `mailto:?subject=${encodeURIComponent(konu)}&body=${encodeURIComponent(paylasMetniOlustur(item, true))}`
+                                            setPaylasMenuKey(null)
+                                          }}
+                                          style={{ textAlign: 'left', padding: '7px 10px', borderRadius: 8, border: 'none', background: '#F8FAFC', color: '#334155', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                                        >
+                                          ✉️ E-posta
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => metinPanoyaKopyala(item)}
+                                          style={{ textAlign: 'left', padding: '7px 10px', borderRadius: 8, border: 'none', background: kopyalandiKey === item.key ? '#DCFCE7' : '#F8FAFC', color: kopyalandiKey === item.key ? '#166534' : '#334155', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                                        >
+                                          {kopyalandiKey === item.key ? '✓ Panoya Kopyalandı' : '📋 Metni Kopyala'}
+                                        </button>
+                                        {typeof navigator !== 'undefined' && navigator.share && (
+                                          <button
+                                            type="button"
+                                            onClick={() => sistemPaylas(item)}
+                                            style={{ textAlign: 'left', padding: '7px 10px', borderRadius: 8, border: 'none', background: '#EEF2FF', color: '#4338CA', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                                          >
+                                            🌐 Diğer Uygulamalar
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
                                     {item.kaynak !== 'danismanlik' && (
                                       <button type="button" onClick={() => duzenlemeBaslat(item)} title="Düzenle" style={{ padding: '4px 9px', borderRadius: 8, border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: 12, cursor: 'pointer' }}>
                                         ✏️
