@@ -84,7 +84,7 @@ function soruMu(metin = '') {
   if (!m) return false
   return (
     m.includes('?') ||
-    /\b(kac|nedir|neydi|kim|kimin|hangi|numara|telefon|var mi|ne kadar|toplam|ozet|rapor|liste|bina no|vade|borc|alacak|kalan|goster|sorgula|bul)\b/.test(m)
+    /\b(kac|nedir|neydi|kim|kimin|hangi|numara|telefon|var mi|ne kadar|toplam|ozet|rapor|liste|bina no|vade|borc|alacak|kalan|goster|sorgula|bul|cek|cekler|cekleri|ciro|emanet|bilgi|durum|neler|kimler)\b/.test(m)
   )
 }
 
@@ -144,7 +144,7 @@ async function canliBaglamTopla(santiyeler = [], detayGerekli = false) {
     const [masrafRes, gelirRes, cekRes, gorevRes, sozlerList] = await Promise.all([
       supabase.from('masraflar').select('baslik, tutar, harcama_tarihi, santiye_id, odenen_kisi').order('harcama_tarihi', { ascending: false }).limit(50),
       supabase.from('gelirler').select('tutar, tarih, santiye_id, tahsilat_noktasi, odeme_yapan_adi').order('tarih', { ascending: false }).limit(30),
-      supabase.from('cekler').select('yon, tutar, vade_tarihi, kesideci, banka, durum, santiye_id').order('vade_tarihi', { ascending: true }).limit(35),
+      supabase.from('cekler').select('*').order('cek_vadesi', { ascending: true }).limit(80),
       supabase.from('gorevler').select('baslik, durum, santiye_id').neq('durum', 'tamamlandi').limit(35),
       operasyonVerisiYukle(KEY_VERILEN_SOZLER, []),
     ])
@@ -165,13 +165,17 @@ async function canliBaglamTopla(santiyeler = [], detayGerekli = false) {
         tl: g.tutar,
       })),
       cekler: (cekRes.data || []).map((c) => ({
-        y: c.yon,
-        v: c.vade_tarihi,
-        tl: c.tutar,
-        k: c.kesideci || '',
-        b: c.banka || '',
-        d: c.durum || '',
-        s: santiyeMap[c.santiye_id] || 'Genel',
+        yon: c.yon || 'verilen',
+        vade: c.cek_vadesi || '',
+        tl: c.tutar || 0,
+        odeyen: c.odeyen || '',
+        odenen: c.odenen || '',
+        banka: c.banka || '',
+        seriNo: c.cek_seri_no || '',
+        durum: c.durum || '',
+        emanet: Boolean(c.is_emanet),
+        santiye: santiyeMap[c.santiye_id] || 'Genel',
+        not: c.aciklama || '',
       })),
       acikGorevler: (gorevRes.data || []).map((g) => `${santiyeMap[g.santiye_id] || 'Genel'}: ${g.baslik}`),
       acikSozlerNotlar: (Array.isArray(sozlerList) ? sozlerList : [])
