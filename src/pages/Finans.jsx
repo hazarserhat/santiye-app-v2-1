@@ -251,10 +251,11 @@ export default function Finans() {
   // Belge Önizleme Lightbox
   const [onizlemeBelge, setOnizlemeBelge] = useState(null)
 
-  // Satır İçi Hızlı Düzenleme & Universal Paylaş Menüsü
+  // Satır İçi Hızlı Düzenleme, Kayıt Bilgisi & Universal Paylaş Menüsü
   const [duzenlenenKey, setDuzenlenenKey] = useState(null)
   const [duzForm, setDuzForm] = useState({})
   const [paylasMenuKey, setPaylasMenuKey] = useState(null)
+  const [bilgiMenuKey, setBilgiMenuKey] = useState(null)
   const [kopyalandiKey, setKopyalandiKey] = useState(null)
 
   // =========================================================
@@ -2929,7 +2930,9 @@ export default function Finans() {
                                     }}>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 13.5, fontWeight: 800, color: '#0F172A', wordBreak: 'break-word' }}>
                                         {item.baslik && <span>📌 {item.baslik}</span>}
-                                        {item.kategori && <span style={{ fontSize: 11.5, color: '#64748B', fontWeight: 500 }}>• 📁 {item.kategori}</span>}
+                                        {item.kategori && (item.kaynak === 'cek' || item.kaynak === 'danismanlik') && (
+                                          <span style={{ fontSize: 11.5, color: '#64748B', fontWeight: 500 }}>• {item.kategori}</span>
+                                        )}
                                       </div>
 
                                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
@@ -2961,28 +2964,77 @@ export default function Finans() {
                                     )}
                                   </div>
 
-                                  {/* SAĞ TARAF: TUTAR (MASAÜSTÜ) + TARİHLER* + KAYDEDEN */}
+                                  {/* SAĞ TARAF: TUTAR (MASAÜSTÜ) + İŞLEM TARİHİ + KAYIT BİLGİSİ (i) */}
                                   <div className="finans-kart-sag">
                                     <div className="finans-sag-tutar" style={{ color: item.renk }}>
                                       {item.yon === 'cikis' ? '-' : item.yon === 'giris' ? '+' : ''}
                                       {paraFormatla(item.tutar)} ₺
                                     </div>
 
-                                    {item.tarih && (
-                                      <span style={{ fontSize: 11, fontWeight: 700, color: '#1E293B', background: '#F1F5F9', padding: '2px 7px', borderRadius: 6, whiteSpace: 'nowrap' }}>
-                                        📅 İşlem: {new Date(`${item.tarih.slice(0, 10)}T12:00:00`).toLocaleDateString('tr-TR')}
-                                      </span>
-                                    )}
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, position: 'relative' }}>
+                                      {item.tarih && (
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: '#1E293B', background: '#F1F5F9', padding: '3px 8px', borderRadius: 7, whiteSpace: 'nowrap' }}>
+                                          📅 {new Date(`${item.tarih.slice(0, 10)}T12:00:00`).toLocaleDateString('tr-TR')}
+                                        </span>
+                                      )}
 
-                                    <span style={{ fontSize: 10.5, fontWeight: 600, color: '#475569', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '2px 7px', borderRadius: 6, whiteSpace: 'nowrap' }}>
-                                      🕒 Kayıt: {kayitZamaniFormatla(item.kayitTarihi || item.tarih)}
-                                    </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => setBilgiMenuKey(bilgiMenuKey === item.key ? null : item.key)}
+                                        title="Kayıt tarihi ve kaydeden bilgisi"
+                                        aria-label="Kayıt tarihi ve kaydeden bilgisi"
+                                        style={{
+                                          width: 22,
+                                          height: 22,
+                                          borderRadius: '50%',
+                                          border: bilgiMenuKey === item.key ? '1.5px solid #0284C7' : '1px solid #CBD5E1',
+                                          background: bilgiMenuKey === item.key ? '#E0F2FE' : '#F8FAFC',
+                                          color: bilgiMenuKey === item.key ? '#0369A1' : '#64748B',
+                                          fontSize: 12,
+                                          fontWeight: 800,
+                                          fontStyle: 'italic',
+                                          fontFamily: 'Georgia, serif',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          cursor: 'pointer',
+                                          padding: 0,
+                                          lineHeight: 1,
+                                          flexShrink: 0
+                                        }}
+                                      >
+                                        i
+                                      </button>
 
-                                    {item.ekleyen && (
-                                      <span style={{ fontSize: 11, fontWeight: 600, color: '#64748B', whiteSpace: 'nowrap' }}>
-                                        ✍️ {item.ekleyen}
-                                      </span>
-                                    )}
+                                      {bilgiMenuKey === item.key && (
+                                        <div className="finans-bilgi-popover">
+                                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, borderBottom: '1px solid rgba(255,255,255,0.12)', paddingBottom: 5, marginBottom: 6 }}>
+                                            <span style={{ fontSize: 10.5, fontWeight: 800, color: '#94A3B8', letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                                              Kayıt Bilgisi
+                                            </span>
+                                            <button
+                                              type="button"
+                                              onClick={() => setBilgiMenuKey(null)}
+                                              style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: 12, cursor: 'pointer', padding: '0 2px', lineHeight: 1 }}
+                                            >
+                                              ✕
+                                            </button>
+                                          </div>
+                                          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11.5, color: '#F8FAFC', textAlign: 'left' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                                              <span>🕒</span>
+                                              <span style={{ color: '#CBD5E1' }}>Kayıt:</span>
+                                              <strong>{kayitZamaniFormatla(item.kayitTarihi || item.tarih)}</strong>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                                              <span>✍️</span>
+                                              <span style={{ color: '#CBD5E1' }}>Kaydeden:</span>
+                                              <strong>{item.ekleyen || 'Belirtilmemiş'}</strong>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
 
@@ -2998,6 +3050,32 @@ export default function Finans() {
                                   borderTop: '1px solid #F1F5F9'
                                 }}>
                                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                                    {item.kaynak !== 'danismanlik' && (
+                                      <button
+                                        type="button"
+                                        className="finans-muhasebe-btn"
+                                        onClick={() => muhasebeToggle(item)}
+                                        style={{
+                                          padding: '5px 12px',
+                                          borderRadius: 9,
+                                          border: item.muhasebePaylasim ? '1.5px solid #047857' : '1.5px solid #F59E0B',
+                                          background: item.muhasebePaylasim ? '#059669' : '#FFFBEB',
+                                          color: item.muhasebePaylasim ? '#FFFFFF' : '#B45309',
+                                          boxShadow: item.muhasebePaylasim
+                                            ? '0 2px 6px rgba(5, 150, 105, 0.28)'
+                                            : '0 1px 3px rgba(245, 158, 11, 0.18)',
+                                          fontSize: 12,
+                                          fontWeight: 800,
+                                          cursor: 'pointer',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: 5
+                                        }}
+                                      >
+                                        {item.muhasebePaylasim ? '✅ Muhasebeleştirildi' : '🧾 Muhasebeleştir'}
+                                      </button>
+                                    )}
+
                                     {item.belgeUrl ? (
                                       <button
                                         type="button"
@@ -3021,25 +3099,6 @@ export default function Finans() {
                                           📋 Panodan Ekle
                                         </button>
                                       </>
-                                    )}
-
-                                    {item.kaynak !== 'danismanlik' && (
-                                      <button
-                                        type="button"
-                                        onClick={() => muhasebeToggle(item)}
-                                        style={{
-                                          padding: '4px 10px',
-                                          borderRadius: 8,
-                                          border: item.muhasebePaylasim ? '1px solid #A7F3D0' : '1px solid #E2E8F0',
-                                          background: item.muhasebePaylasim ? '#ECFDF5' : '#F8FAFC',
-                                          color: item.muhasebePaylasim ? '#047857' : '#64748B',
-                                          fontSize: 11.5,
-                                          fontWeight: 700,
-                                          cursor: 'pointer'
-                                        }}
-                                      >
-                                        {item.muhasebePaylasim ? '✓ Muhasebe' : '⏳ Muhasebe'}
-                                      </button>
                                     )}
 
                                     {item.kaynak === 'danismanlik' && (
