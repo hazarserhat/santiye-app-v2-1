@@ -281,6 +281,7 @@ ${JSON.stringify(baglam)}`
   const adayModeller = [
     ...(kayitliModel ? [kayitliModel] : []),
     'gemini-3.8-flash',
+    'gemini-2.5-flash-lite',
     'gemini-3.0-flash',
     'gemini-2.5-flash',
   ].filter((v, i, a) => a.indexOf(v) === i)
@@ -300,6 +301,8 @@ ${JSON.stringify(baglam)}`
     return r
   }
 
+  const geciciVeyaYok = (status) => [404, 429, 500, 502, 503, 504].includes(status)
+
   let res = null
   let sonHata = ''
 
@@ -310,36 +313,37 @@ ${JSON.stringify(baglam)}`
       break
     }
     sonHata = await res.text()
-    if (res.status !== 404) break
+    if (!geciciVeyaYok(res.status)) break
   }
 
-  // Tüm sabit adaylar 404 dönerse hesaptaki güncel Flash modelini otomatik bul ve dene
+  // Adaylar 404 veya 503 (yoğunluk) döndüyse hesaptaki diğer aktif Flash / Flash-Lite modellerini otomatik dene
   if (!res || !res.ok) {
-    if (res?.status === 404) {
+    if (geciciVeyaYok(res?.status)) {
       try {
         const listRes = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`
         )
         if (listRes.ok) {
           const listJson = await listRes.json()
-          const uygun = (listJson.models || []).find(
-            (m) =>
-              Array.isArray(m.supportedGenerationMethods) &&
-              m.supportedGenerationMethods.includes('generateContent') &&
-              String(m.name || '').includes('flash')
-          ) || (listJson.models || []).find(
-            (m) =>
-              Array.isArray(m.supportedGenerationMethods) &&
-              m.supportedGenerationMethods.includes('generateContent')
-          )
-          if (uygun?.name) {
-            const temizAd = uygun.name.replace(/^models\//, '')
+          const adayListesi = (listJson.models || [])
+            .filter(
+              (m) =>
+                Array.isArray(m.supportedGenerationMethods) &&
+                m.supportedGenerationMethods.includes('generateContent') &&
+                (String(m.name || '').includes('flash') || String(m.name || '').includes('gemini'))
+            )
+            .map((m) => String(m.name).replace(/^models\//, ''))
+            .filter((ad) => !adayModeller.includes(ad))
+            .slice(0, 4)
+
+          for (const temizAd of adayListesi) {
             res = await modelCagir(temizAd)
             if (res.ok) {
               try { localStorage.setItem(KEY_GEMINI_MODEL, temizAd) } catch { /* ignore */ }
-            } else {
-              sonHata = await res.text()
+              break
             }
+            sonHata = await res.text()
+            if (!geciciVeyaYok(res.status)) break
           }
         }
       } catch { /* ignore */ }
@@ -347,6 +351,9 @@ ${JSON.stringify(baglam)}`
   }
 
   if (!res || !res.ok) {
+    if (res?.status === 503 || res?.status === 429) {
+      throw new Error('Google Gemini sunucuları şu an anlık yoğunluk yaşıyor (503). Lütfen 5-10 saniye sonra tekrar gönderin.')
+    }
     throw new Error(`Gemini API hatası (${res?.status || 'ERR'}): ${sonHata.slice(0, 220)}`)
   }
 
