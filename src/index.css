@@ -8276,6 +8276,17 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
     align-items: center;
     justify-content: flex-start;
     text-align: left;
-    gap: 6px;
+    gap: 5px;
+    padding-top: 2px;
+  }
+  .finans-aksiyon-bar {
+    gap: 5px !important;
+    margin-top: 8px !important;
+    padding-top: 7px !important;
+  }
+  .finans-aksiyon-bar button,
+  .finans-aksiyon-bar label {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
   }
 }

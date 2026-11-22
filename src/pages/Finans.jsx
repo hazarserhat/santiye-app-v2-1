@@ -2990,7 +2990,7 @@ export default function Finans() {
                                 </div>
 
                                 {/* Kart Alt Aksiyon Çubuğu */}
-                                <div style={{
+                                <div className="finans-aksiyon-bar" style={{
                                   display: 'flex',
                                   justifyContent: 'space-between',
                                   alignItems: 'center',

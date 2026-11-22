@@ -8,6 +8,14 @@ const updateSW = registerSW({
   immediate: true,
   onNeedRefresh() {
     updateSW(true)
+  },
+  onRegisteredSW(_swUrl, r) {
+    if (!r) return
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        r.update().catch(() => {})
+      }
+    })
   }
 })
 
