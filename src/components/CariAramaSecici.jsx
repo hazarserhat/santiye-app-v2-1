@@ -70,16 +70,27 @@ export default function CariAramaSecici({ deger, value, onDegisti, onChange, pla
   }
 
   return (
-    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }} ref={kutuRef}>
-      <span style={{ position: 'absolute', left: 12, color: '#888780', fontSize: 14, pointerEvents: 'none' }}>🔍</span>
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }} ref={kutuRef}>
       <input
         type="text"
         placeholder={placeholder || 'Cari/Ortak/Temsilci Ara...'}
         value={metin}
         onChange={(e) => ara(e.target.value)}
         onFocus={() => metin.trim().length >= 2 && setAcik(true)}
-        style={{ paddingLeft: 34, width: '100%', boxSizing: 'border-box', backgroundColor: '#F8F9FA', border: '1px solid #B0BEC5' }}
+        style={{
+          paddingLeft: 12,
+          paddingRight: 36,
+          height: 40,
+          borderRadius: 10,
+          margin: 0,
+          width: '100%',
+          boxSizing: 'border-box',
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #CBD5E1',
+          fontSize: 13
+        }}
       />
+      <span style={{ position: 'absolute', right: 12, color: '#64748B', fontSize: 14, pointerEvents: 'none' }}>🔍</span>
       {acik && (
         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #D3D1C7', borderRadius: 8, marginTop: 4, zIndex: 50, maxHeight: 260, overflowY: 'auto', boxShadow: '0 8px 20px rgba(0,0,0,0.12)' }}>
           {oneriler.map((t) => {

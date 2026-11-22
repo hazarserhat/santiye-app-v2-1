@@ -2797,116 +2797,128 @@ export default function Finans() {
                               </div>
                             ) : (
                               <>
-                                {/* 1. SATIR: ÖNEMLİ BİLGİLER (TÜR + ŞANTİYE* + HARCAMA NOKTASI* | TUTAR) */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: 1, minWidth: 180 }}>
-                                    <span style={{
-                                      fontSize: 10.5,
-                                      fontWeight: 800,
-                                      padding: '3px 8px',
-                                      borderRadius: 6,
-                                      background: item.bg,
-                                      color: item.renk,
-                                      border: `1px solid ${item.border}`
-                                    }}>
-                                      {item.etiket}
-                                    </span>
-
-                                    {item.santiyeAd && (
+                                {/* DENGELİ 2 SÜTUNLU KART: SOLDA ŞANTİYE/NOKTA/KİŞİ/AÇIKLAMA, SAĞDA TUTAR/TARİHLER/KAYDEDEN */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
+                                  {/* SOL TARAF */}
+                                  <div style={{ flex: '1 1 260px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                                    {/* Tür + Şantiye* + Harcama Noktası* */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                       <span style={{
-                                        fontSize: 12,
+                                        fontSize: 10.5,
                                         fontWeight: 800,
-                                        padding: '3px 9px',
-                                        borderRadius: 7,
-                                        background: '#E6F9F0',
-                                        color: '#0F6E56',
-                                        border: '1px solid #A7F3D0'
+                                        padding: '3px 8px',
+                                        borderRadius: 6,
+                                        background: item.bg,
+                                        color: item.renk,
+                                        border: `1px solid ${item.border}`
                                       }}>
-                                        {item.kaynak === 'danismanlik' ? '💼' : item.kaynak === 'virman' ? '🏦' : '🏗️'} {item.santiyeAd}
+                                        {item.etiket}
                                       </span>
-                                    )}
 
-                                    {item.hesapBilgisi && (
-                                      <span style={{
-                                        fontSize: 11.5,
-                                        fontWeight: 700,
-                                        padding: '3px 9px',
-                                        borderRadius: 7,
-                                        background: '#EFF6FF',
-                                        color: '#1E40AF',
-                                        border: '1px solid #BFDBFE'
-                                      }}>
-                                        💳 {item.hesapBilgisi}
-                                      </span>
-                                    )}
-                                  </div>
+                                      {item.santiyeAd && (
+                                        <span style={{
+                                          fontSize: 12,
+                                          fontWeight: 800,
+                                          padding: '3px 9px',
+                                          borderRadius: 7,
+                                          background: '#E6F9F0',
+                                          color: '#0F6E56',
+                                          border: '1px solid #A7F3D0'
+                                        }}>
+                                          {item.kaynak === 'danismanlik' ? '💼' : item.kaynak === 'virman' ? '🏦' : '🏗️'} {item.santiyeAd}
+                                        </span>
+                                      )}
 
-                                  <div style={{ fontSize: 18, fontWeight: 800, color: item.renk, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                                    {item.yon === 'cikis' ? '-' : item.yon === 'giris' ? '+' : ''}
-                                    {paraFormatla(item.tutar)} ₺
-                                  </div>
-                                </div>
-
-                                {/* 2. SATIR: ÖDEME YAPILAN / YAPAN KİŞİ* (EN BELİRGİN) & BAŞLIK */}
-                                <div style={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: 4,
-                                  padding: '8px 10px',
-                                  borderRadius: 10,
-                                  background: '#F8FAFC',
-                                  border: '1px solid #E2E8F0',
-                                  marginBottom: 8
-                                }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-                                    <div style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                      <span>👤</span>
-                                      <span>
-                                        {item.kisi
-                                          ? `${item.kaynak === 'gider' ? 'Ödenen: ' : item.kaynak === 'gelir' ? 'Ödeme Yapan: ' : ''}${item.kisi}`
-                                          : (item.kaynak === 'gider' || item.kaynak === 'gelir' ? 'Cari / Kişi Belirtilmemiş' : item.baslik)}
-                                      </span>
+                                      {item.hesapBilgisi && (
+                                        <span style={{
+                                          fontSize: 11.5,
+                                          fontWeight: 700,
+                                          padding: '3px 9px',
+                                          borderRadius: 7,
+                                          background: '#EFF6FF',
+                                          color: '#1E40AF',
+                                          border: '1px solid #BFDBFE'
+                                        }}>
+                                          💳 {item.hesapBilgisi}
+                                        </span>
+                                      )}
                                     </div>
-                                    {!item.kisi && (item.kaynak === 'gider' || item.kaynak === 'gelir') && (
-                                      <button
-                                        type="button"
-                                        onClick={() => duzenlemeBaslat(item)}
-                                        style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, border: '1px solid #FDE68A', background: '#FEF3C7', color: '#B45309', cursor: 'pointer' }}
-                                      >
-                                        + Cari Ata
-                                      </button>
+
+                                    {/* Ödeme Yapılan / Yapan Kişi* & Başlık */}
+                                    <div style={{
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: 3,
+                                      padding: '7px 10px',
+                                      borderRadius: 10,
+                                      background: '#F8FAFC',
+                                      border: '1px solid #E2E8F0'
+                                    }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                                        <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                          <span>👤</span>
+                                          <span>
+                                            {item.kisi
+                                              ? `${item.kaynak === 'gider' ? 'Ödenen: ' : item.kaynak === 'gelir' ? 'Ödeme Yapan: ' : ''}${item.kisi}`
+                                              : (item.kaynak === 'gider' || item.kaynak === 'gelir' ? 'Cari / Kişi Belirtilmemiş' : item.baslik)}
+                                          </span>
+                                        </div>
+                                        {!item.kisi && (item.kaynak === 'gider' || item.kaynak === 'gelir') && (
+                                          <button
+                                            type="button"
+                                            onClick={() => duzenlemeBaslat(item)}
+                                            style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, border: '1px solid #FDE68A', background: '#FEF3C7', color: '#B45309', cursor: 'pointer' }}
+                                          >
+                                            + Cari Ata
+                                          </button>
+                                        )}
+                                      </div>
+
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12.5, fontWeight: 600, color: '#334155' }}>
+                                        {item.baslik && <span>📌 {item.baslik}</span>}
+                                        {item.kategori && <span style={{ fontSize: 11.5, color: '#64748B', fontWeight: 500 }}>• 📁 {item.kategori}</span>}
+                                      </div>
+                                    </div>
+
+                                    {/* Açıklama */}
+                                    {item.notMetni && (
+                                      <div style={{ fontSize: 12.5, color: '#475569', background: '#FFFDF7', border: '1px solid #F1EFE8', padding: '6px 10px', borderRadius: 8, lineHeight: 1.4 }}>
+                                        📝 {item.notMetni}
+                                      </div>
                                     )}
                                   </div>
 
-                                  {item.baslik && (
-                                    <div style={{ fontSize: 13, fontWeight: 600, color: '#334155', lineHeight: 1.35 }}>
-                                      📌 {item.baslik}
+                                  {/* SAĞ TARAF: TUTAR + TARİHLER* + KAYDEDEN */}
+                                  <div style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'flex-end',
+                                    textAlign: 'right',
+                                    gap: 4,
+                                    flexShrink: 0,
+                                    minWidth: 165
+                                  }}>
+                                    <div style={{ fontSize: 18, fontWeight: 800, color: item.renk, whiteSpace: 'nowrap' }}>
+                                      {item.yon === 'cikis' ? '-' : item.yon === 'giris' ? '+' : ''}
+                                      {paraFormatla(item.tutar)} ₺
                                     </div>
-                                  )}
-                                </div>
 
-                                {/* 3. SATIR: TARİHLER* (İŞLEM TARİHİ & KAYIT TARİH/SAATİ) */}
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-                                  {item.tarih && (
-                                    <span style={{ fontSize: 11.5, fontWeight: 700, color: '#1E293B', background: '#F1F5F9', padding: '3px 8px', borderRadius: 6 }}>
-                                      📅 İşlem: {new Date(`${item.tarih.slice(0, 10)}T12:00:00`).toLocaleDateString('tr-TR')}
+                                    {item.tarih && (
+                                      <span style={{ fontSize: 11.5, fontWeight: 700, color: '#1E293B', background: '#F1F5F9', padding: '2px 8px', borderRadius: 6, whiteSpace: 'nowrap' }}>
+                                        📅 İşlem: {new Date(`${item.tarih.slice(0, 10)}T12:00:00`).toLocaleDateString('tr-TR')}
+                                      </span>
+                                    )}
+
+                                    <span style={{ fontSize: 11, fontWeight: 600, color: '#475569', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '2px 8px', borderRadius: 6, whiteSpace: 'nowrap' }}>
+                                      🕒 Kayıt: {kayitZamaniFormatla(item.kayitTarihi || item.tarih)}
                                     </span>
-                                  )}
-                                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', background: '#F1F5F9', padding: '3px 8px', borderRadius: 6 }}>
-                                    🕒 Kayıt: {kayitZamaniFormatla(item.kayitTarihi || item.tarih)}
-                                  </span>
-                                </div>
 
-                                {/* 4. SATIR: AÇIKLAMA & İKİNCİL DETAYLAR (KAYDEDEN / KATEGORİ) */}
-                                {item.notMetni && (
-                                  <div style={{ marginTop: 4, marginBottom: 6, fontSize: 12.5, color: '#475569', background: '#FFFDF7', border: '1px solid #F1EFE8', padding: '6px 10px', borderRadius: 8, lineHeight: 1.4 }}>
-                                    📝 {item.notMetni}
+                                    {item.ekleyen && (
+                                      <span style={{ fontSize: 11, fontWeight: 600, color: '#64748B', whiteSpace: 'nowrap', marginTop: 1 }}>
+                                        ✍️ {item.ekleyen}
+                                      </span>
+                                    )}
                                   </div>
-                                )}
-
-                                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 11.5, color: '#64748B' }}>
-                                  {item.kategori && <span>📁 {item.kategori}</span>}
-                                  {item.ekleyen && <span>✍️ Kaydeden: {item.ekleyen}</span>}
                                 </div>
 
                                 {/* Kart Alt Aksiyon Çubuğu */}
