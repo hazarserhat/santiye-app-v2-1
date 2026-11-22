@@ -2010,13 +2010,6 @@ export default function Finans() {
                       </div>
 
                       <div>
-                        <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Kategori</label>
-                        <select value={gKategoriId} onChange={(e) => setGKategoriId(e.target.value)} style={INPUT_STIL}>
-                          {kategoriler.map((k) => <option key={k.id} value={k.id}>{k.ad}</option>)}
-                        </select>
-                      </div>
-
-                      <div>
                         <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Ödeme Yöntemi</label>
                         <select value={gOdemeYontemiId} onChange={(e) => setGOdemeYontemiId(e.target.value)} style={INPUT_STIL}>
                           {odemeYontemleri.map((o) => <option key={o.id} value={o.id}>{o.ad}</option>)}
