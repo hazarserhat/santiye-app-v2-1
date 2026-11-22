@@ -2935,10 +2935,20 @@ export default function Finans() {
                                         📎 Belgeyi Gör
                                       </button>
                                     ) : item.kaynak !== 'virman' && (
-                                      <label style={{ padding: '4px 10px', borderRadius: 8, border: '1px dashed #CBD5E1', background: '#F8FAFC', color: '#64748B', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>
-                                        + Belge Ekle
-                                        <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(e) => sonradanBelgeYukle(item, e.target.files?.[0])} />
-                                      </label>
+                                      <>
+                                        <label style={{ padding: '4px 10px', borderRadius: 8, border: '1px dashed #CBD5E1', background: '#F8FAFC', color: '#64748B', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>
+                                          + Belge Ekle
+                                          <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(e) => sonradanBelgeYukle(item, e.target.files?.[0])} />
+                                        </label>
+                                        <button
+                                          type="button"
+                                          onClick={() => panodanGorselYapistir((file) => sonradanBelgeYukle(item, file))}
+                                          title="Kopyalanmış panodaki görseli bu kayda ekle"
+                                          style={{ padding: '4px 10px', borderRadius: 8, border: '1px dashed #93C5FD', background: '#EFF6FF', color: '#1D4ED8', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}
+                                        >
+                                          📋 Panodan Ekle
+                                        </button>
+                                      </>
                                     )}
 
                                     {item.kaynak !== 'danismanlik' && (
