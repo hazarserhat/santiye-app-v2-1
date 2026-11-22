@@ -2920,23 +2920,28 @@ export default function Finans() {
                                       )}
                                     </div>
 
-                                    {/* Ödeme Yapılan / Yapan Kişi* & Başlık */}
+                                    {/* Harcama Başlığı (Üstte) & Harcamanın Yapıldığı Kişi (Hemen Altında) */}
                                     <div style={{
                                       display: 'flex',
                                       flexDirection: 'column',
-                                      gap: 3,
+                                      gap: 4,
                                       padding: '7px 10px',
                                       borderRadius: 10,
                                       background: '#F8FAFC',
                                       border: '1px solid #E2E8F0'
                                     }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 13.5, fontWeight: 800, color: '#0F172A', wordBreak: 'break-word' }}>
+                                        {item.baslik && <span>📌 {item.baslik}</span>}
+                                        {item.kategori && <span style={{ fontSize: 11.5, color: '#64748B', fontWeight: 500 }}>• 📁 {item.kategori}</span>}
+                                      </div>
+
                                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-                                        <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 5, wordBreak: 'break-word' }}>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: 5, wordBreak: 'break-word' }}>
                                           <span>👤</span>
                                           <span>
                                             {item.kisi
                                               ? `${item.kaynak === 'gider' ? 'Ödenen: ' : item.kaynak === 'gelir' ? 'Ödeme Yapan: ' : ''}${item.kisi}`
-                                              : (item.kaynak === 'gider' || item.kaynak === 'gelir' ? 'Cari / Kişi Belirtilmemiş' : item.baslik)}
+                                              : (item.kaynak === 'gider' || item.kaynak === 'gelir' ? 'Cari / Kişi Belirtilmemiş' : '')}
                                           </span>
                                         </div>
                                         {!item.kisi && (item.kaynak === 'gider' || item.kaynak === 'gelir') && (
@@ -2948,11 +2953,6 @@ export default function Finans() {
                                             + Cari Ata
                                           </button>
                                         )}
-                                      </div>
-
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12.5, fontWeight: 600, color: '#334155', wordBreak: 'break-word' }}>
-                                        {item.baslik && <span>📌 {item.baslik}</span>}
-                                        {item.kategori && <span style={{ fontSize: 11.5, color: '#64748B', fontWeight: 500 }}>• 📁 {item.kategori}</span>}
                                       </div>
                                     </div>
 
