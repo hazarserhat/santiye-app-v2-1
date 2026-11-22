@@ -2,15 +2,17 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { matchCari, parseContacts } from '../lib/contacts'
 
-export default function CariAramaSecici({ deger, onDegisti, placeholder }) {
-  const [metin, setMetin] = useState(deger || '')
+export default function CariAramaSecici({ deger, value, onDegisti, onChange, placeholder }) {
+  const aktifDeger = deger !== undefined ? deger : (value || '')
+  const degisimBildir = onDegisti || onChange || (() => {})
+  const [metin, setMetin] = useState(aktifDeger)
   const [oneriler, setOneriler] = useState([])
   const [acik, setAcik] = useState(false)
   const kutuRef = useRef(null)
 
   const [tumCariler, setTumCariler] = useState([])
 
-  useEffect(() => { setMetin(deger || '') }, [deger])
+  useEffect(() => { setMetin(aktifDeger) }, [aktifDeger])
 
   useEffect(() => {
     supabase.from('taseronlar').select('id, ad, firma, sifat, telefon').then(({ data }) => setTumCariler(data || []))
@@ -22,7 +24,7 @@ export default function CariAramaSecici({ deger, onDegisti, placeholder }) {
 
   const ara = (yeniMetin) => {
     setMetin(yeniMetin)
-    onDegisti(yeniMetin, null)
+    degisimBildir(yeniMetin, null)
     if (yeniMetin.trim().length < 2) { setOneriler([]); return }
     
     const aranan = yeniMetin.trim()
@@ -45,7 +47,7 @@ export default function CariAramaSecici({ deger, onDegisti, placeholder }) {
 
   const secimYap = (ad, id) => {
     setMetin(ad)
-    onDegisti(ad, id)
+    degisimBildir(ad, id)
     setAcik(false)
   }
 

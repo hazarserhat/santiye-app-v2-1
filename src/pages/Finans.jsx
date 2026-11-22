@@ -159,6 +159,7 @@ export default function Finans() {
   const [kategoriler, setKategoriler] = useState([])
   const [odemeYontemleri, setOdemeYontemleri] = useState([])
   const [malikler, setMalikler] = useState([])
+  const [taseronlar, setTaseronlar] = useState([])
   const [kullanicilar, setKullanicilar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(false)
   const [panelAcik, setPanelAcik] = useState(true)
@@ -322,7 +323,8 @@ export default function Finans() {
       supabase.from('masraf_kategorileri').select('*').order('ad'),
       supabase.from('odeme_yontemleri').select('*').order('sira'),
       supabase.from('profiles').select('*'),
-      supabase.from('masraflar').select('*, masraf_kategorileri(ad), odeme_yontemleri(ad), profiles(ad_soyad)')
+      supabase.from('masraflar').select('*, masraf_kategorileri(ad), odeme_yontemleri(ad), profiles(ad_soyad)'),
+      supabase.from('taseronlar').select('id, ad, firma')
     ]
 
     if (!isSantiyeSefi) {
@@ -348,23 +350,28 @@ export default function Finans() {
     setOdemeYontemleri(filtreliOy)
     if (filtreliOy.length && !gOdemeYontemiId) setGOdemeYontemiId(filtreliOy[0].id)
 
-    // Kullanıcılar & Masraflar
+    // Kullanıcılar, Masraflar & Cariler
     setKullanicilar(sonuclar[2]?.data || [])
-    setMasraflar(sonuclar[3]?.data || [])
+    let gelenMasraflar = sonuclar[3]?.data || []
+    let gelenCariler = sonuclar[4]?.data || []
+    setMasraflar(gelenMasraflar)
+    setTaseronlar(gelenCariler)
 
+    let gelenGelirler = []
     if (!isSantiyeSefi) {
-      setGelirler(sonuclar[4]?.data || [])
-      setKasaIslemleri(sonuclar[5]?.data || [])
-      setMalikler(sonuclar[6]?.data || [])
+      gelenGelirler = sonuclar[5]?.data || []
+      setGelirler(gelenGelirler)
+      setKasaIslemleri(sonuclar[6]?.data || [])
+      setMalikler(sonuclar[7]?.data || [])
 
-      if (sonuclar[8]?.error) {
+      if (sonuclar[9]?.error) {
         const { data: fallbackCekler } = await supabase.from('cekler').select('*, santiyeler(ad)')
         setCekler(fallbackCekler || [])
       } else {
-        setCekler(sonuclar[8]?.data || [])
+        setCekler(sonuclar[9]?.data || [])
       }
 
-      const danismanlikRaw = sonuclar[7]?.data?.deger
+      const danismanlikRaw = sonuclar[8]?.data?.deger
       if (danismanlikRaw) {
         try {
           const parsed = JSON.parse(danismanlikRaw)
@@ -374,6 +381,60 @@ export default function Finans() {
           }
         } catch { /* ignore */ }
       }
+    }
+
+    // Eksik cari_id'si olan mevcut gider ve gelir kayıtlarını otomatik carilere işle (yoksa oluştur)
+    try {
+      const eksikMasraflar = gelenMasraflar.filter((m) => !m.cari_id && m.odenen_kisi && m.odenen_kisi.trim())
+      const eksikGelirler = gelenGelirler.filter((g) => !g.cari_id && g.odeme_yapan_adi && g.odeme_yapan_adi.trim())
+      if (eksikMasraflar.length > 0 || eksikGelirler.length > 0) {
+        const cariHarita = new Map()
+        gelenCariler.forEach((c) => {
+          if (c.ad) cariHarita.set(c.ad.trim().toLocaleLowerCase('tr-TR'), c.id)
+        })
+
+        const idBulVeyaYarat = async (adHam) => {
+          const temiz = adHam.trim()
+          const key = temiz.toLocaleLowerCase('tr-TR')
+          if (cariHarita.has(key)) return cariHarita.get(key)
+          const { data: yeniC } = await supabase
+            .from('taseronlar')
+            .insert({ ad: temiz, sef_gorunur: true })
+            .select('id, ad, firma')
+            .single()
+          if (yeniC) {
+            cariHarita.set(key, yeniC.id)
+            gelenCariler = [...gelenCariler, yeniC]
+            return yeniC.id
+          }
+          return null
+        }
+
+        let degisiklikOldu = false
+        for (const m of eksikMasraflar) {
+          const cid = await idBulVeyaYarat(m.odenen_kisi)
+          if (cid) {
+            await supabase.from('masraflar').update({ cari_id: cid }).eq('id', m.id)
+            m.cari_id = cid
+            degisiklikOldu = true
+          }
+        }
+        for (const g of eksikGelirler) {
+          const cid = await idBulVeyaYarat(g.odeme_yapan_adi)
+          if (cid) {
+            await supabase.from('gelirler').update({ cari_id: cid }).eq('id', g.id)
+            g.cari_id = cid
+            degisiklikOldu = true
+          }
+        }
+        if (degisiklikOldu) {
+          setTaseronlar([...gelenCariler])
+          setMasraflar([...gelenMasraflar])
+          if (!isSantiyeSefi) setGelirler([...gelenGelirler])
+        }
+      }
+    } catch (syncErr) {
+      console.warn('Otomatik cari senkronizasyon uyarısı:', syncErr)
     }
   }
 
@@ -620,10 +681,12 @@ export default function Finans() {
       if (eslesen) hedefAsama = eslesen.anahtar
     }
 
+    const finalGelirCariId = await cariBulVeyaOlustur(glOdemeYapan, glCariId)
+
     const gelirPayload = {
       santiye_id: secilenSantiyeId,
       malik_id: glMalikId || null,
-      cari_id: glCariId || null,
+      cari_id: finalGelirCariId || null,
       odeme_yapan_adi: glOdemeYapan,
       tutar: temizleTutar(glTutar),
       tarih: glTarih,
@@ -1032,6 +1095,16 @@ export default function Finans() {
     setYukleniyor(false)
   }
 
+  const cariBulVeyaOlustur = async (isimStr, mevcutCariId) => {
+    if (mevcutCariId) return mevcutCariId
+    const isim = (isimStr || '').trim()
+    if (!isim) return null
+    const { data: eslesenler } = await supabase.from('taseronlar').select('id').ilike('ad', isim).limit(1)
+    if (eslesenler?.length) return eslesenler[0].id
+    const { data: yeniTaseron } = await supabase.from('taseronlar').insert({ ad: isim, sef_gorunur: true }).select('id').single()
+    return yeniTaseron?.id || null
+  }
+
   const duzenlemeBaslat = (item) => {
     setDuzenlenenKey(item.key)
     if (item.kaynak === 'gider') {
@@ -1039,14 +1112,16 @@ export default function Finans() {
         baslik: item.ham.baslik || '',
         tutar: formatInputTutar(item.ham.tutar),
         tarih: item.ham.harcama_tarihi || '',
-        odenen_kisi: item.ham.odenen_kisi || '',
+        odenen_kisi: item.ham.odenen_kisi || item.kisi || '',
+        cari_id: item.ham.cari_id || null,
         aciklama: item.ham.aciklama || ''
       })
     } else if (item.kaynak === 'gelir') {
       setDuzForm({
         tutar: formatInputTutar(item.ham.tutar),
         tarih: item.ham.tarih || '',
-        odeme_yapan_adi: item.ham.odeme_yapan_adi || '',
+        odeme_yapan_adi: item.ham.odeme_yapan_adi || item.kisi || '',
+        cari_id: item.ham.cari_id || null,
         tahsilat_noktasi: item.ham.tahsilat_noktasi || '',
         not_metni: item.ham.not_metni || ''
       })
@@ -1061,19 +1136,23 @@ export default function Finans() {
 
   const duzenlemeKaydet = async (item) => {
     if (item.kaynak === 'gider') {
+      const finalCariId = await cariBulVeyaOlustur(duzForm.odenen_kisi, duzForm.cari_id)
       const { error } = await supabase.from('masraflar').update({
         baslik: duzForm.baslik,
         tutar: temizleTutar(duzForm.tutar),
         harcama_tarihi: duzForm.tarih,
         odenen_kisi: duzForm.odenen_kisi,
+        cari_id: finalCariId || null,
         aciklama: duzForm.aciklama
       }).eq('id', item.ham.id)
       if (error) { alert('Güncellenemedi: ' + error.message); return }
     } else if (item.kaynak === 'gelir') {
+      const finalCariId = await cariBulVeyaOlustur(duzForm.odeme_yapan_adi, duzForm.cari_id)
       const { error } = await supabase.from('gelirler').update({
         tutar: temizleTutar(duzForm.tutar),
         tarih: duzForm.tarih,
         odeme_yapan_adi: duzForm.odeme_yapan_adi,
+        cari_id: finalCariId || null,
         tahsilat_noktasi: duzForm.tahsilat_noktasi,
         not_metni: duzForm.not_metni
       }).eq('id', item.ham.id)
@@ -1137,7 +1216,7 @@ export default function Finans() {
         yon: 'cikis',
         santiyeId: m.santiye_id || 'genel',
         santiyeAd: sAd,
-        kisi: m.odenen_kisi || '',
+        kisi: m.odenen_kisi || taseronlar.find((t) => t.id === m.cari_id)?.ad || '',
         kategori: m.masraf_kategorileri?.ad || '',
         hesapBilgisi: m.odeme_yontemleri?.ad || '',
         ekleyen: m.profiles?.ad_soyad || '',
@@ -1328,7 +1407,7 @@ export default function Finans() {
     }
 
     return liste
-  }, [masraflar, gelirler, kasaIslemleri, cekler, danismanlikVeri, danismanlikProjeleri, santiyeler, kullanicilar, isSantiyeSefi])
+  }, [masraflar, gelirler, kasaIslemleri, cekler, danismanlikVeri, danismanlikProjeleri, santiyeler, taseronlar, kullanicilar, isSantiyeSefi])
 
   // Filtrelenmiş & Sıralanmış Timeline
   const filtrelenmisTimeline = useMemo(() => {
@@ -1922,11 +2001,11 @@ export default function Finans() {
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginBottom: 10 }}>
                       <div>
-                        <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Ödenen Kişi / Firma (Cari)</label>
+                        <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Ödenen Kişi / Firma (Cari) *</label>
                         <CariAramaSecici
-                          value={gOdenenKisi}
-                          onChange={(isim, cariId) => { setGOdenenKisi(isim); setGCariId(cariId || null) }}
-                          placeholder="Firma veya kişi ara..."
+                          deger={gOdenenKisi}
+                          onDegisti={(isim, cariId) => { setGOdenenKisi(isim); setGCariId(cariId || null) }}
+                          placeholder="Firma veya kişi ara (kayıtlı carilerden önerir)..."
                         />
                       </div>
 
@@ -1954,20 +2033,29 @@ export default function Finans() {
                       )}
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, alignItems: 'center' }}>
-                      <input type="text" placeholder="Açıklama / Not (isteğe bağlı)..." value={gAciklama} onChange={(e) => setGAciklama(e.target.value)} style={INPUT_STIL} />
+                    <div style={{ marginBottom: 10 }}>
+                      <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Açıklama / Not (İsteğe Bağlı)</label>
+                      <textarea
+                        rows={2}
+                        placeholder="Harcama detayı, açıklama veya not yazın..."
+                        value={gAciklama}
+                        onChange={(e) => setGAciklama(e.target.value)}
+                        style={{ ...INPUT_STIL, height: 'auto', padding: '10px 12px', fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.4 }}
+                      />
+                    </div>
 
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         <label style={{ padding: '0 12px', height: 40, borderRadius: 10, border: '1px solid #CBD5E1', background: gFotograf ? '#DCFCE7' : '#F8FAFC', color: gFotograf ? '#166534' : '#334155', fontSize: 12.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                          📎 {gFotograf ? 'Belge Hazır ✓' : 'Belge / Fiş'}
+                          📎 {gFotograf ? 'Belge Hazır ✓' : 'Belge / Fiş Ekle'}
                           <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(e) => setGFotograf(e.target.files?.[0] || null)} />
                         </label>
-                        <button type="button" onClick={() => panodanGorselYapistir(setGFotograf)} title="Panodan Görsel Yapıştır (Ctrl+V)" style={{ height: 40, padding: '0 10px', borderRadius: 10, border: '1px solid #CBD5E1', background: '#F8FAFC', cursor: 'pointer', fontSize: 13 }}>
-                          📋
+                        <button type="button" onClick={() => panodanGorselYapistir(setGFotograf)} title="Panodan Görsel Yapıştır (Ctrl+V)" style={{ height: 40, padding: '0 12px', borderRadius: 10, border: '1px solid #CBD5E1', background: '#F8FAFC', cursor: 'pointer', fontSize: 13 }}>
+                          📋 Yapıştır
                         </button>
                       </div>
 
-                      <button type="submit" disabled={yukleniyor} style={{ height: 40, padding: '0 22px', borderRadius: 10, border: 'none', background: '#E11D48', color: '#FFF', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      <button type="submit" disabled={yukleniyor} style={{ flex: '1 1 170px', maxWidth: 260, height: 42, padding: '0 22px', borderRadius: 10, border: 'none', background: '#E11D48', color: '#FFF', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                         {yukleniyor ? 'Kaydediliyor...' : '💸 Gideri Kaydet'}
                       </button>
                     </div>
@@ -2012,11 +2100,11 @@ export default function Finans() {
                       </div>
 
                       <div>
-                        <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Ödeme Yapan / Cari</label>
+                        <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Ödeme Yapan / Cari *</label>
                         <CariAramaSecici
-                          value={glOdemeYapan}
-                          onChange={(isim, cariId) => { setGlOdemeYapan(isim); setGlCariId(cariId || null) }}
-                          placeholder="Ödeme yapan kişi/kurum..."
+                          deger={glOdemeYapan}
+                          onDegisti={(isim, cariId) => { setGlOdemeYapan(isim); setGlCariId(cariId || null) }}
+                          placeholder="Ödeme yapan kişi/kurum ara..."
                         />
                       </div>
 
@@ -2100,20 +2188,29 @@ export default function Finans() {
                       </div>
                     )}
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, alignItems: 'center' }}>
-                      <input type="text" placeholder="Tahsilat notu..." value={glNot} onChange={(e) => setGlNot(e.target.value)} style={INPUT_STIL} />
+                    <div style={{ marginBottom: 10 }}>
+                      <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Açıklama / Tahsilat Notu (İsteğe Bağlı)</label>
+                      <textarea
+                        rows={2}
+                        placeholder="Tahsilat detayı, açıklama veya not yazın..."
+                        value={glNot}
+                        onChange={(e) => setGlNot(e.target.value)}
+                        style={{ ...INPUT_STIL, height: 'auto', padding: '10px 12px', fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.4 }}
+                      />
+                    </div>
 
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         <label style={{ padding: '0 12px', height: 40, borderRadius: 10, border: '1px solid #CBD5E1', background: glBelge ? '#DCFCE7' : '#F8FAFC', color: glBelge ? '#166534' : '#334155', fontSize: 12.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                          📎 {glBelge ? 'Dekont Hazır ✓' : 'Dekont / Belge'}
+                          📎 {glBelge ? 'Dekont Hazır ✓' : 'Dekont / Belge Ekle'}
                           <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(e) => setGlBelge(e.target.files?.[0] || null)} />
                         </label>
-                        <button type="button" onClick={() => panodanGorselYapistir(setGlBelge)} title="Panodan Görsel Yapıştır" style={{ height: 40, padding: '0 10px', borderRadius: 10, border: '1px solid #CBD5E1', background: '#F8FAFC', cursor: 'pointer', fontSize: 13 }}>
-                          📋
+                        <button type="button" onClick={() => panodanGorselYapistir(setGlBelge)} title="Panodan Görsel Yapıştır" style={{ height: 40, padding: '0 12px', borderRadius: 10, border: '1px solid #CBD5E1', background: '#F8FAFC', cursor: 'pointer', fontSize: 13 }}>
+                          📋 Yapıştır
                         </button>
                       </div>
 
-                      <button type="submit" disabled={yukleniyor} style={{ height: 40, padding: '0 22px', borderRadius: 10, border: 'none', background: '#059669', color: '#FFF', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      <button type="submit" disabled={yukleniyor} style={{ flex: '1 1 170px', maxWidth: 260, height: 42, padding: '0 22px', borderRadius: 10, border: 'none', background: '#059669', color: '#FFF', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                         {yukleniyor ? 'Kaydediliyor...' : '💰 Geliri Kaydet'}
                       </button>
                     </div>
@@ -2188,9 +2285,18 @@ export default function Finans() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10 }}>
-                      <input type="text" placeholder="Transfer / mutabakat açıklaması..." value={vNot} onChange={(e) => setVNot(e.target.value)} style={INPUT_STIL} />
-                      <button type="submit" disabled={yukleniyor} style={{ height: 40, padding: '0 22px', borderRadius: 10, border: 'none', background: '#2563EB', color: '#FFF', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    <div style={{ marginBottom: 10 }}>
+                      <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Açıklama / Not (İsteğe Bağlı)</label>
+                      <textarea
+                        rows={2}
+                        placeholder="Transfer veya mutabakat açıklaması yazın..."
+                        value={vNot}
+                        onChange={(e) => setVNot(e.target.value)}
+                        style={{ ...INPUT_STIL, height: 'auto', padding: '10px 12px', fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.4 }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <button type="submit" disabled={yukleniyor} style={{ width: '100%', maxWidth: 260, height: 42, padding: '0 22px', borderRadius: 10, border: 'none', background: '#2563EB', color: '#FFF', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                         {yukleniyor ? 'Kaydediliyor...' : '🔄 İşlemi Kaydet'}
                       </button>
                     </div>
@@ -2422,20 +2528,29 @@ export default function Finans() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, alignItems: 'center' }}>
-                      <input type="text" placeholder="Ek not (isteğe bağlı)..." value={ycNot} onChange={(e) => setYcNot(e.target.value)} style={INPUT_STIL} />
+                    <div style={{ marginBottom: 10 }}>
+                      <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Ek Açıklama / Not (İsteğe Bağlı)</label>
+                      <textarea
+                        rows={2}
+                        placeholder="Ek açıklama veya mutabakat notu yazın..."
+                        value={ycNot}
+                        onChange={(e) => setYcNot(e.target.value)}
+                        style={{ ...INPUT_STIL, height: 'auto', padding: '10px 12px', fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.4 }}
+                      />
+                    </div>
 
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         <label style={{ padding: '0 12px', height: 40, borderRadius: 10, border: '1px solid #CBD5E1', background: ycBelge ? '#DCFCE7' : '#F8FAFC', color: ycBelge ? '#166534' : '#334155', fontSize: 12.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                          📎 {ycBelge ? 'Belge Hazır ✓' : 'Belge / Dekont'}
+                          📎 {ycBelge ? 'Belge Hazır ✓' : 'Belge / Dekont Ekle'}
                           <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={(e) => setYcBelge(e.target.files?.[0] || null)} />
                         </label>
-                        <button type="button" onClick={() => panodanGorselYapistir(setYcBelge)} title="Panodan Görsel Yapıştır" style={{ height: 40, padding: '0 10px', borderRadius: 10, border: '1px solid #CBD5E1', background: '#F8FAFC', cursor: 'pointer', fontSize: 13 }}>
-                          📋
+                        <button type="button" onClick={() => panodanGorselYapistir(setYcBelge)} title="Panodan Görsel Yapıştır" style={{ height: 40, padding: '0 12px', borderRadius: 10, border: '1px solid #CBD5E1', background: '#F8FAFC', cursor: 'pointer', fontSize: 13 }}>
+                          📋 Yapıştır
                         </button>
                       </div>
 
-                      <button type="submit" disabled={yukleniyor} style={{ height: 40, padding: '0 22px', borderRadius: 10, border: 'none', background: '#4F46E5', color: '#FFF', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      <button type="submit" disabled={yukleniyor} style={{ flex: '1 1 180px', maxWidth: 260, height: 42, padding: '0 22px', borderRadius: 10, border: 'none', background: '#4F46E5', color: '#FFF', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                         {yukleniyor ? 'Kaydediliyor...' : '💼 Danışmanlığa Kaydet'}
                       </button>
                     </div>
@@ -2647,25 +2762,33 @@ export default function Finans() {
                           }}>
                             {duzenleniyor ? (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8 }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 8 }}>
                                   {item.kaynak === 'gider' && (
                                     <input type="text" value={duzForm.baslik || ''} onChange={(e) => setDuzForm((p) => ({ ...p, baslik: e.target.value }))} placeholder="Başlık" style={INPUT_STIL} />
                                   )}
                                   <input type="text" value={duzForm.tutar || ''} onChange={(e) => setDuzForm((p) => ({ ...p, tutar: formatInputTutar(e.target.value) }))} onKeyDown={sadeceSayiTuslari} placeholder="Tutar" style={INPUT_STIL} />
                                   <input type="date" value={duzForm.tarih || ''} onChange={(e) => setDuzForm((p) => ({ ...p, tarih: e.target.value }))} style={INPUT_STIL} />
                                   {item.kaynak === 'gider' && (
-                                    <input type="text" value={duzForm.odenen_kisi || ''} onChange={(e) => setDuzForm((p) => ({ ...p, odenen_kisi: e.target.value }))} placeholder="Ödenen Kişi" style={INPUT_STIL} />
+                                    <CariAramaSecici
+                                      deger={duzForm.odenen_kisi || ''}
+                                      onDegisti={(isim, cid) => setDuzForm((p) => ({ ...p, odenen_kisi: isim, cari_id: cid || null }))}
+                                      placeholder="Ödenen Kişi / Cari ara..."
+                                    />
                                   )}
                                   {item.kaynak === 'gelir' && (
-                                    <input type="text" value={duzForm.odeme_yapan_adi || ''} onChange={(e) => setDuzForm((p) => ({ ...p, odeme_yapan_adi: e.target.value }))} placeholder="Ödeme Yapan" style={INPUT_STIL} />
+                                    <CariAramaSecici
+                                      deger={duzForm.odeme_yapan_adi || ''}
+                                      onDegisti={(isim, cid) => setDuzForm((p) => ({ ...p, odeme_yapan_adi: isim, cari_id: cid || null }))}
+                                      placeholder="Ödeme Yapan / Cari ara..."
+                                    />
                                   )}
                                 </div>
-                                <input
-                                  type="text"
+                                <textarea
+                                  rows={2}
                                   value={item.kaynak === 'gider' ? (duzForm.aciklama || '') : (duzForm.not_metni || '')}
                                   onChange={(e) => setDuzForm((p) => item.kaynak === 'gider' ? { ...p, aciklama: e.target.value } : { ...p, not_metni: e.target.value })}
                                   placeholder="Açıklama / Not"
-                                  style={INPUT_STIL}
+                                  style={{ ...INPUT_STIL, height: 'auto', padding: '8px 12px', fontFamily: 'inherit', resize: 'vertical' }}
                                 />
                                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                                   <button type="button" onClick={() => setDuzenlenenKey(null)} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #CBD5E1', background: '#FFF', cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }}>İptal</button>
@@ -2674,67 +2797,116 @@ export default function Finans() {
                               </div>
                             ) : (
                               <>
-                                {/* Kart Üst Satır */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
-                                  <div style={{ flex: 1, minWidth: 200 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+                                {/* 1. SATIR: ÖNEMLİ BİLGİLER (TÜR + ŞANTİYE* + HARCAMA NOKTASI* | TUTAR) */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: 1, minWidth: 180 }}>
+                                    <span style={{
+                                      fontSize: 10.5,
+                                      fontWeight: 800,
+                                      padding: '3px 8px',
+                                      borderRadius: 6,
+                                      background: item.bg,
+                                      color: item.renk,
+                                      border: `1px solid ${item.border}`
+                                    }}>
+                                      {item.etiket}
+                                    </span>
+
+                                    {item.santiyeAd && (
                                       <span style={{
-                                        fontSize: 10.5,
+                                        fontSize: 12,
                                         fontWeight: 800,
-                                        padding: '2px 8px',
-                                        borderRadius: 6,
-                                        background: item.bg,
-                                        color: item.renk,
-                                        border: `1px solid ${item.border}`
+                                        padding: '3px 9px',
+                                        borderRadius: 7,
+                                        background: '#E6F9F0',
+                                        color: '#0F6E56',
+                                        border: '1px solid #A7F3D0'
                                       }}>
-                                        {item.etiket}
+                                        {item.kaynak === 'danismanlik' ? '💼' : item.kaynak === 'virman' ? '🏦' : '🏗️'} {item.santiyeAd}
                                       </span>
+                                    )}
 
-                                      {item.santiyeAd && (
-                                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: '#F1F5F9', color: '#334155' }}>
-                                          {item.kaynak === 'danismanlik' ? '💼' : item.kaynak === 'virman' ? '🏦' : '🏗️'} {item.santiyeAd}
-                                        </span>
-                                      )}
-
-                                      {item.hesapBilgisi && (
-                                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: '#F8FAFC', color: '#475569', border: '1px solid #E2E8F0' }}>
-                                          {item.hesapBilgisi}
-                                        </span>
-                                      )}
-                                    </div>
-
-                                    <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0F172A', lineHeight: 1.35 }}>
-                                      {item.baslik}
-                                    </div>
-
-                                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 4, fontSize: 12, color: '#64748B' }}>
-                                      {item.kisi && <span>👤 {item.kisi}</span>}
-                                      {item.kategori && <span>📁 {item.kategori}</span>}
-                                      {item.ekleyen && <span>✍️ {item.ekleyen}</span>}
-                                    </div>
-
-                                    {item.notMetni && (
-                                      <div style={{ marginTop: 6, fontSize: 12.5, color: '#475569', background: '#F8FAFC', padding: '6px 10px', borderRadius: 8 }}>
-                                        📝 {item.notMetni}
-                                      </div>
+                                    {item.hesapBilgisi && (
+                                      <span style={{
+                                        fontSize: 11.5,
+                                        fontWeight: 700,
+                                        padding: '3px 9px',
+                                        borderRadius: 7,
+                                        background: '#EFF6FF',
+                                        color: '#1E40AF',
+                                        border: '1px solid #BFDBFE'
+                                      }}>
+                                        💳 {item.hesapBilgisi}
+                                      </span>
                                     )}
                                   </div>
 
-                                  {/* Sağ Tutar ve Kayıt Zamanı */}
-                                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                    <div style={{ fontSize: 17, fontWeight: 800, color: item.renk }}>
-                                      {item.yon === 'cikis' ? '-' : item.yon === 'giris' ? '+' : ''}
-                                      {paraFormatla(item.tutar)} ₺
+                                  <div style={{ fontSize: 18, fontWeight: 800, color: item.renk, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                    {item.yon === 'cikis' ? '-' : item.yon === 'giris' ? '+' : ''}
+                                    {paraFormatla(item.tutar)} ₺
+                                  </div>
+                                </div>
+
+                                {/* 2. SATIR: ÖDEME YAPILAN / YAPAN KİŞİ* (EN BELİRGİN) & BAŞLIK */}
+                                <div style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 4,
+                                  padding: '8px 10px',
+                                  borderRadius: 10,
+                                  background: '#F8FAFC',
+                                  border: '1px solid #E2E8F0',
+                                  marginBottom: 8
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                                    <div style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <span>👤</span>
+                                      <span>
+                                        {item.kisi
+                                          ? `${item.kaynak === 'gider' ? 'Ödenen: ' : item.kaynak === 'gelir' ? 'Ödeme Yapan: ' : ''}${item.kisi}`
+                                          : (item.kaynak === 'gider' || item.kaynak === 'gelir' ? 'Cari / Kişi Belirtilmemiş' : item.baslik)}
+                                      </span>
                                     </div>
-                                    <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, marginTop: 3 }}>
-                                      🕒 Kayıt: {kayitZamaniFormatla(item.kayitTarihi || item.tarih)}
-                                    </div>
-                                    {item.tarih && (
-                                      <div style={{ fontSize: 10.5, color: '#94A3B8', marginTop: 1 }}>
-                                        📅 İşlem: {new Date(`${item.tarih.slice(0, 10)}T12:00:00`).toLocaleDateString('tr-TR')}
-                                      </div>
+                                    {!item.kisi && (item.kaynak === 'gider' || item.kaynak === 'gelir') && (
+                                      <button
+                                        type="button"
+                                        onClick={() => duzenlemeBaslat(item)}
+                                        style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, border: '1px solid #FDE68A', background: '#FEF3C7', color: '#B45309', cursor: 'pointer' }}
+                                      >
+                                        + Cari Ata
+                                      </button>
                                     )}
                                   </div>
+
+                                  {item.baslik && (
+                                    <div style={{ fontSize: 13, fontWeight: 600, color: '#334155', lineHeight: 1.35 }}>
+                                      📌 {item.baslik}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* 3. SATIR: TARİHLER* (İŞLEM TARİHİ & KAYIT TARİH/SAATİ) */}
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                                  {item.tarih && (
+                                    <span style={{ fontSize: 11.5, fontWeight: 700, color: '#1E293B', background: '#F1F5F9', padding: '3px 8px', borderRadius: 6 }}>
+                                      📅 İşlem: {new Date(`${item.tarih.slice(0, 10)}T12:00:00`).toLocaleDateString('tr-TR')}
+                                    </span>
+                                  )}
+                                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', background: '#F1F5F9', padding: '3px 8px', borderRadius: 6 }}>
+                                    🕒 Kayıt: {kayitZamaniFormatla(item.kayitTarihi || item.tarih)}
+                                  </span>
+                                </div>
+
+                                {/* 4. SATIR: AÇIKLAMA & İKİNCİL DETAYLAR (KAYDEDEN / KATEGORİ) */}
+                                {item.notMetni && (
+                                  <div style={{ marginTop: 4, marginBottom: 6, fontSize: 12.5, color: '#475569', background: '#FFFDF7', border: '1px solid #F1EFE8', padding: '6px 10px', borderRadius: 8, lineHeight: 1.4 }}>
+                                    📝 {item.notMetni}
+                                  </div>
+                                )}
+
+                                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 11.5, color: '#64748B' }}>
+                                  {item.kategori && <span>📁 {item.kategori}</span>}
+                                  {item.ekleyen && <span>✍️ Kaydeden: {item.ekleyen}</span>}
                                 </div>
 
                                 {/* Kart Alt Aksiyon Çubuğu */}
