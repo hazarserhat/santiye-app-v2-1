@@ -39,3 +39,4 @@ gün-ay-yıl-saat-dakika-saniye-ADSOYAD-uniqueId.UZANTI
 - **Muhasebe — Çalışanlar (SGK)** (`src/pages/Muhasebe.jsx`): `Muhasebe/Calisanlar/{Ad Soyad}`
 - **Muhasebe — Fatura İşlemleri** (`src/pages/Muhasebe.jsx`): `Muhasebe/FaturaIslemleri/{Şantiye Adı}`
 - **Muhasebe — Gelen Fatura/İrsaliyeler** (`src/pages/Muhasebe.jsx`): `Muhasebe/GelenBelgeler/{Şantiye Adı}`
+- **Asistan Chat & Otomasyon Denetim** (`src/pages/OtomasyonMerkezi.jsx`): `AsistanChat/{YYYY-MM-DD}`

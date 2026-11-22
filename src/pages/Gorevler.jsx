@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
@@ -1007,6 +1008,26 @@ export default function Gorevler() {
           </div>
 
           {/* ARŞİV BUTONU (ÜST BARDA) */}
+          <Link
+            to="/otomasyon"
+            style={{
+              fontSize: 12,
+              padding: '8px 12px',
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, #0F766E, #1D9596)',
+              color: '#ffffff',
+              textDecoration: 'none',
+              boxShadow: '0 2px 6px rgba(15, 118, 110, 0.25)',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5
+            }}
+            title="Asistan Chat & Otomasyon Denetim Merkezi"
+          >
+            🤖 Asistan &amp; Denetim
+          </Link>
+
           <button 
             onClick={() => setArsivAcik(true)} 
             style={{ 

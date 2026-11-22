@@ -206,6 +206,14 @@ export default function AltMenu() {
       renk: '#4f46e5',
       bg: '#e0e7ff'
     },
+    {
+      yol: '/otomasyon',
+      etiket: 'Asistan Chat & Otomasyon Denetim',
+      aciklama: 'Fiş/kartvizit/söz paylaş, soru sor ve ajan taslaklarını onayla',
+      simge: '🤖',
+      renk: '#0f766e',
+      bg: '#ccfbf1'
+    },
   ]
 
   const isFinansAktif = finansAltOgeleri.some(item => location.pathname === item.yol)
