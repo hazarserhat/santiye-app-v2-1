@@ -707,13 +707,17 @@ export default function Finans() {
       kayit_tarihi: new Date().toISOString()
     }
 
-    let { error } = await supabase.from('gelirler').insert(gelirPayload)
-    if (error && (error.message.includes('is_otopark_harci') || error.message.includes('harc_turu') || error.message.includes('kayit_tarihi'))) {
-      if (error.message.includes('is_otopark_harci')) delete gelirPayload.is_otopark_harci
-      if (error.message.includes('harc_turu')) delete gelirPayload.harc_turu
-      if (error.message.includes('kayit_tarihi')) delete gelirPayload.kayit_tarihi
-      const fb = await supabase.from('gelirler').insert(gelirPayload)
-      error = fb.error
+    let error = null
+    for (let deneme = 0; deneme < 6; deneme++) {
+      const res = await supabase.from('gelirler').insert(gelirPayload)
+      error = res.error
+      if (!error) break
+      const eslesme = error.message?.match(/Could not find the '([^']+)' column/i)
+      if (eslesme && eslesme[1] && Object.prototype.hasOwnProperty.call(gelirPayload, eslesme[1])) {
+        delete gelirPayload[eslesme[1]]
+        continue
+      }
+      break
     }
 
     if (error) {
