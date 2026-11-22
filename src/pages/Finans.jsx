@@ -2972,7 +2972,7 @@ export default function Finans() {
                                     )}
                                   </div>
 
-                                  {/* SAĞ TARAF: TUTAR (MASAÜSTÜ) + İŞLEM TARİHİ + KAYIT BİLGİSİ (i) */}
+                                  {/* SAĞ TARAF: TUTAR (MASAÜSTÜ) + TARİH & KAYIT BİLGİSİ */}
                                   <div className="finans-kart-sag">
                                     <div className="finans-sag-tutar" style={{ color: item.renk }}>
                                       {item.yon === 'cikis' ? '-' : item.yon === 'giris' ? '+' : ''}
@@ -2982,12 +2982,14 @@ export default function Finans() {
                                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, position: 'relative' }}>
                                       {item.tarih && (
                                         <span style={{ fontSize: 11, fontWeight: 700, color: '#1E293B', background: '#F1F5F9', padding: '3px 8px', borderRadius: 7, whiteSpace: 'nowrap' }}>
-                                          📅 {new Date(`${item.tarih.slice(0, 10)}T12:00:00`).toLocaleDateString('tr-TR')}
+                                          📅 İşlem: {new Date(`${item.tarih.slice(0, 10)}T12:00:00`).toLocaleDateString('tr-TR')}
                                         </span>
                                       )}
 
+                                      {/* Mobilde Kayıt Bilgisi (i) Butonu */}
                                       <button
                                         type="button"
+                                        className="finans-mobil-bilgi-btn"
                                         onClick={() => setBilgiMenuKey(bilgiMenuKey === item.key ? null : item.key)}
                                         title="Kayıt tarihi ve kaydeden bilgisi"
                                         aria-label="Kayıt tarihi ve kaydeden bilgisi"
@@ -3002,7 +3004,6 @@ export default function Finans() {
                                           fontWeight: 800,
                                           fontStyle: 'italic',
                                           fontFamily: 'Georgia, serif',
-                                          display: 'inline-flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
                                           cursor: 'pointer',
@@ -3041,6 +3042,18 @@ export default function Finans() {
                                             </div>
                                           </div>
                                         </div>
+                                      )}
+                                    </div>
+
+                                    {/* Masaüstünde Doğrudan Görünür Kayıt Tarihi & Kaydeden */}
+                                    <div className="finans-masaustu-bilgi">
+                                      <span style={{ fontSize: 10.5, fontWeight: 600, color: '#475569', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '2px 7px', borderRadius: 6, whiteSpace: 'nowrap' }}>
+                                        🕒 Kayıt: {kayitZamaniFormatla(item.kayitTarihi || item.tarih)}
+                                      </span>
+                                      {item.ekleyen && (
+                                        <span style={{ fontSize: 11, fontWeight: 600, color: '#64748B', whiteSpace: 'nowrap' }}>
+                                          ✍️ {item.ekleyen}
+                                        </span>
                                       )}
                                     </div>
                                   </div>
