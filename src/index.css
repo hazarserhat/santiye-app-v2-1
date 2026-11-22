@@ -8144,3 +8144,138 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   border-radius: 10px;
   padding: 8px 12px;
 }
+
+/* =========================================================
+   FİNANS MERKEZİ & TİMELİNE — MASAÜSTÜ + MOBİL RESPONSIVE
+   ========================================================= */
+.finans-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.finans-kpi-kart {
+  position: relative;
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 14px 16px;
+  cursor: pointer;
+}
+.finans-kpi-deger {
+  font-size: 20px;
+  font-weight: 800;
+  margin-top: 4px;
+}
+.finans-filtre-satiri {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1fr;
+  gap: 8px;
+}
+.finans-timeline-ray {
+  position: relative;
+  padding-left: 24px;
+  border-left: 2.5px solid #CBD5E1;
+  margin-left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.finans-timeline-nokta {
+  position: absolute;
+  left: -32px;
+  top: 16px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 3px solid #FFFFFF;
+}
+.finans-kart-govde {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.finans-kart-sol {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.finans-kart-sag {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  gap: 4px;
+  flex-shrink: 0;
+  min-width: 165px;
+}
+.finans-mobil-tutar {
+  display: none;
+  font-size: 16px;
+  font-weight: 800;
+  white-space: nowrap;
+  margin-left: auto;
+}
+.finans-sag-tutar {
+  font-size: 18px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .finans-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .finans-kpi-kart {
+    padding: 10px 12px;
+    border-radius: 13px;
+  }
+  .finans-kpi-deger {
+    font-size: 15.5px;
+  }
+  .finans-filtre-satiri {
+    grid-template-columns: 1fr;
+  }
+  .finans-timeline-ray {
+    padding-left: 13px;
+    margin-left: 4px;
+    border-left-width: 2px;
+    gap: 8px;
+  }
+  .finans-timeline-nokta {
+    left: -19px;
+    top: 14px;
+    width: 10px;
+    height: 10px;
+    border-width: 2px;
+  }
+  .finans-kart-govde {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .finans-kart-sol {
+    flex: 1 1 auto;
+    width: 100%;
+    gap: 6px;
+  }
+  .finans-mobil-tutar {
+    display: inline-block;
+  }
+  .finans-sag-tutar {
+    display: none;
+  }
+  .finans-kart-sag {
+    width: 100%;
+    min-width: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 6px;
+  }
+}
