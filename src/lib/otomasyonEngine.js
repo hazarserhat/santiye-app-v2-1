@@ -89,8 +89,8 @@ async function canliBaglamTopla(santiyeler = []) {
   ] = await Promise.all([
     supabase.from('taseronlar').select('id, ad, firma, telefon, sifat, kategori').order('ad').limit(200),
     supabase.from('odeme_yontemleri').select('id, ad').order('ad'),
-    supabase.from('masraflar').select('id, baslik, tutar, harcama_tarihi, santiye_id, kisi_firma, aciklama').order('harcama_tarihi', { ascending: false }).limit(80),
-    supabase.from('gelirler').select('id, tutar, tarih, santiye_id, tahsilat_noktasi, aciklama').order('tarih', { ascending: false }).limit(50),
+    supabase.from('masraflar').select('id, baslik, tutar, harcama_tarihi, santiye_id, odenen_kisi, aciklama').order('harcama_tarihi', { ascending: false }).limit(80),
+    supabase.from('gelirler').select('id, tutar, tarih, santiye_id, tahsilat_noktasi, odeme_yapan_adi, not_metni').order('tarih', { ascending: false }).limit(50),
     supabase.from('cekler').select('id, yon, tutar, vade_tarihi, kesideci, banka, durum, santiye_id').order('vade_tarihi', { ascending: true }).limit(50),
     supabase.from('gorevler').select('id, baslik, durum, santiye_id, created_at').neq('durum', 'tamamlandi').limit(60),
     operasyonVerisiYukle(KEY_VERILEN_SOZLER, []),
@@ -119,15 +119,16 @@ async function canliBaglamTopla(santiyeler = []) {
       tarih: m.harcama_tarihi,
       santiye: santiyeMap[m.santiye_id] || 'Genel',
       baslik: m.baslik,
-      kisi: m.kisi_firma || '',
+      kisi: m.odenen_kisi || '',
       tutar: m.tutar,
     })),
     sonGelirler: (gelirRes.data || []).map((g) => ({
       tarih: g.tarih,
       santiye: santiyeMap[g.santiye_id] || 'Genel',
       nokta: g.tahsilat_noktasi || '',
+      kisi: g.odeme_yapan_adi || '',
       tutar: g.tutar,
-      aciklama: g.aciklama || '',
+      aciklama: g.not_metni || '',
     })),
     cekler: (cekRes.data || []).map((c) => ({
       yon: c.yon,
@@ -368,15 +369,16 @@ export async function denetimKaydiniIsle(kayit, { santiyeler = [], profile = nul
       .insert({
         santiye_id: santiye?.id || null,
         baslik: v.baslik || kayit.ozet || 'Harcama',
-        kisi_firma: v.kisi || null,
+        odenen_kisi: v.kisi || '',
         cari_id: cariId,
         tutar: Number(v.tutar) || 0,
+        taksit_sayisi: 1,
         harcama_tarihi: v.tarih || bugun(),
         kayit_tarihi: new Date().toISOString(),
         odeme_yontemi_id: odemeId,
-        aciklama: v.aciklama || null,
-        belge_url: kayit.belgeUrl || null,
-        ekleyen_ad: ekleyen,
+        aciklama: v.aciklama || '',
+        fotograf_url: kayit.belgeUrl || null,
+        ekleyen: profile?.id || null,
       })
       .select('id')
       .single()
@@ -391,21 +393,25 @@ export async function denetimKaydiniIsle(kayit, { santiyeler = [], profile = nul
       const eslesen = (cariler || []).find((c) => normTr(c.firma || c.ad).includes(normTr(v.kisi)))
       if (eslesen) cariId = eslesen.id
     }
-    const { data, error } = await supabase
-      .from('gelirler')
-      .insert({
-        santiye_id: santiye?.id || null,
-        tutar: Number(v.tutar) || 0,
-        tarih: v.tarih || bugun(),
-        kayit_tarihi: new Date().toISOString(),
-        tahsilat_noktasi: v.tahsilatNoktasi || 'Serhat Kasa',
-        aciklama: [v.baslik, v.kisi, v.aciklama].filter(Boolean).join(' — '),
-        cari_id: cariId,
-        belge_url: kayit.belgeUrl || null,
-        ekleyen_ad: ekleyen,
-      })
-      .select('id')
-      .single()
+    const gelirPayload = {
+      santiye_id: santiye?.id || null,
+      tutar: Number(v.tutar) || 0,
+      tarih: v.tarih || bugun(),
+      kayit_tarihi: new Date().toISOString(),
+      tahsilat_noktasi: v.tahsilatNoktasi || 'Serhat Kasa',
+      odeme_yapan_adi: v.kisi || v.baslik || '',
+      not_metni: [v.baslik, v.aciklama].filter(Boolean).join(' — '),
+      cari_id: cariId,
+      belge_url: kayit.belgeUrl || null,
+      ekleyen: profile?.id || null,
+    }
+    let { data, error } = await supabase.from('gelirler').insert(gelirPayload).select('id').single()
+    if (error && error.message?.includes('kayit_tarihi')) {
+      delete gelirPayload.kayit_tarihi
+      const retry = await supabase.from('gelirler').insert(gelirPayload).select('id').single()
+      data = retry.data
+      error = retry.error
+    }
     if (error) throw error
     return { mesaj: `Finans → Gelirler tablosuna işlendi (${paraFormatla(v.tutar || 0)} ₺)`, kayitId: data?.id }
   }
@@ -459,13 +465,26 @@ export async function denetimKaydiniIsle(kayit, { santiyeler = [], profile = nul
       .insert({
         baslik: v.baslik || kayit.ozet,
         santiye_id: santiye?.id || null,
-        durum: 'bekliyor',
-        fotograf_url: kayit.belgeUrl || null,
-        olusturan_id: profile?.id || null,
+        olusturan: profile?.id || null,
+        aciklama: kayit.belgeUrl ? `IMAGE_URL:${kayit.belgeUrl}` : null,
       })
       .select('id')
       .single()
     if (error) throw error
+    if (data?.id) {
+      await supabase.from('gorev_etiketleri').insert({
+        gorev_id: data.id,
+        etiket_turu: 'oncelik',
+        deger: ['kirmizi', 'turuncu', 'sari', 'yesil'].includes(v.oncelik) ? v.oncelik : 'sari',
+      })
+      if (kayit.belgeUrl) {
+        await supabase.from('gorev_etiketleri').insert({
+          gorev_id: data.id,
+          etiket_turu: 'fotograf',
+          deger: kayit.belgeUrl,
+        })
+      }
+    }
     return { mesaj: 'Görevler sayfasına eklendi', kayitId: data?.id }
   }
 
