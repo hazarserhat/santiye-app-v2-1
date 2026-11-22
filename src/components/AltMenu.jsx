@@ -206,14 +206,6 @@ export default function AltMenu() {
       renk: '#4f46e5',
       bg: '#e0e7ff'
     },
-    {
-      yol: '/otomasyon',
-      etiket: 'Asistan Chat & Otomasyon Denetim',
-      aciklama: 'Fiş/kartvizit/söz paylaş, soru sor ve ajan taslaklarını onayla',
-      simge: '🤖',
-      renk: '#0f766e',
-      bg: '#ccfbf1'
-    },
   ]
 
   const isFinansAktif = finansAltOgeleri.some(item => location.pathname === item.yol)
@@ -353,6 +345,18 @@ export default function AltMenu() {
               }}>▲</span>
             </span>
           </button>
+        )}
+
+        {/* 2.5 Asistan & Otomasyon Denetim (Portföy ile Görevler Arasında) */}
+        {isSerhatHazar && (
+          <NavLink 
+            to="/otomasyon" 
+            className={({ isActive }) => `alt-menu-oge ${isActive ? 'aktif' : ''}`}
+            title="Asistan Chat & Otomasyon Denetim"
+          >
+            <span className="alt-menu-simge">🤖</span>
+            <span className="alt-menu-etiket">Asistan</span>
+          </NavLink>
         )}
 
         {/* 3. Görevler */}
