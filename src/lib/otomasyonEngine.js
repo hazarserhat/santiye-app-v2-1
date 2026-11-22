@@ -74,87 +74,114 @@ export async function geminiAnahtariKaydet(key) {
 }
 
 // =========================================================
-// CANLI VERİTABANI BAĞLAMI (SORU-CEVAP & EŞLEŞTİRME İÇİN)
+// CANLI VERİTABANI BAĞLAMI (60 SN ÖNBELLEKLİ & AKILLI HAFİF MOD)
 // =========================================================
-async function canliBaglamTopla(santiyeler = []) {
-  const [
-    taseronRes,
-    odemeRes,
-    masrafRes,
-    gelirRes,
-    cekRes,
-    gorevRes,
-    sozlerList,
-    binaRes,
-  ] = await Promise.all([
-    supabase.from('taseronlar').select('id, ad, firma, telefon, sifat, kategori').order('ad').limit(200),
-    supabase.from('odeme_yontemleri').select('id, ad').order('ad'),
-    supabase.from('masraflar').select('id, baslik, tutar, harcama_tarihi, santiye_id, odenen_kisi, aciklama').order('harcama_tarihi', { ascending: false }).limit(80),
-    supabase.from('gelirler').select('id, tutar, tarih, santiye_id, tahsilat_noktasi, odeme_yapan_adi, not_metni').order('tarih', { ascending: false }).limit(50),
-    supabase.from('cekler').select('id, yon, tutar, vade_tarihi, kesideci, banka, durum, santiye_id').order('vade_tarihi', { ascending: true }).limit(50),
-    supabase.from('gorevler').select('id, baslik, durum, santiye_id, created_at').neq('durum', 'tamamlandi').limit(60),
-    operasyonVerisiYukle(KEY_VERILEN_SOZLER, []),
-    supabase.from('sistem_ayarlari').select('deger').eq('anahtar', KEY_BINA_NO).maybeSingle(),
-  ])
+let baglamCache = { zaman: 0, temel: null, detay: null }
+const KEY_GEMINI_MODEL = 'asistan_gemini_aktif_model_v1'
+
+function soruMu(metin = '') {
+  const m = normTr(metin)
+  if (!m) return false
+  return (
+    m.includes('?') ||
+    /\b(kac|nedir|neydi|kim|kimin|hangi|numara|telefon|var mi|ne kadar|toplam|ozet|rapor|liste|bina no|vade|borc|alacak|kalan|goster|sorgula|bul)\b/.test(m)
+  )
+}
+
+async function canliBaglamTopla(santiyeler = [], detayGerekli = false) {
+  const simdi = Date.now()
+  const tazeMi = simdi - baglamCache.zaman < 60000
+
+  if (tazeMi && baglamCache.temel && (!detayGerekli || baglamCache.detay)) {
+    return detayGerekli
+      ? { ...baglamCache.temel, ...baglamCache.detay }
+      : baglamCache.temel
+  }
 
   const santiyeMap = {}
   santiyeler.forEach((s) => { santiyeMap[s.id] = s.ad })
 
-  let binaMap = {}
-  if (binaRes.data?.deger) {
-    try { binaMap = JSON.parse(binaRes.data.deger) || {} } catch { /* ignore */ }
+  // Temel bağlam (her zaman hızlı & çok küçük)
+  let temel = tazeMi ? baglamCache.temel : null
+  if (!temel) {
+    const [taseronRes, odemeRes, binaRes] = await Promise.all([
+      supabase.from('taseronlar').select('ad, firma, telefon').order('ad').limit(150),
+      supabase.from('odeme_yontemleri').select('ad').order('ad'),
+      supabase.from('sistem_ayarlari').select('deger').eq('anahtar', KEY_BINA_NO).maybeSingle(),
+    ])
+
+    let binaMap = {}
+    if (binaRes.data?.deger) {
+      try { binaMap = JSON.parse(binaRes.data.deger) || {} } catch { /* ignore */ }
+    }
+
+    temel = {
+      bugun: bugun(),
+      santiyeler: santiyeler.map((s) => binaMap[s.id] ? `${s.ad} (BinaNo:${binaMap[s.id]})` : s.ad),
+      odemeYontemleri: (odemeRes.data || []).map((o) => o.ad),
+      rehberAdlari: (taseronRes.data || []).map((t) => t.firma || t.ad).filter(Boolean),
+      rehberDetay: (taseronRes.data || [])
+        .filter((t) => t.telefon)
+        .map((t) => `${t.firma || t.ad}: ${String(t.telefon).slice(0, 60)}`),
+    }
+    baglamCache.temel = temel
+    baglamCache.zaman = simdi
+    baglamCache.detay = null
   }
 
-  return {
-    bugun: bugun(),
-    santiyeler: santiyeler.map((s) => ({ id: s.id, ad: s.ad, yarisiBizdenBinaNo: binaMap[s.id] || '' })),
-    odemeYontemleri: (odemeRes.data || []).map((o) => ({ id: o.id, ad: o.ad })),
-    rehber: (taseronRes.data || []).map((t) => ({
-      id: t.id,
-      ad: t.firma || t.ad,
-      telefon: typeof t.telefon === 'string' ? t.telefon.slice(0, 120) : '',
-      hizmet: t.sifat || t.kategori || '',
-    })),
-    sonMasraflar: (masrafRes.data || []).map((m) => ({
-      tarih: m.harcama_tarihi,
-      santiye: santiyeMap[m.santiye_id] || 'Genel',
-      baslik: m.baslik,
-      kisi: m.odenen_kisi || '',
-      tutar: m.tutar,
-    })),
-    sonGelirler: (gelirRes.data || []).map((g) => ({
-      tarih: g.tarih,
-      santiye: santiyeMap[g.santiye_id] || 'Genel',
-      nokta: g.tahsilat_noktasi || '',
-      kisi: g.odeme_yapan_adi || '',
-      tutar: g.tutar,
-      aciklama: g.not_metni || '',
-    })),
-    cekler: (cekRes.data || []).map((c) => ({
-      yon: c.yon,
-      vade: c.vade_tarihi,
-      tutar: c.tutar,
-      kesideci: c.kesideci || '',
-      banka: c.banka || '',
-      durum: c.durum || '',
-      santiye: santiyeMap[c.santiye_id] || 'Genel',
-    })),
-    acikGorevler: (gorevRes.data || []).map((g) => ({
-      santiye: santiyeMap[g.santiye_id] || 'Genel',
-      baslik: g.baslik,
-      durum: g.durum,
-    })),
-    acikSozlerNotlar: (Array.isArray(sozlerList) ? sozlerList : [])
-      .filter((x) => !x.tamamlandi)
-      .slice(0, 40)
-      .map((x) => ({
-        tur: x.tur,
-        santiye: x.santiyeAd || 'Genel',
-        kisi: x.kisi || '',
-        termin: x.terminTarihi || '',
-        icerik: x.icerik,
-      })),
+  if (!detayGerekli) {
+    // Kayıt ekleme modunda telefon detaylarını bile gönderme — süper hızlı!
+    return {
+      bugun: temel.bugun,
+      santiyeler: temel.santiyeler,
+      odemeYontemleri: temel.odemeYontemleri,
+      rehberAdlari: temel.rehberAdlari.slice(0, 120),
+    }
   }
+
+  // Soru-cevap modunda detaylı canlı verileri çek
+  if (!baglamCache.detay) {
+    const [masrafRes, gelirRes, cekRes, gorevRes, sozlerList] = await Promise.all([
+      supabase.from('masraflar').select('baslik, tutar, harcama_tarihi, santiye_id, odenen_kisi').order('harcama_tarihi', { ascending: false }).limit(50),
+      supabase.from('gelirler').select('tutar, tarih, santiye_id, tahsilat_noktasi, odeme_yapan_adi').order('tarih', { ascending: false }).limit(30),
+      supabase.from('cekler').select('yon, tutar, vade_tarihi, kesideci, banka, durum, santiye_id').order('vade_tarihi', { ascending: true }).limit(35),
+      supabase.from('gorevler').select('baslik, durum, santiye_id').neq('durum', 'tamamlandi').limit(35),
+      operasyonVerisiYukle(KEY_VERILEN_SOZLER, []),
+    ])
+
+    baglamCache.detay = {
+      sonMasraflar: (masrafRes.data || []).map((m) => ({
+        t: m.harcama_tarihi,
+        s: santiyeMap[m.santiye_id] || 'Genel',
+        b: m.baslik,
+        k: m.odenen_kisi || '',
+        tl: m.tutar,
+      })),
+      sonGelirler: (gelirRes.data || []).map((g) => ({
+        t: g.tarih,
+        s: santiyeMap[g.santiye_id] || 'Genel',
+        n: g.tahsilat_noktasi || '',
+        k: g.odeme_yapan_adi || '',
+        tl: g.tutar,
+      })),
+      cekler: (cekRes.data || []).map((c) => ({
+        y: c.yon,
+        v: c.vade_tarihi,
+        tl: c.tutar,
+        k: c.kesideci || '',
+        b: c.banka || '',
+        d: c.durum || '',
+        s: santiyeMap[c.santiye_id] || 'Genel',
+      })),
+      acikGorevler: (gorevRes.data || []).map((g) => `${santiyeMap[g.santiye_id] || 'Genel'}: ${g.baslik}`),
+      acikSozlerNotlar: (Array.isArray(sozlerList) ? sozlerList : [])
+        .filter((x) => !x.tamamlandi)
+        .slice(0, 30)
+        .map((x) => `${x.santiyeAd || 'Genel'} | ${x.kisi || ''} | ${x.terminTarihi || ''} | ${x.icerik}`),
+    }
+  }
+
+  return { ...temel, ...baglamCache.detay }
 }
 
 function dosyaToBase64(file) {
@@ -183,7 +210,8 @@ export async function asistanMesajAnalizEt({ metin, dosya, belgeUrl, santiyeler 
     }
   }
 
-  const baglam = await canliBaglamTopla(santiyeler)
+  const detayGerekli = !dosya && soruMu(metin)
+  const baglam = await canliBaglamTopla(santiyeler, detayGerekli)
 
   const sistemPrompt = `Sen "Şantiye App" için çalışan uzman bir inşaat yönetim ve muhasebe asistanısın.
 Bugünün tarihi: ${baglam.bugun}.
@@ -231,28 +259,56 @@ ${JSON.stringify(baglam)}`
     parts.push({ inline_data: { mime_type: inline.mimeType, data: inline.data } })
   }
 
-  const bodyPayload = JSON.stringify({
+  const hizliPayload = JSON.stringify({
     contents: [{ role: 'user', parts }],
     generationConfig: {
-      temperature: 0.2,
+      temperature: 0.15,
+      responseMimeType: 'application/json',
+      thinkingConfig: { thinkingBudget: 0 },
+    },
+  })
+  const standartPayload = JSON.stringify({
+    contents: [{ role: 'user', parts }],
+    generationConfig: {
+      temperature: 0.15,
       responseMimeType: 'application/json',
     },
   })
 
-  const adayModeller = ['gemini-3.8-flash', 'gemini-3.0-flash', 'gemini-2.5-flash']
+  const kayitliModel = (() => {
+    try { return localStorage.getItem(KEY_GEMINI_MODEL) || '' } catch { return '' }
+  })()
+  const adayModeller = [
+    ...(kayitliModel ? [kayitliModel] : []),
+    'gemini-3.8-flash',
+    'gemini-3.0-flash',
+    'gemini-2.5-flash',
+  ].filter((v, i, a) => a.indexOf(v) === i)
+
+  const modelCagir = async (modelAdi) => {
+    let r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelAdi}:generateContent?key=${encodeURIComponent(apiKey)}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: hizliPayload }
+    )
+    // Eğer model thinkingConfig desteklemiyorsa (400), standart payload ile hemen dene
+    if (r.status === 400) {
+      r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelAdi}:generateContent?key=${encodeURIComponent(apiKey)}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: standartPayload }
+      )
+    }
+    return r
+  }
+
   let res = null
   let sonHata = ''
 
   for (const modelAdi of adayModeller) {
-    res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelAdi}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: bodyPayload,
-      }
-    )
-    if (res.ok) break
+    res = await modelCagir(modelAdi)
+    if (res.ok) {
+      try { localStorage.setItem(KEY_GEMINI_MODEL, modelAdi) } catch { /* ignore */ }
+      break
+    }
     sonHata = await res.text()
     if (res.status !== 404) break
   }
@@ -278,15 +334,12 @@ ${JSON.stringify(baglam)}`
           )
           if (uygun?.name) {
             const temizAd = uygun.name.replace(/^models\//, '')
-            res = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/${temizAd}:generateContent?key=${encodeURIComponent(apiKey)}`,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: bodyPayload,
-              }
-            )
-            if (!res.ok) sonHata = await res.text()
+            res = await modelCagir(temizAd)
+            if (res.ok) {
+              try { localStorage.setItem(KEY_GEMINI_MODEL, temizAd) } catch { /* ignore */ }
+            } else {
+              sonHata = await res.text()
+            }
           }
         }
       } catch { /* ignore */ }
