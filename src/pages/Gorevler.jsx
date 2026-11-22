@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useSite } from '../context/SiteContext'
 import { useAuth } from '../context/AuthContext'
 import { uploadToGoogleDrive, moveToSilinenler, compressImage, getGoogleDriveInlineImageUrl, getGoogleDriveViewUrl } from '../lib/googleDrive'
+import VerilenSozlerPanel from '../components/VerilenSozlerPanel'
 
 const DURUMLAR = [
   { deger: 'hepsi', etiket: 'Tümü' },
@@ -371,6 +372,7 @@ export default function Gorevler() {
 
   const [yazdirModaliAcik, setYazdirModaliAcik] = useState(false)
   const [yazdirmaTasarimi, setYazdirmaTasarimi] = useState('tablo') // 'tablo' | 'kart'
+  const [acikSozSayisi, setAcikSozSayisi] = useState(null)
 
   // Touch Swipe State'leri
   const [touchStartX, setTouchStartX] = useState(null)
@@ -976,7 +978,7 @@ export default function Gorevler() {
         </div>
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          {/* Görünüm Değiştirici: Karusel / Liste */}
+          {/* Görünüm Değiştirici: Karusel / Liste / Verilen Sözler & Günlük Notlar */}
           <div className="gorunum-secici" style={{ margin: 0, padding: '2px', background: '#f4f3ed', borderRadius: 10 }}>
             <button 
               className={gorunumModu === 'karusel' ? 'secili-tab' : ''} 
@@ -993,6 +995,14 @@ export default function Gorevler() {
               title="Toplu Liste Görünümü"
             >
               📑 Liste
+            </button>
+            <button 
+              className={gorunumModu === 'sozler' ? 'secili-tab' : ''} 
+              onClick={() => setGorunumModu('sozler')}
+              style={{ fontSize: 11, padding: '6px 10px', borderRadius: 8 }}
+              title="Verilen Sözler ve Günlük Notlar"
+            >
+              🤝 Verilen Sözler / Notlar{acikSozSayisi > 0 ? ` (${acikSozSayisi})` : ''}
             </button>
           </div>
 
@@ -1043,6 +1053,11 @@ export default function Gorevler() {
         </div>
       )}
 
+      {/* VERİLEN SÖZLER / GÜNLÜK NOTLAR ALANI */}
+      {gorunumModu === 'sozler' ? (
+        <VerilenSozlerPanel onSayiDegisti={setAcikSozSayisi} />
+      ) : (
+        <>
       {/* TÜM ŞANTİYELER GÖREV DAĞILIMI & HIZLI SEÇİM IZGARASI (TEK BAKIŞTA TÜM ŞANTİYELER) */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
@@ -1411,6 +1426,8 @@ export default function Gorevler() {
             </button>
           )}
         </div>
+      )}
+        </>
       )}
 
 

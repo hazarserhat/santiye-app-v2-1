@@ -422,7 +422,19 @@ export default function AltMenu() {
           </span>
         </button>
 
-        {/* 8. Yönetim (Sadece Sistem Yöneticisi) */}
+        {/* 8. Muhasebe (Sadece Sistem Yöneticisi & Muhasebeci) */}
+        {profile?.sistem_yoneticisi && (
+          <NavLink 
+            to="/muhasebe" 
+            className={({ isActive }) => `alt-menu-oge ${isActive ? 'aktif' : ''}`}
+            title="Muhasebe (Çalışanlar/SGK, Fatura İşlemleri, Fatura/İrsaliyeler)"
+          >
+            <span className="alt-menu-simge">🧾</span>
+            <span className="alt-menu-etiket">Muhasebe</span>
+          </NavLink>
+        )}
+
+        {/* 9. Yönetim (Sadece Sistem Yöneticisi) */}
         {profile?.sistem_yoneticisi && (
           <NavLink 
             to="/yonetim" 

@@ -36,3 +36,6 @@ gün-ay-yıl-saat-dakika-saniye-ADSOYAD-uniqueId.UZANTI
 - **Sevkiyat Planlama & Kabul** (`src/pages/SevkiyatPlanlama.jsx`): `Sevkiyatlar/{Şantiye Adı}`
 - **İş Makinesi & Hafriyat** (`src/pages/MakineHafriyat.jsx`): `MakineHafriyat/{Şantiye Adı}`
 - **Danışmanlıklar** (`src/pages/Danismanliklar.jsx`): `Danismanliklar/{Proje Adı}`
+- **Muhasebe — Çalışanlar (SGK)** (`src/pages/Muhasebe.jsx`): `Muhasebe/Calisanlar/{Ad Soyad}`
+- **Muhasebe — Fatura İşlemleri** (`src/pages/Muhasebe.jsx`): `Muhasebe/FaturaIslemleri/{Şantiye Adı}`
+- **Muhasebe — Gelen Fatura/İrsaliyeler** (`src/pages/Muhasebe.jsx`): `Muhasebe/GelenBelgeler/{Şantiye Adı}`
