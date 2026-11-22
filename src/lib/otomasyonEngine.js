@@ -314,13 +314,16 @@ ${JSON.stringify(baglam)}`
       break
     }
     sonHata = await res.text()
-    if (modelAdi === kayitliModel && geciciVeyaYok(res.status)) {
+    if (modelAdi === kayitliModel && (geciciVeyaYok(res.status) || res.status === 400)) {
       try { localStorage.removeItem(KEY_GEMINI_MODEL) } catch { /* ignore */ }
     }
     if (!geciciVeyaYok(res.status)) break
   }
 
-  // Adaylar 404 veya 503 (yoğunluk) döndüyse hesaptaki diğer aktif Flash / Flash-Lite modellerini otomatik dene
+  // Adaylar 404 veya 503 (yoğunluk) döndüyse hesaptaki diğer aktif metin/görsel Flash modellerini otomatik dene (TTS/Audio/Image hariç!)
+  const gecersizModelMi = (ad) =>
+    /(tts|audio|image|imagen|veo|embedding|live|robotics|computer-use)/i.test(ad)
+
   if (!res || !res.ok) {
     if (geciciVeyaYok(res?.status)) {
       try {
@@ -330,12 +333,15 @@ ${JSON.stringify(baglam)}`
         if (listRes.ok) {
           const listJson = await listRes.json()
           const adayListesi = (listJson.models || [])
-            .filter(
-              (m) =>
+            .filter((m) => {
+              const ad = String(m.name || '')
+              return (
                 Array.isArray(m.supportedGenerationMethods) &&
                 m.supportedGenerationMethods.includes('generateContent') &&
-                (String(m.name || '').includes('flash') || String(m.name || '').includes('gemini'))
-            )
+                (ad.includes('flash') || ad.includes('gemini')) &&
+                !gecersizModelMi(ad)
+              )
+            })
             .map((m) => String(m.name).replace(/^models\//, ''))
             .filter((ad) => !adayModeller.includes(ad))
             .slice(0, 4)
