@@ -8171,6 +8171,24 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
   grid-template-columns: 2fr 1.2fr 1fr;
   gap: 8px;
 }
+.finans-tek-satir-strip {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.finans-tek-satir-strip::-webkit-scrollbar {
+  display: none;
+}
+.finans-panel-ust {
+  padding: 12px 16px;
+  background: #F8FAFC;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .finans-timeline-ray {
   position: relative;
   padding-left: 24px;
@@ -8238,7 +8256,35 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
     font-size: 15.5px;
   }
   .finans-filtre-satiri {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .finans-filtre-satiri > input {
+    grid-column: 1 / -1;
+  }
+  .finans-tek-satir-strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    width: 100%;
+    padding-bottom: 2px;
+  }
+  .finans-tek-satir-strip > button {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+  .finans-panel-ust {
+    padding: 9px 10px;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  .finans-panel-gizle-btn {
+    flex-shrink: 0;
+    padding: 6px 8px !important;
+    font-size: 11px !important;
   }
   .finans-timeline-ray {
     padding-left: 13px;

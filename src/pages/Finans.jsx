@@ -162,7 +162,7 @@ export default function Finans() {
   const [taseronlar, setTaseronlar] = useState([])
   const [kullanicilar, setKullanicilar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(false)
-  const [panelAcik, setPanelAcik] = useState(true)
+  const [panelAcik, setPanelAcik] = useState(() => (typeof window !== 'undefined' ? window.innerWidth > 640 : true))
 
   // =========================================================
   // VERİ GİRİŞ PANELİ STATE'LERİ
@@ -1817,17 +1817,13 @@ export default function Finans() {
             overflow: 'hidden'
           }}>
             {/* Panel Başlığı ve İşlem Türü Sekmeleri */}
-            <div style={{
-              padding: '12px 16px',
-              background: '#F8FAFC',
-              borderBottom: panelAcik ? '1px solid #E2E8F0' : 'none',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: 10
-            }}>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
+            <div
+              className="finans-panel-ust"
+              style={{
+                borderBottom: panelAcik ? '1px solid #E2E8F0' : 'none'
+              }}
+            >
+              <div className="finans-tek-satir-strip" style={{ flex: 1, minWidth: 0 }}>
                 <button
                   type="button"
                   onClick={() => {
@@ -1946,6 +1942,7 @@ export default function Finans() {
 
               <button
                 type="button"
+                className="finans-panel-gizle-btn"
                 onClick={() => setPanelAcik((p) => !p)}
                 style={{
                   background: '#FFFFFF',
@@ -1955,10 +1952,11 @@ export default function Finans() {
                   fontSize: 12,
                   fontWeight: 600,
                   color: '#475569',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
                 }}
               >
-                {panelAcik ? '▲ Paneli Gizle' : '▼ Veri Girişini Aç'}
+                {panelAcik ? '▲ Gizle' : '▼ Aç'}
               </button>
             </div>
 
@@ -2644,54 +2642,53 @@ export default function Finans() {
             flexDirection: 'column',
             gap: 10
           }}>
-            {/* Tip Seçim Hapları */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {[
-                  { id: 'hepsi', ad: `Tümü (${birlesikTimeline.length})`, renk: '#0F172A' },
-                  { id: 'gider', ad: `💸 Giderler (${masraflar.length})`, renk: '#E11D48' },
-                  ...(!isSantiyeSefi ? [
-                    { id: 'gelir', ad: `💰 Gelirler (${gelirler.length})`, renk: '#059669' },
-                    { id: 'cek', ad: `🧾 Çekler (${cekler.length})`, renk: '#0F766E' },
-                    { id: 'virman', ad: `🔄 Virmanlar (${kasaIslemleri.length})`, renk: '#2563EB' },
-                    { id: 'danismanlik', ad: `💼 Danışmanlık (${birlesikTimeline.filter((x) => x.kaynak === 'danismanlik').length})`, renk: '#4F46E5' }
-                  ] : [])
-                ].map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => { setFiltreTip(t.id); setGorunenAdet(40) }}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: 999,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      border: filtreTip === t.id ? `1.5px solid ${t.renk}` : '1px solid #E2E8F0',
-                      background: filtreTip === t.id ? t.renk : '#F8FAFC',
-                      color: filtreTip === t.id ? '#FFFFFF' : '#475569'
-                    }}
-                  >
-                    {t.ad}
-                  </button>
-                ))}
-              </div>
+            {/* Tip Seçim Hapları (Mobilde Tek Satır Yatay Kaydırma) */}
+            <div className="finans-tek-satir-strip">
+              {[
+                { id: 'hepsi', ad: `Tümü (${birlesikTimeline.length})`, renk: '#0F172A' },
+                { id: 'gider', ad: `💸 Gider (${masraflar.length})`, renk: '#E11D48' },
+                ...(!isSantiyeSefi ? [
+                  { id: 'gelir', ad: `💰 Gelir (${gelirler.length})`, renk: '#059669' },
+                  { id: 'cek', ad: `🧾 Çek (${cekler.length})`, renk: '#0F766E' },
+                  { id: 'virman', ad: `🔄 Virman (${kasaIslemleri.length})`, renk: '#2563EB' },
+                  { id: 'danismanlik', ad: `💼 Danışmanlık (${birlesikTimeline.filter((x) => x.kaynak === 'danismanlik').length})`, renk: '#4F46E5' }
+                ] : [])
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => { setFiltreTip(t.id); setGorunenAdet(40) }}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 999,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    border: filtreTip === t.id ? `1.5px solid ${t.renk}` : '1px solid #E2E8F0',
+                    background: filtreTip === t.id ? t.renk : '#F8FAFC',
+                    color: filtreTip === t.id ? '#FFFFFF' : '#475569'
+                  }}
+                >
+                  {t.ad}
+                </button>
+              ))}
 
               <button
                 type="button"
                 onClick={() => setGelismisFiltreAcik((p) => !p)}
                 style={{
+                  marginLeft: 'auto',
                   padding: '6px 12px',
-                  borderRadius: 8,
+                  borderRadius: 999,
                   border: '1px solid #CBD5E1',
                   background: (filtreBaslangic || filtreBitis || filtreMuhasebe !== 'hepsi') ? '#FEF3C7' : '#F8FAFC',
                   color: '#334155',
                   fontSize: 12,
-                  fontWeight: 600,
+                  fontWeight: 700,
                   cursor: 'pointer'
                 }}
               >
-                ⚙️ {gelismisFiltreAcik ? 'Filtreleri Gizle' : 'Tarih & Filtre'}
+                ⚙️ {gelismisFiltreAcik ? 'Gizle' : 'Tarih & Filtre'}
               </button>
             </div>
 
