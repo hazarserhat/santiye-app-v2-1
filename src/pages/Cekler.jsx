@@ -8,7 +8,7 @@ import { uploadToGoogleDrive, moveToSilinenler, getGoogleDriveInlineImageUrl, ge
 
 const bugun = () => new Date().toISOString().slice(0, 10)
 
-export default function Cekler({ yon = 'verilen' }) {
+export default function Cekler({ yon = 'verilen', sadeceForm = false, onKaydedildi }) {
   const { santiyeler } = useSite()
   const { profile } = useAuth()
   const [cekler, setCekler] = useState([])
@@ -380,6 +380,7 @@ export default function Cekler({ yon = 'verilen' }) {
     formuSifirla()
     setYukleniyor(false)
     cekleriYukle()
+    if (onKaydedildi) onKaydedildi()
   }
 
   const cekSil = async (id) => {
@@ -790,6 +791,8 @@ export default function Cekler({ yon = 'verilen' }) {
         </button>
       </div>
 
+      {!sadeceForm && (
+      <>
       {/* CANLI ARAMA ÇUBUĞU */}
       <div style={{
         display: 'flex',
@@ -1018,6 +1021,8 @@ export default function Cekler({ yon = 'verilen' }) {
         ))}
         {siraliCekler.length === 0 && <p className="bos-mesaj">Bu filtrede çek kaydı yok.</p>}
       </div>
+      </>
+      )}
     </div>
   )
 }

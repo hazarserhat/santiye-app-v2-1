@@ -2288,7 +2288,7 @@ export default function Finans() {
                         📥 Alınan Çek / Senet (Malik Ödemesi)
                       </button>
                     </div>
-                    <Cekler key={cekYonu} yon={cekYonu} />
+                    <Cekler key={cekYonu} yon={cekYonu} sadeceForm onKaydedildi={tumVerileriYukle} />
                   </div>
                 )}
 
