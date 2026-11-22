@@ -12,9 +12,49 @@ const ASAMALAR = [
   { anahtar: 'asama4_odendi', yuzde: 0.10, etiket: '4. Aşama (%10)', aciklama: 'Yapı Kullanım İzin Belgesi Alınınca' },
 ]
 
+const BINA_NO_AYAR_ANAHTAR = 'yarisi_bizden_bina_no_v1'
+
+const normalizeMetin = (metin) =>
+  String(metin || '')
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const VARSAYILAN_BINA_NOLARI = [
+  { eslesme: ['kadir sevgi'], no: '313671' },
+  { eslesme: ['engin oktay'], no: '301978 - 301986' },
+  { eslesme: ['agah arslanhan', 'agah arslan', 'agah'], no: '260816' },
+  { eslesme: ['selahattin yilmaz'], no: '300445' },
+  { eslesme: ['dilek erdogan'], no: '319536' },
+  { eslesme: ['yasin cicen'], no: '329745' },
+]
+
+const varsayilanBinaNoBul = (santiyeAd) => {
+  const norm = normalizeMetin(santiyeAd)
+  if (!norm) return ''
+  for (const kural of VARSAYILAN_BINA_NOLARI) {
+    if (kural.eslesme.some((k) => norm.includes(k))) return kural.no
+  }
+  return ''
+}
+
 export default function YarisiBizden() {
   const { santiyeler } = useSite()
   const [kayitlar, setKayitlar] = useState({}) // { santiyeId: row }
+  const [binaNolari, setBinaNolari] = useState(() => {
+    try {
+      const kayitli = localStorage.getItem(BINA_NO_AYAR_ANAHTAR)
+      return kayitli ? JSON.parse(kayitli) : {}
+    } catch {
+      return {}
+    }
+  })
   const [devletDestegiHaritasi, setDevletDestegiHaritasi] = useState({}) // { santiyeId: toplam }
   const [destekGelirleriHaritasi, setDestekGelirleriHaritasi] = useState({}) // { santiyeId: [gelirler] }
   const [seciliSantiyeler, setSeciliSantiyeler] = useState([])
@@ -25,6 +65,22 @@ export default function YarisiBizden() {
     const harita = {}
     ;(data || []).forEach((r) => { harita[r.santiye_id] = r })
     setKayitlar(harita)
+
+    // Yarısı Bizden Bina Numaraları (sistem_ayarlari)
+    const { data: binaAyar } = await supabase
+      .from('sistem_ayarlari')
+      .select('deger')
+      .eq('anahtar', BINA_NO_AYAR_ANAHTAR)
+      .maybeSingle()
+    if (binaAyar?.deger) {
+      try {
+        const parsed = JSON.parse(binaAyar.deger)
+        if (parsed && typeof parsed === 'object') {
+          setBinaNolari(parsed)
+          localStorage.setItem(BINA_NO_AYAR_ANAHTAR, JSON.stringify(parsed))
+        }
+      } catch { /* ignore */ }
+    }
 
     // Toplam tutar artık Proje Gelirleri'ndeki maliklerin "Devlet Desteği" alanından otomatik çekiliyor
     const { data: malikler, error: e2 } = await supabase.from('malikler').select('santiye_id, devlet_destegi')
@@ -44,6 +100,29 @@ export default function YarisiBizden() {
   }
 
   useEffect(() => { yenile() }, [])
+
+  const binaNoGetir = (santiye) => {
+    if (Object.prototype.hasOwnProperty.call(binaNolari, santiye.id)) {
+      return binaNolari[santiye.id] ?? ''
+    }
+    return varsayilanBinaNoBul(santiye.ad)
+  }
+
+  const binaNoDegistir = (santiyeId, deger) => {
+    setBinaNolari((onceki) => ({ ...onceki, [santiyeId]: deger }))
+  }
+
+  const binaNoKaydet = async (santiyeId, deger) => {
+    const temiz = String(deger || '').trim()
+    const guncel = { ...binaNolari, [santiyeId]: temiz }
+    setBinaNolari(guncel)
+    try {
+      localStorage.setItem(BINA_NO_AYAR_ANAHTAR, JSON.stringify(guncel))
+    } catch { /* ignore */ }
+    await supabase
+      .from('sistem_ayarlari')
+      .upsert({ anahtar: BINA_NO_AYAR_ANAHTAR, deger: JSON.stringify(guncel) }, { onConflict: 'anahtar' })
+  }
 
   const satirGetirVeyaOlustur = async (santiyeId) => {
     if (kayitlar[santiyeId]) return kayitlar[santiyeId]
@@ -96,12 +175,13 @@ export default function YarisiBizden() {
     const dataListesi = sadeceSecilenler ? santiyeler.filter(s => seciliSantiyeler.includes(s.id)) : santiyeler
     if (dataListesi.length === 0) return alert('PDF için şantiye bulunamadı.')
 
-    const basliklar = ['Santiye', 'Basvuru', 'Toplam Destek', ...ASAMALAR.map(a => a.etiket), 'Alinan', 'Beklenen']
+    const basliklar = ['Santiye', 'Yarisi Bizden Bina No', 'Basvuru', 'Toplam Destek', ...ASAMALAR.map(a => a.etiket), 'Alinan', 'Beklenen']
     const satirVerileri = dataListesi.map(s => {
       const satir = kayitlar[s.id]
       const toplam = toplamTutarBul(s.id)
       return [
         s.ad,
+        binaNoGetir(s) || '-',
         satir?.basvuru_durumu ? 'Evet' : 'Hayir',
         `${paraFormatla(toplam)} TL`,
         ...ASAMALAR.map(a => satir?.[a.anahtar] ? `Odendi (${paraFormatla(toplam * a.yuzde)} TL)` : 'Odenmedi'),
@@ -115,8 +195,8 @@ export default function YarisiBizden() {
     const seciliBeklenen = dataListesi.reduce((t, s) => t + satirBeklenen(s.id, kayitlar[s.id]), 0)
 
     const toplamSatir = Array(basliklar.length).fill('')
-    toplamSatir[1] = 'TOPLAM:'
-    toplamSatir[2] = `${paraFormatla(seciliToplamDestek)} TL`
+    toplamSatir[2] = 'TOPLAM:'
+    toplamSatir[3] = `${paraFormatla(seciliToplamDestek)} TL`
     toplamSatir[toplamSatir.length - 2] = `${paraFormatla(seciliAlinan)} TL`
     toplamSatir[toplamSatir.length - 1] = `${paraFormatla(seciliBeklenen)} TL`
     satirVerileri.push(toplamSatir)
@@ -176,6 +256,7 @@ export default function YarisiBizden() {
                 <input type="checkbox" checked={santiyeler.length > 0 && seciliSantiyeler.length === santiyeler.length} onChange={tumunuSecToggle} />
               </th>
               <th style={{ ...baslikStil, position: 'sticky', left: 40, background: 'white', zIndex: 2 }}>Şantiye</th>
+              <th style={{ ...baslikStil, textAlign: 'center' }}>Yarısı Bizden Bina No</th>
               <th style={baslikStil}>Başvuru</th>
               <th style={baslikStil}>Toplam Tutar (otomatik)</th>
               {ASAMALAR.map((a) => <th key={a.anahtar} style={baslikStil}>{a.etiket}</th>)}
@@ -187,12 +268,26 @@ export default function YarisiBizden() {
             {santiyeler.map((s) => {
               const satir = kayitlar[s.id]
               const toplam = toplamTutarBul(s.id)
+              const binaNoDeger = binaNoGetir(s)
               return (
                 <tr key={s.id} style={{ backgroundColor: seciliSantiyeler.includes(s.id) ? '#F3F8FF' : 'transparent' }}>
                   <td style={{ ...hucreStil, position: 'sticky', left: 0, background: seciliSantiyeler.includes(s.id) ? '#F3F8FF' : 'white', textAlign: 'center', zIndex: 1 }}>
                     <input type="checkbox" checked={seciliSantiyeler.includes(s.id)} onChange={() => santiyeSecToggle(s.id)} />
                   </td>
                   <td style={{ ...hucreStil, position: 'sticky', left: 40, background: seciliSantiyeler.includes(s.id) ? '#F3F8FF' : 'white', fontWeight: 700, zIndex: 1 }}>{s.ad}</td>
+                  <td style={{ ...hucreStil, textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      className="yb-bina-no-input"
+                      value={binaNoDeger}
+                      placeholder="—"
+                      onChange={(e) => binaNoDegistir(s.id, e.target.value)}
+                      onBlur={(e) => binaNoKaydet(s.id, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') e.currentTarget.blur()
+                      }}
+                    />
+                  </td>
                   <td style={{ ...hucreStil, textAlign: 'center' }}>
                     <input type="checkbox" checked={satir?.basvuru_durumu || false} onChange={() => basvuruGuncelle(s.id)} style={{ width: 16, height: 16 }} />
                   </td>
@@ -217,7 +312,7 @@ export default function YarisiBizden() {
               )
             })}
             {santiyeler.length === 0 && (
-              <tr><td colSpan={8} style={hucreStil}>Henüz şantiye yok.</td></tr>
+              <tr><td colSpan={9} style={hucreStil}>Henüz şantiye yok.</td></tr>
             )}
           </tbody>
         </table>

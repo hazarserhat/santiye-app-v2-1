@@ -239,6 +239,58 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 3px var(--renk-ana-glow) !important;
 }
 
+/* Rehber & Saha Operasyon Arama Kutuları (ikon çakışması ve çift çerçeve düzeltmesi) */
+input.cari-arama-input {
+  padding-left: 38px !important;
+  padding-right: 34px !important;
+  box-sizing: border-box !important;
+}
+
+.saha-arama-input-kutu {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: #FFFFFF !important;
+  border: 1px solid rgba(60, 60, 67, 0.18) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 0 12px !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.saha-arama-input-kutu:focus-within {
+  border-color: var(--renk-ana) !important;
+  box-shadow: 0 0 0 3px var(--renk-ana-glow) !important;
+}
+
+input.saha-arama-input {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 10px 0 !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+input.saha-arama-input:focus {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+input.yb-bina-no-input {
+  padding: 5px 8px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  border-radius: 7px !important;
+  min-width: 118px !important;
+  max-width: 150px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
 /* Apple Segmented Controls (Sekmeler) */
 .gorunum-secici, .drv-tabs, .yonetim-tabs, .alt-gorunum-secici, .tab-bar, .sekme-cubugu {
   background: rgba(118, 118, 128, 0.12) !important;

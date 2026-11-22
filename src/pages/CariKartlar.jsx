@@ -1460,15 +1460,16 @@ export default function CariKartlar() {
       {/* ARAMA VE ŞANTİYE FİLTRESİ */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 2, minWidth: 240, position: 'relative' }}>
-          <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: '#8E8E93' }}>🔍</span>
+          <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: '#8E8E93', pointerEvents: 'none', zIndex: 1 }}>🔍</span>
           <input 
             type="text" 
+            className="cari-arama-input"
             placeholder="Firma, kişi adı, telefon veya hizmet alanı ile arayın..." 
             value={arama} 
             onChange={(e) => setArama(e.target.value)} 
             style={{
               width: '100%',
-              padding: '10px 14px 10px 38px',
+              padding: '10px 34px 10px 38px',
               borderRadius: 10,
               border: '1px solid rgba(60, 60, 67, 0.18)',
               background: '#FFFFFF',
@@ -1476,7 +1477,8 @@ export default function CariKartlar() {
               fontSize: 14,
               outline: 'none',
               fontWeight: 500,
-              color: '#1C1C1E'
+              color: '#1C1C1E',
+              boxSizing: 'border-box'
             }}
           />
           {arama && (

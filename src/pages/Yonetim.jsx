@@ -14,8 +14,6 @@ const DEFAULT_SAYFALAR = [
   { yol: '/yonetim/proje-detaylari', ad: 'Proje Detaylı Bilgiler', aciklama: 'Şantiye başına teknik detaylar', ikon: '📋' },
   { yol: '/yonetim/fatura-bilgileri', ad: 'Fatura Bilgileri', aciklama: 'Elektrik/su sözleşme no', ikon: '🧾' },
   { yol: '/yonetim/yapi-denetim', ad: 'Yapı Denetim Bilgileri', aciklama: '', ikon: '🔍' },
-  { yol: '/yonetim/malik-koordinasyon', ad: 'Malik Koordinasyon', aciklama: 'Otopark, vergi, vekalet takibi matrisi', ikon: '✅' },
-  { yol: '/danismanliklar', ad: 'Danışmanlıklar (Yasin Çiçen)', aciklama: '%15 kâr payı, harcama, tahsilat ve mutabakat merkezi', ikon: '💼' },
   { yol: '/yonetim/kredi-kartlari', ad: 'Kredi Kartı Ödeme Tarihleri', aciklama: 'Kesim ve son ödeme tarihi takibi', ikon: '💳' },
 ]
 
