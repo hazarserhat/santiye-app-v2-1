@@ -13,6 +13,14 @@ import {
   asistanMesajAnalizEt,
   denetimKaydiniIsle,
 } from '../lib/otomasyonEngine'
+import {
+  telegramAyarYukle,
+  telegramAyarKaydet,
+  telegramChatIdOtomatikBul,
+  telegramMesajGonder,
+  sabahRaporuOlustur,
+  aksamRaporuOlustur,
+} from '../lib/telegramServis'
 
 const ORNEK_KOMUTLAR = [
   'Gökkuşağı Yapı\'nın telefon numarası neydi?',
@@ -91,6 +99,12 @@ export default function OtomasyonMerkezi() {
   const [apiKeyVar, setApiKeyVar] = useState(false)
   const [ayarKaydedildi, setAyarKaydedildi] = useState(false)
 
+  // Telegram Bot Ayar & Rapor Modalı
+  const [tgAcik, setTgAcik] = useState(false)
+  const [tgAyar, setTgAyar] = useState({ botToken: '', chatId: '', yeniTaslakBildir: true })
+  const [tgDurumMesaj, setTgDurumMesaj] = useState('')
+  const [tgIslemde, setTgIslemde] = useState(false)
+
   const chatSonRef = useRef(null)
 
   const sekmeDegistir = (yeni) => {
@@ -105,15 +119,17 @@ export default function OtomasyonMerkezi() {
 
   useEffect(() => {
     const yukle = async () => {
-      const [mList, kList, key] = await Promise.all([
+      const [mList, kList, key, tg] = await Promise.all([
         operasyonVerisiYukle(KEY_ASISTAN_CHAT, []),
         operasyonVerisiYukle(KEY_OTOMASYON_KUYRUK, []),
         geminiAnahtariYukle(),
+        telegramAyarYukle(),
       ])
       setMesajlar(Array.isArray(mList) ? mList : [])
       setKuyruk(Array.isArray(kList) ? kList : [])
       setApiKeyInput(key || '')
       setApiKeyVar(Boolean(key))
+      setTgAyar(tg)
     }
     yukle()
   }, [])
@@ -203,6 +219,18 @@ export default function OtomasyonMerkezi() {
         const guncelKuyruk = [...sonuc.taslaklar, ...kuyruk]
         setKuyruk(guncelKuyruk)
         await operasyonVerisiKaydet(KEY_OTOMASYON_KUYRUK, guncelKuyruk)
+
+        // Telegram bağlıysa yeni taslağı anında bildir
+        if (tgAyar.botToken && tgAyar.chatId && tgAyar.yeniTaslakBildir) {
+          for (const t of sonuc.taslaklar) {
+            const meta = HEDEF_MODUL_META[t.hedefModul] || HEDEF_MODUL_META.soz_not
+            telegramMesajGonder({
+              botToken: tgAyar.botToken,
+              chatId: tgAyar.chatId,
+              metin: `🛡️ <b>Yeni Otomasyon Denetim Taslağı</b>\n• Hedef: <b>${meta.ikon} ${meta.etiket}</b>\n• Özet: ${t.ozet}`,
+            }).catch(() => {})
+          }
+        }
       }
 
       const asistanMesaji = {
@@ -308,22 +336,41 @@ export default function OtomasyonMerkezi() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setAyarAcik(true)}
-          style={{
-            padding: '8px 13px',
-            borderRadius: 10,
-            border: apiKeyVar ? '1px solid #A7F3D0' : '1.5px solid #F59E0B',
-            background: apiKeyVar ? '#ECFDF5' : '#FFFBEB',
-            color: apiKeyVar ? '#047857' : '#B45309',
-            fontSize: 12.5,
-            fontWeight: 800,
-            cursor: 'pointer',
-          }}
-        >
-          {apiKeyVar ? '🔑 AI Bağlı (Ayarlar)' : '🔑 AI Anahtarı Gir'}
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => { setTgAcik(true); setTgDurumMesaj('') }}
+            style={{
+              padding: '8px 13px',
+              borderRadius: 10,
+              border: tgAyar.botToken && tgAyar.chatId ? '1px solid #BAE6FD' : '1px solid #CBD5E1',
+              background: tgAyar.botToken && tgAyar.chatId ? '#E0F2FE' : '#FFFFFF',
+              color: tgAyar.botToken && tgAyar.chatId ? '#0369A1' : '#334155',
+              fontSize: 12.5,
+              fontWeight: 800,
+              cursor: 'pointer',
+            }}
+          >
+            {tgAyar.botToken && tgAyar.chatId ? '✈️ Telegram Bağlı' : '✈️ Telegram Bağla'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAyarAcik(true)}
+            style={{
+              padding: '8px 13px',
+              borderRadius: 10,
+              border: apiKeyVar ? '1px solid #A7F3D0' : '1.5px solid #F59E0B',
+              background: apiKeyVar ? '#ECFDF5' : '#FFFBEB',
+              color: apiKeyVar ? '#047857' : '#B45309',
+              fontSize: 12.5,
+              fontWeight: 800,
+              cursor: 'pointer',
+            }}
+          >
+            {apiKeyVar ? '🔑 AI Bağlı (Ayarlar)' : '🔑 AI Anahtarı Gir'}
+          </button>
+        </div>
       </div>
 
       {/* 2 ANA SEKME */}
@@ -724,6 +771,151 @@ export default function OtomasyonMerkezi() {
                 </div>
               )
             })}
+          </div>
+        </div>
+      )}
+
+      {/* TELEGRAM BOT & RAPOR AYAR MODALI */}
+      {tgAcik && (
+        <div onClick={() => setTgAcik(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.65)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#FFFFFF', borderRadius: 16, padding: 20, maxWidth: 510, width: '100%', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <strong style={{ fontSize: 16, color: '#0F172A' }}>✈️ Telegram Bot &amp; Günlük Raporlar (07:00 / 18:30)</strong>
+              <button type="button" onClick={() => setTgAcik(false)} style={{ border: 'none', background: 'transparent', fontSize: 16, cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <div style={{ fontSize: 12.5, color: '#334155', background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 10, padding: 12, lineHeight: 1.55 }}>
+              <strong>Sadece size özel Telegram botu nasıl açılır? (1 dakika)</strong>
+              <ol style={{ margin: '6px 0 0 18px', padding: 0 }}>
+                <li>Telegram&apos;da <strong>@BotFather</strong> hesabını açın ve <code>/newbot</code> yazın.</li>
+                <li>Botunuza bir isim verin (ör. <em>Santiye Asistanim</em>) ve size verdiği <strong>Token</strong>&apos;ı aşağıya yapıştırın.</li>
+                <li>Yeni açtığınız botunuza girip <strong>Başlat (/start)</strong> veya <em>&ldquo;Merhaba&rdquo;</em> yazın, sonra aşağıdaki <strong>Chat ID&apos;mi Otomatik Bul</strong> butonuna basın.</li>
+              </ol>
+            </div>
+
+            <div>
+              <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Bot Token</label>
+              <input
+                type="password"
+                placeholder="123456789:AAF..."
+                value={tgAyar.botToken}
+                onChange={(e) => setTgAyar((p) => ({ ...p, botToken: e.target.value }))}
+                style={{ width: '100%', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Sizin Telegram Chat ID&apos;niz</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  type="text"
+                  placeholder="Otomatik bulmak için sağdaki butona basın"
+                  value={tgAyar.chatId}
+                  onChange={(e) => setTgAyar((p) => ({ ...p, chatId: e.target.value }))}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  disabled={tgIslemde}
+                  onClick={async () => {
+                    setTgIslemde(true)
+                    setTgDurumMesaj('')
+                    try {
+                      const bulunan = await telegramChatIdOtomatikBul(tgAyar.botToken)
+                      const yeni = await telegramAyarKaydet({ ...tgAyar, chatId: bulunan.chatId })
+                      setTgAyar(yeni)
+                      setTgDurumMesaj(`✅ Chat ID bulundu ve kaydedildi: ${bulunan.chatId} (${bulunan.ad})`)
+                    } catch (err) {
+                      setTgDurumMesaj(`⚠️ ${err.message || err}`)
+                    } finally {
+                      setTgIslemde(false)
+                    }
+                  }}
+                  style={{ padding: '8px 11px', borderRadius: 9, border: '1px solid #0284C7', background: '#E0F2FE', color: '#0369A1', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  🔍 Chat ID Bul
+                </button>
+              </div>
+            </div>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#334155', fontWeight: 600, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={tgAyar.yeniTaslakBildir}
+                onChange={(e) => setTgAyar((p) => ({ ...p, yeniTaslakBildir: e.target.checked }))}
+              />
+              Yeni Denetim Taslağı oluştuğunda Telegram&apos;a da bildirim gönder
+            </label>
+
+            {/* Anında Rapor Test Butonları */}
+            {tgAyar.botToken && tgAyar.chatId && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, paddingTop: 4 }}>
+                <button
+                  type="button"
+                  disabled={tgIslemde}
+                  onClick={async () => {
+                    setTgIslemde(true)
+                    setTgDurumMesaj('⏳ Sabah raporu hazırlanıyor...')
+                    try {
+                      const metin = await sabahRaporuOlustur(santiyeler)
+                      await telegramMesajGonder({ botToken: tgAyar.botToken, chatId: tgAyar.chatId, metin })
+                      setTgDurumMesaj('✅ Sabah 07:00 raporu Telegram\'ınıza gönderildi!')
+                    } catch (err) {
+                      setTgDurumMesaj(`⚠️ ${err.message || err}`)
+                    } finally {
+                      setTgIslemde(false)
+                    }
+                  }}
+                  style={{ padding: '9px 10px', borderRadius: 10, border: '1px solid #FDE68A', background: '#FFFBEB', color: '#B45309', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+                >
+                  🌅 Sabah Raporu Gönder (Test)
+                </button>
+                <button
+                  type="button"
+                  disabled={tgIslemde}
+                  onClick={async () => {
+                    setTgIslemde(true)
+                    setTgDurumMesaj('⏳ Akşam raporu hazırlanıyor...')
+                    try {
+                      const metin = await aksamRaporuOlustur(santiyeler)
+                      await telegramMesajGonder({ botToken: tgAyar.botToken, chatId: tgAyar.chatId, metin })
+                      setTgDurumMesaj('✅ Akşam 18:30 raporu Telegram\'ınıza gönderildi!')
+                    } catch (err) {
+                      setTgDurumMesaj(`⚠️ ${err.message || err}`)
+                    } finally {
+                      setTgIslemde(false)
+                    }
+                  }}
+                  style={{ padding: '9px 10px', borderRadius: 10, border: '1px solid #C7D2FE', background: '#EEF2FF', color: '#4338CA', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+                >
+                  🌙 Akşam Raporu Gönder (Test)
+                </button>
+              </div>
+            )}
+
+            {tgDurumMesaj && (
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: tgDurumMesaj.startsWith('✅') ? '#047857' : '#B45309', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 9, padding: '8px 10px' }}>
+                {tgDurumMesaj}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button type="button" onClick={() => setTgAcik(false)} style={{ padding: '8px 14px', borderRadius: 9, border: '1px solid #CBD5E1', background: '#F8FAFC', fontWeight: 700, cursor: 'pointer' }}>
+                Kapat
+              </button>
+              <button
+                type="button"
+                disabled={tgIslemde}
+                onClick={async () => {
+                  const kayitli = await telegramAyarKaydet(tgAyar)
+                  setTgAyar(kayitli)
+                  setTgDurumMesaj('✅ Telegram ayarları kaydedildi!')
+                }}
+                style={{ padding: '8px 18px', borderRadius: 9, border: 'none', background: '#0284C7', color: '#FFFFFF', fontWeight: 800, cursor: 'pointer' }}
+              >
+                Kaydet
+              </button>
+            </div>
           </div>
         </div>
       )}

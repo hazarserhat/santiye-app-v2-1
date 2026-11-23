@@ -1,0 +1,7 @@
+name = "santiye-app-telegram-bot"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+
+# Türkiye (UTC+3): 07:00 = 04:00 UTC | 18:30 = 15:30 UTC
+[triggers]
+crons = ["0 4 * * *", "30 15 * * *"]
