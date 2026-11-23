@@ -143,6 +143,7 @@ async function raporHazirla(env, tip) {
 async function geminiSor(env, metin) {
   const [santiyeler, cekler, rehber, sozler] = await Promise.all([
     sbFetch(env, 'santiyeler?select=id,ad'),
+    sbFetch(env, 'cekler?select=yon,cek_vadesi,tutar,odeyen,odenen,banka,durum,santiye_id&order=cek_vadesi.asc&limit=60'),
     sbFetch(env, 'cekler?select=*&order=cek_vadesi.asc&limit=60'),
     sbFetch(env, 'taseronlar?select=ad,firma,telefon&limit=120'),
     ayarOku(env, KEY_SOZLER, []),
