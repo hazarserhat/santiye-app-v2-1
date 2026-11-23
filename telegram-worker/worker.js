@@ -140,19 +140,71 @@ async function raporHazirla(env, tip) {
   ].join('\n')
 }
 
-async function geminiSor(env, metin) {
+async function tgDosyaIndir(env, fileId) {
+  const infoRes = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${encodeURIComponent(fileId)}`)
+  const info = await infoRes.json()
+  const filePath = info?.result?.file_path
+  if (!filePath) throw new Error('Telegram dosyası alınamadı.')
+  const fileRes = await fetch(`https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${filePath}`)
+  const buf = await fileRes.arrayBuffer()
+  const bytes = new Uint8Array(buf)
+  let binary = ''
+  const chunk = 0x8000
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk))
+  }
+  const base64 = btoa(binary)
+  const lower = filePath.toLowerCase()
+  const mimeType = lower.endsWith('.pdf')
+    ? 'application/pdf'
+    : lower.endsWith('.png')
+      ? 'image/png'
+      : lower.endsWith('.webp')
+        ? 'image/webp'
+        : 'image/jpeg'
+  const fileName = filePath.split('/').pop() || `telegram_${Date.now()}.jpg`
+  return { base64, mimeType, fileName }
+}
+
+async function driveaYukle(env, { base64, mimeType, fileName }) {
+  const scriptUrl = env.GOOGLE_SCRIPT_URL
+  if (!scriptUrl) return ''
+  try {
+    const res = await fetch(scriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'upload',
+        fileName: `${bugunTR()}-TELEGRAM-${fileName}`,
+        mimeType,
+        base64,
+        folderName: `AsistanChat/${bugunTR()}`,
+      }),
+    })
+    const json = await res.json()
+    return json?.url || ''
+  } catch {
+    return ''
+  }
+}
+
+async function geminiSor(env, metin, dosyaBilgi = null) {
   const [santiyeler, cekler, rehber, sozler] = await Promise.all([
     sbFetch(env, 'santiyeler?select=id,ad'),
-    sbFetch(env, 'cekler?select=yon,cek_vadesi,tutar,odeyen,odenen,banka,durum,santiye_id&order=cek_vadesi.asc&limit=60'),
     sbFetch(env, 'cekler?select=*&order=cek_vadesi.asc&limit=60'),
     sbFetch(env, 'taseronlar?select=ad,firma,telefon&limit=120'),
     ayarOku(env, KEY_SOZLER, []),
   ])
   const prompt = `Sen Şantiye App Telegram asistanısın. Bugün: ${bugunTR()}.
 Soruysa JSON {"mod":"soru_cevap","cevap":"...","taslaklar":[]} döndür.
-Kayıt/işlemse JSON {"mod":"islem_taslagi","cevap":"...","taslaklar":[{"hedefModul":"gider|gelir|rehber|soz_not|gorev|makine|muhasebe_calisan|muhasebe_fatura|muhasebe_belge","ozet":"...","veri":{...}}]} döndür.
+Kayıt/işlem/dekont/fiş/kartvizit/kimlik/irsaliye ise JSON {"mod":"islem_taslagi","cevap":"...","taslaklar":[{"hedefModul":"gider|gelir|rehber|soz_not|gorev|makine|muhasebe_calisan|muhasebe_fatura|muhasebe_belge","ozet":"...","veri":{...}}]} döndür.
 Bağlam: ${JSON.stringify({ santiyeler: (santiyeler || []).map((s) => s.ad), cekler: (cekler || []).slice(0, 35), rehber: (rehber || []).filter((r) => r.telefon).slice(0, 80), acikSozler: (sozler || []).filter((x) => !x.tamamlandi).slice(0, 20) })}
-Mesaj: ${metin}`
+Mesaj: ${metin || 'Ekli görseli veya PDF belgesini okuyup uygun modüle taslak oluştur.'}`
+
+  const parts = [{ text: prompt }]
+  if (dosyaBilgi?.base64) {
+    parts.push({ inline_data: { mime_type: dosyaBilgi.mimeType, data: dosyaBilgi.base64 } })
+  }
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`,
@@ -160,7 +212,7 @@ Mesaj: ${metin}`
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        contents: [{ role: 'user', parts }],
         generationConfig: { temperature: 0.15, responseMimeType: 'application/json' },
       }),
     }
@@ -231,7 +283,7 @@ export default {
               list.unshift({ id: `blg-${Date.now()}`, ...v, ekleyen: 'Telegram', olusturmaTarihi: new Date().toISOString() })
               await ayarYaz(env, KEY_BELGE, list)
             } else if (k.hedefModul === 'gider') {
-              await sbFetch(env, 'masraflar', { method: 'POST', body: JSON.stringify({ baslik: v.baslik || k.ozet, odenen_kisi: v.kisi || '', tutar: Number(v.tutar) || 0, harcama_tarihi: v.tarih || bugunTR(), kayit_tarihi: new Date().toISOString(), taksit_sayisi: 1, aciklama: v.aciklama || '' }) })
+              await sbFetch(env, 'masraflar', { method: 'POST', body: JSON.stringify({ baslik: v.baslik || k.ozet, odenen_kisi: v.kisi || '', tutar: Number(v.tutar) || 0, harcama_tarihi: v.tarih || bugunTR(), kayit_tarihi: new Date().toISOString(), taksit_sayisi: 1, aciklama: v.aciklama || '', fotograf_url: k.belgeUrl || null }) })
             }
             kuyruk[idx].durum = 'onaylandi'
             kuyruk[idx].onaylayan = 'Telegram'
@@ -243,13 +295,17 @@ export default {
         return new Response('ok')
       }
 
-      // 2. Gelen Mesaj / Soru
+      // 2. Gelen Mesaj / Fotoğraf / PDF
       const msg = update.message
-      if (!msg?.text) return new Response('ok')
+      const metin = (msg?.text || msg?.caption || '').trim()
+      const fotoId = msg?.photo?.length ? msg.photo[msg.photo.length - 1].file_id : ''
+      const dokumanId = msg?.document?.file_id || ''
+      if (!metin && !fotoId && !dokumanId) return new Response('ok')
+
       const chatId = String(msg.chat.id)
       if (env.TELEGRAM_CHAT_ID && chatId !== String(env.TELEGRAM_CHAT_ID)) return new Response('ok')
 
-      const komut = msg.text.trim().toLocaleLowerCase('tr-TR')
+      const komut = metin.toLocaleLowerCase('tr-TR')
       if (komut === '/sabah') {
         await tgGonder(env, chatId, await raporHazirla(env, 'sabah'))
         return new Response('ok')
@@ -259,7 +315,14 @@ export default {
         return new Response('ok')
       }
 
-      const sonuc = await geminiSor(env, msg.text)
+      let dosyaBilgi = null
+      let belgeUrl = ''
+      if (fotoId || dokumanId) {
+        dosyaBilgi = await tgDosyaIndir(env, fotoId || dokumanId)
+        belgeUrl = await driveaYukle(env, dosyaBilgi)
+      }
+
+      const sonuc = await geminiSor(env, metin, dosyaBilgi)
       if (sonuc.taslaklar?.length > 0) {
         const kuyruk = await ayarOku(env, KEY_KUYRUK, [])
         for (let i = 0; i < sonuc.taslaklar.length; i++) {
@@ -268,17 +331,18 @@ export default {
             id: `tg-${Date.now()}-${i}`,
             durum: 'bekliyor',
             hedefModul: t.hedefModul || 'soz_not',
-            ozet: t.ozet || msg.text,
+            ozet: t.ozet || metin || '(Belge / Görsel)',
             guven: 90,
             veri: t.veri || {},
-            orijinalMesaj: msg.text,
+            belgeUrl,
+            orijinalMesaj: metin || '(Telegram Belgesi)',
             olusturmaTarihi: new Date().toISOString(),
           }
           kuyruk.unshift(yeni)
           await tgGonder(
             env,
             chatId,
-            `🛡️ <b>Otomasyon Denetim Taslağı</b>\n• Hedef: <b>${yeni.hedefModul}</b>\n• Özet: ${yeni.ozet}`,
+            `🛡️ <b>Otomasyon Denetim Taslağı</b>\n• Hedef: <b>${yeni.hedefModul}</b>\n• Özet: ${yeni.ozet}${belgeUrl ? '\n• ☁️ Belge Google Drive\'a arşivlendi' : ''}`,
             {
               inline_keyboard: [[
                 { text: '✅ Onayla ve İşle', callback_data: `onayla:${yeni.id}` },
