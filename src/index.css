@@ -8400,3 +8400,33 @@ input[type="date"], input[type="datetime-local"], input[type="month"] {
     left: auto;
   }
 }
+
+/* Proje Gelirleri — Sarı / Kırmızı Aşama Hover Eksik Bilgisi Tooltip */
+.asama-eksik-hucre {
+  position: relative;
+  overflow: visible !important;
+}
+.asama-eksik-hucre:hover {
+  z-index: 40;
+}
+.asama-hover-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  min-width: 215px;
+  background: #0F172A;
+  color: #F8FAFC;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  padding: 8px 11px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.34);
+  pointer-events: none;
+  white-space: nowrap;
+  text-align: left;
+}
+.asama-eksik-hucre:hover .asama-hover-tooltip {
+  display: block;
+}

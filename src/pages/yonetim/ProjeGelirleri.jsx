@@ -541,15 +541,30 @@ export default function ProjeGelirleri() {
     setTaslakAsamalar((onceki) => onceki.filter((_, i) => i !== index))
   }
 
-  const renkHesapla = (malikId, stages) => {
+  const asamaDetayHesapla = (malikId, stages) => {
     let kalan = odemeToplamlari[malikId] || 0
     return (stages || []).map((s) => {
-      if (!s.tutar || s.tutar <= 0) return 'yok'
-      if (kalan >= s.tutar) { kalan -= s.tutar; return 'yesil' }
-      if (kalan > 0) { kalan = 0; return 'sari' }
-      return 'kirmizi'
+      const tutar = Number(s?.tutar || 0)
+      if (!tutar || tutar <= 0) {
+        return { renk: 'yok', tutar: 0, odenen: 0, eksik: 0, odenenYuzde: 0, eksikYuzde: 0 }
+      }
+      if (kalan >= tutar) {
+        kalan -= tutar
+        return { renk: 'yesil', tutar, odenen: tutar, eksik: 0, odenenYuzde: 100, eksikYuzde: 0 }
+      }
+      if (kalan > 0) {
+        const odenen = kalan
+        const eksik = Math.max(0, tutar - odenen)
+        kalan = 0
+        const eksikYuzde = Math.round((eksik / tutar) * 1000) / 10
+        const odenenYuzde = Math.round((odenen / tutar) * 1000) / 10
+        return { renk: 'sari', tutar, odenen, eksik, odenenYuzde, eksikYuzde }
+      }
+      return { renk: 'kirmizi', tutar, odenen: 0, eksik: tutar, odenenYuzde: 0, eksikYuzde: 100 }
     })
   }
+
+  const renkHesapla = (malikId, stages) => asamaDetayHesapla(malikId, stages).map((d) => d.renk)
   const renkArkaplan = { yesil: 'rgba(63,158,92,0.25)', sari: 'rgba(217,180,41,0.3)', kirmizi: 'rgba(214,69,69,0.18)', yok: 'transparent' }
 
   let gorunenler = filtreSantiye === 'hepsi' ? [...malikler] : malikler.filter((m) => m.santiye_id === filtreSantiye)
@@ -1398,7 +1413,8 @@ export default function ProjeGelirleri() {
           }}>
             {gorunenler.map((m, index) => {
               const stages = asamalar[m.id] || []
-              const renkler = renkHesapla(m.id, stages)
+              const asamaDetaylari = asamaDetayHesapla(m.id, stages)
+              const renkler = asamaDetaylari.map((d) => d.renk)
               const kalanBakiye = Number(m.toplam_alacak || 0) + Number(m.iskonto_farki || 0) - Number(m.devlet_destegi || 0)
               const alinan = odemeToplamlari[m.id] || 0
               const kalan = kalanBakiye - alinan
@@ -1577,7 +1593,8 @@ export default function ProjeGelirleri() {
                   {/* Aşamalar */}
                   {Array.from({ length: maxStageCount }).map((_, i) => {
                     const s = stages[i]
-                    const renk = renkler[i] || 'yok'
+                    const detay = asamaDetaylari[i] || { renk: 'yok', tutar: 0, odenen: 0, eksik: 0, odenenYuzde: 0, eksikYuzde: 0 }
+                    const renk = detay.renk
                     const isStageChecked = !!s?.tamamlandi
 
                     let stageCellBg = cellBg
@@ -1600,11 +1617,22 @@ export default function ProjeGelirleri() {
                       }
                     }
 
+                    const eksikTooltipGoster = isStageChecked && (renk === 'sari' || renk === 'kirmizi') && detay.eksik > 0
+                    const yuzdeFormat = (y) => String(y).replace('.', ',')
+                    const nativeTitle = eksikTooltipGoster
+                      ? `Eksik: ${paraFormatla(detay.eksik)} ₺ (%${yuzdeFormat(detay.eksikYuzde)}) • Ödenen: ${paraFormatla(detay.odenen)} ₺ (%${yuzdeFormat(detay.odenenYuzde)})`
+                      : undefined
+
                     return (
-                      <td key={i} style={{ background: stageCellBg, minWidth: 140, transition: 'background 0.2s ease', display: isColumnVisible('asamalar') ? '' : 'none' }}>
+                      <td
+                        key={i}
+                        className={eksikTooltipGoster ? 'asama-eksik-hucre' : undefined}
+                        title={nativeTitle}
+                        style={{ background: stageCellBg, minWidth: 140, transition: 'background 0.2s ease', display: isColumnVisible('asamalar') ? '' : 'none' }}
+                      >
                         {s?.id && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
-                            <span className={`pill-rozet ${rozetSinif}`} title={isStageChecked ? `Aşama Tamamlandı (${durumMetni})` : 'Aşama Henüz Tamamlanmadı'}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start', position: 'relative' }}>
+                            <span className={`pill-rozet ${rozetSinif}`} title={nativeTitle || (isStageChecked ? `Aşama Tamamlandı (${durumMetni})` : 'Aşama Henüz Tamamlanmadı')}>
                               <input type="checkbox" style={{ width: 14, height: 14, cursor: 'pointer', accentColor: '#1D9596' }} checked={!!s.tamamlandi} onChange={() => asamaTikle(s)} title="Şantiye fiili tamamlanma tik kutusu" />
                               <span>{s.ad || '—'}</span>
                             </span>
@@ -1619,10 +1647,26 @@ export default function ProjeGelirleri() {
                                   onKeyDown={(e) => { if (e.key === 'Enter') asamaTutarKaydet(s.id, e.target.value) }}
                                 />
                               ) : (
-                                <span onDoubleClick={() => hucreCiftTik(null, null, s.id)} title={hizliDuzenleModu ? "Çift tıklayarak tutarı düzenle" : "Hızlı Düzenleme modunu açarak düzenleyebilirsiniz"} style={{ fontSize: 12, fontWeight: 800, color: isRuha && stageCellBg === cellBg ? '#FFFFFF' : '#1E293B', cursor: hizliDuzenleModu ? 'pointer' : 'default' }}>{paraFormatla(s.tutar)} ₺</span>
+                                <span onDoubleClick={() => hucreCiftTik(null, null, s.id)} title={hizliDuzenleModu ? "Çift tıklayarak tutarı düzenle" : nativeTitle} style={{ fontSize: 12, fontWeight: 800, color: isRuha && stageCellBg === cellBg ? '#FFFFFF' : '#1E293B', cursor: hizliDuzenleModu ? 'pointer' : 'default' }}>{paraFormatla(s.tutar)} ₺</span>
                               )}
                               {durumMetni && <span style={{ fontSize: 9, fontWeight: 800 }}>{durumMetni}</span>}
                             </div>
+
+                            {eksikTooltipGoster && !pdfYukleniyor && (
+                              <div className="asama-hover-tooltip">
+                                <div style={{ fontWeight: 800, fontSize: 11, color: renk === 'sari' ? '#FCD34D' : '#FCA5A5', marginBottom: 4, borderBottom: '1px solid rgba(255,255,255,0.14)', paddingBottom: 3 }}>
+                                  {renk === 'sari' ? '🟡 Kısmi Ödeme Eksiği' : '🔴 Aşama Ödenmedi'}
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11.5 }}>
+                                  <span style={{ color: '#CBD5E1' }}>Eksik:</span>
+                                  <strong style={{ color: '#FFFFFF' }}>{paraFormatla(detay.eksik)} ₺ (%{yuzdeFormat(detay.eksikYuzde)})</strong>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11, marginTop: 2 }}>
+                                  <span style={{ color: '#94A3B8' }}>Ödenen:</span>
+                                  <span style={{ color: '#86EFAC', fontWeight: 700 }}>{paraFormatla(detay.odenen)} ₺ (%{yuzdeFormat(detay.odenenYuzde)})</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </td>
