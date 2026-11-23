@@ -27,6 +27,16 @@ const tarihTR = (s) => {
 }
 const tl = (n) => Number(n || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
+async function safeJson(res, etiket = 'API') {
+  const txt = await res.text()
+  if (!txt || !txt.trim()) return null
+  try {
+    return JSON.parse(txt)
+  } catch {
+    throw new Error(`${etiket} geçersiz JSON döndürdü: ${txt.slice(0, 100)}`)
+  }
+}
+
 async function sbFetch(env, path, options = {}) {
   const headers = {
     apikey: env.SUPABASE_KEY,
@@ -45,13 +55,7 @@ async function sbFetch(env, path, options = {}) {
     throw new Error(`Supabase ${res.status}: ${t.slice(0, 160)}`)
   }
   if (res.status === 204) return null
-  const text = await res.text()
-  if (!text || !text.trim()) return null
-  try {
-    return JSON.parse(text)
-  } catch {
-    return null
-  }
+  return safeJson(res, 'Supabase')
 }
 
 async function ayarOku(env, anahtar, varsayilan = []) {
@@ -148,7 +152,7 @@ async function raporHazirla(env, tip) {
 
 async function tgDosyaIndir(env, fileId) {
   const infoRes = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${encodeURIComponent(fileId)}`)
-  const info = await infoRes.json()
+  const info = await safeJson(infoRes, 'Telegram getFile')
   const filePath = info?.result?.file_path
   if (!filePath) throw new Error('Telegram dosyası alınamadı.')
   const fileRes = await fetch(`https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${filePath}`)
@@ -252,7 +256,7 @@ Mesaj: ${metin || 'Ekli görseli veya PDF belgesini okuyup uygun modüle taslak 
     if (geciciVeyaYok(res?.status)) {
       const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(env.GEMINI_API_KEY)}`)
       if (listRes.ok) {
-        const listJson = await listRes.json()
+        const listJson = (await safeJson(listRes, 'Gemini Models')) || {}
         const diger = (listJson.models || [])
           .filter((m) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent') && !gecersizModel(String(m.name || '')) && (String(m.name || '').includes('flash') || String(m.name || '').includes('gemini')))
           .map((m) => String(m.name).replace(/^models\//, ''))
@@ -426,6 +430,6 @@ export default {
       }
     }
 
-    return new Response('Santiye App Telegram Worker aktif.')
+    return new Response('Santiye App Telegram Worker v2 aktif.')
   },
 }
