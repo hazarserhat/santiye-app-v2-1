@@ -1407,7 +1407,7 @@ export default function ProjeGelirleri() {
               const isRuhaSatilan = hamAd.includes('[R_SATIS]')
               const isRuha = hamAd.toLowerCase().includes('ruha') && !isRuhaSatilan
               const temizAd = hamAd.replace('[R_SATIS]', '').trim()
-              const isKalanSifir = kalan === 0 && Number(m.toplam_alacak || 0) > 0
+              const isKalanSifir = !isRuha && Math.abs(kalan) < 0.01
               const isEven = index % 2 === 0
 
               let cellBg = 'rgba(255, 255, 255, 0.95)'
@@ -1429,11 +1429,11 @@ export default function ProjeGelirleri() {
 
               let kalanCellBg = cellBg
               if (!isRuha && !isRuhaSatilan) {
-                if (kalan > 0 && Number(m.toplam_alacak || 0) > 0) {
+                if (kalan >= 0.01) {
                   kalanCellBg = 'rgba(254, 226, 226, 0.55)'
-                } else if (kalan === 0 && Number(m.toplam_alacak || 0) > 0) {
+                } else if (isKalanSifir) {
                   kalanCellBg = 'rgba(209, 250, 229, 0.55)'
-                } else if (kalan < 0) {
+                } else if (kalan <= -0.01) {
                   kalanCellBg = 'rgba(254, 240, 138, 0.65)'
                 }
               }
