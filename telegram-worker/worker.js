@@ -206,20 +206,74 @@ Mesaj: ${metin || 'Ekli görseli veya PDF belgesini okuyup uygun modüle taslak 
     parts.push({ inline_data: { mime_type: dosyaBilgi.mimeType, data: dosyaBilgi.base64 } })
   }
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts }],
-        generationConfig: { temperature: 0.15, responseMimeType: 'application/json' },
-      }),
+  const hizliBody = JSON.stringify({
+    contents: [{ role: 'user', parts }],
+    generationConfig: { temperature: 0.15, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
+  })
+  const standartBody = JSON.stringify({
+    contents: [{ role: 'user', parts }],
+    generationConfig: { temperature: 0.15, responseMimeType: 'application/json' },
+  })
+
+  const modelCagir = async (modelAdi) => {
+    let r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelAdi}:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: hizliBody }
+    )
+    if (r.status === 400) {
+      r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelAdi}:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: standartBody }
+      )
     }
-  )
+    return r
+  }
+
+  const geciciVeyaYok = (s) => [404, 429, 500, 502, 503, 504].includes(s)
+  const gecersizModel = (ad) => /(tts|audio|image|imagen|veo|embedding|live|robotics|computer-use)/i.test(ad)
+  const adaylar = ['gemini-3.8-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-2.5-flash']
+
+  let res = null
+  let sonHata = ''
+  for (const m of adaylar) {
+    res = await modelCagir(m)
+    if (res.ok) break
+    sonHata = await res.text()
+    if (!geciciVeyaYok(res.status)) break
+  }
+
+  if (!res || !res.ok) {
+    if (geciciVeyaYok(res?.status)) {
+      const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(env.GEMINI_API_KEY)}`)
+      if (listRes.ok) {
+        const listJson = await listRes.json()
+        const diger = (listJson.models || [])
+          .filter((m) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent') && !gecersizModel(String(m.name || '')) && (String(m.name || '').includes('flash') || String(m.name || '').includes('gemini')))
+          .map((m) => String(m.name).replace(/^models\//, ''))
+          .filter((ad) => !adaylar.includes(ad))
+          .slice(0, 4)
+        for (const ad of diger) {
+          res = await modelCagir(ad)
+          if (res.ok) break
+          sonHata = await res.text()
+          if (!geciciVeyaYok(res.status)) break
+        }
+      }
+    }
+  }
+
+  if (!res || !res.ok) {
+    throw new Error(`Gemini (${res?.status || 'ERR'}): ${sonHata.slice(0, 200)}`)
+  }
+
   const json = await res.json()
-  const raw = json?.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
-  return JSON.parse(raw.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim())
+  const raw = json?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  if (!raw) throw new Error('Gemini boş yanıt döndürdü.')
+  try {
+    return JSON.parse(raw.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim())
+  } catch {
+    return { mod: 'soru_cevap', cevap: raw, taslaklar: [] }
+  }
 }
 
 export default {
