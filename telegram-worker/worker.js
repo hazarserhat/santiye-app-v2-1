@@ -86,7 +86,8 @@ async function raporHazirla(env, tip) {
     ])
     const yaklasan = (cekler || []).filter((c) => {
       const d = String(c.durum || '').toLowerCase()
-      return !d.includes('odendi') && !d.includes('ödendi') && !d.includes('tahsil') && c.cek_vadesi && String(c.cek_vadesi).slice(0, 10) <= yediGun
+      const vade = String(c.cek_vadesi || '').slice(0, 10)
+      return !d.includes('odendi') && !d.includes('ödendi') && !d.includes('tahsil') && vade && vade >= bugun && vade <= yediGun
     })
     const acikSozler = (sozler || []).filter((x) => !x.tamamlandi)
     const bekleyen = (kuyruk || []).filter((k) => k.durum === 'bekliyor')

@@ -116,7 +116,7 @@ export async function sabahRaporuOlustur(santiyeler = []) {
     const d = String(c.durum || '').toLowerCase()
     if (d.includes('odendi') || d.includes('ödendi') || d.includes('tahsil')) return false
     const vade = String(c.cek_vadesi || '').slice(0, 10)
-    return vade && vade <= yediGunSonra
+    return vade && vade >= bugun && vade <= yediGunSonra
   })
 
   const acikSozler = (Array.isArray(sozlerList) ? sozlerList : []).filter((x) => !x.tamamlandi)
