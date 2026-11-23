@@ -45,7 +45,13 @@ async function sbFetch(env, path, options = {}) {
     throw new Error(`Supabase ${res.status}: ${t.slice(0, 160)}`)
   }
   if (res.status === 204) return null
-  return res.json()
+  const text = await res.text()
+  if (!text || !text.trim()) return null
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
 }
 
 async function ayarOku(env, anahtar, varsayilan = []) {
@@ -266,7 +272,9 @@ Mesaj: ${metin || 'Ekli görseli veya PDF belgesini okuyup uygun modüle taslak 
     throw new Error(`Gemini (${res?.status || 'ERR'}): ${sonHata.slice(0, 200)}`)
   }
 
-  const json = await res.json()
+  const jsonText = await res.text()
+  if (!jsonText || !jsonText.trim()) throw new Error('Gemini boş HTTP yanıtı döndürdü.')
+  const json = JSON.parse(jsonText)
   const raw = json?.candidates?.[0]?.content?.parts?.[0]?.text || ''
   if (!raw) throw new Error('Gemini boş yanıt döndürdü.')
   try {
