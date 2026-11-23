@@ -28,14 +28,17 @@ const tarihTR = (s) => {
 const tl = (n) => Number(n || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 async function sbFetch(env, path, options = {}) {
+  const headers = {
+    apikey: env.SUPABASE_KEY,
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  }
+  if (String(env.SUPABASE_KEY || '').startsWith('eyJ')) {
+    headers.Authorization = `Bearer ${env.SUPABASE_KEY}`
+  }
   const res = await fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, {
     ...options,
-    headers: {
-      apikey: env.SUPABASE_KEY,
-      Authorization: `Bearer ${env.SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
+    headers,
   })
   if (!res.ok) {
     const t = await res.text()
@@ -140,7 +143,7 @@ async function raporHazirla(env, tip) {
 async function geminiSor(env, metin) {
   const [santiyeler, cekler, rehber, sozler] = await Promise.all([
     sbFetch(env, 'santiyeler?select=id,ad'),
-    sbFetch(env, 'cekler?select=yon,cek_vadesi,tutar,odeyen,odenen,banka,durum,santiye_id&order=cek_vadesi.asc&limit=60'),
+    sbFetch(env, 'cekler?select=*&order=cek_vadesi.asc&limit=60'),
     sbFetch(env, 'taseronlar?select=ad,firma,telefon&limit=120'),
     ayarOku(env, KEY_SOZLER, []),
   ])
@@ -184,6 +187,10 @@ export default {
 
     if (url.pathname === '/telegram' && request.method === 'POST') {
       const update = await request.json()
+      const hedefChatId = String(
+        update.message?.chat?.id || update.callback_query?.message?.chat?.id || env.TELEGRAM_CHAT_ID || ''
+      )
+      try {
 
       // 1. Inline Buton (Onayla / İptal)
       if (update.callback_query) {
@@ -241,11 +248,12 @@ export default {
       const chatId = String(msg.chat.id)
       if (env.TELEGRAM_CHAT_ID && chatId !== String(env.TELEGRAM_CHAT_ID)) return new Response('ok')
 
-      if (msg.text === '/sabah') {
+      const komut = msg.text.trim().toLocaleLowerCase('tr-TR')
+      if (komut === '/sabah') {
         await tgGonder(env, chatId, await raporHazirla(env, 'sabah'))
         return new Response('ok')
       }
-      if (msg.text === '/aksam') {
+      if (komut === '/aksam' || komut === '/akşam') {
         await tgGonder(env, chatId, await raporHazirla(env, 'aksam'))
         return new Response('ok')
       }
@@ -283,6 +291,12 @@ export default {
         await tgGonder(env, chatId, sonuc.cevap || 'Yanıt oluşturulamadı.')
       }
       return new Response('ok')
+      } catch (err) {
+        if (hedefChatId && env.TELEGRAM_BOT_TOKEN) {
+          await tgGonder(env, hedefChatId, `⚠️ <b>Bot Hatası:</b> ${String(err?.message || err).slice(0, 300)}`)
+        }
+        return new Response('ok')
+      }
     }
 
     return new Response('Santiye App Telegram Worker aktif.')
