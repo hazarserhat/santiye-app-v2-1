@@ -105,7 +105,8 @@ export default function OtomasyonMerkezi() {
   const [tgDurumMesaj, setTgDurumMesaj] = useState('')
   const [tgIslemde, setTgIslemde] = useState(false)
 
-  const chatSonRef = useRef(null)
+  const chatListeRef = useRef(null)
+  const ilkYuklemeTamamRef = useRef(false)
 
   const sekmeDegistir = (yeni) => {
     setAktifSekme(yeni)
@@ -135,8 +136,12 @@ export default function OtomasyonMerkezi() {
   }, [])
 
   useEffect(() => {
-    if (aktifSekme === 'chat') {
-      chatSonRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (!ilkYuklemeTamamRef.current) {
+      if (mesajlar.length > 0) ilkYuklemeTamamRef.current = true
+      return
+    }
+    if (aktifSekme === 'chat' && chatListeRef.current) {
+      chatListeRef.current.scrollTop = chatListeRef.current.scrollHeight
     }
   }, [mesajlar, aktifSekme])
 
@@ -431,7 +436,7 @@ export default function OtomasyonMerkezi() {
       {aktifSekme === 'chat' && (
         <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 520 }}>
           {/* Mesaj Alanı */}
-          <div style={{ flex: 1, padding: 14, overflowY: 'auto', maxHeight: '58vh', display: 'flex', flexDirection: 'column', gap: 10, background: '#F8FAFC' }}>
+          <div ref={chatListeRef} style={{ flex: 1, padding: 14, overflowY: 'auto', maxHeight: '58vh', display: 'flex', flexDirection: 'column', gap: 10, background: '#F8FAFC' }}>
             {mesajlar.length === 0 && (
               <div style={{ textAlign: 'center', padding: '22px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
                 <div style={{ fontSize: 34 }}>🤖</div>
@@ -522,7 +527,6 @@ export default function OtomasyonMerkezi() {
                 ⏳ Ajan analiz ediyor...
               </div>
             )}
-            <div ref={chatSonRef} />
           </div>
 
           {/* Alt Giriş Barı */}
